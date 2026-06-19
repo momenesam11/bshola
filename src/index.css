@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0;
+    font-family: 'Tajawal', sans-serif;
+    background-color: #F9FAFB;
+    color: #111827;
+    -webkit-font-smoothing: antialiased;
+  }
+  input, textarea, select {
+    font-family: 'Tajawal', sans-serif;
+  }
+}
+
+@layer utilities {
+  .skeleton {
+    @apply animate-pulse bg-gray-200 rounded;
+  }
+}
+
+@layer components {
+  .field-input {
+    @apply w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white;
+  }
+}
+
+@media print {
+  .no-print { display: none !important; }
+  .print-only { display: block !important; }
+  body { font-family: 'Tajawal', sans-serif; font-size: 12pt; color: #000; background: #fff; }
+  aside, nav, header { display: none !important; }
+  main { margin: 0 !important; padding: 0 !important; }
+}
