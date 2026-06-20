@@ -7,6 +7,7 @@ import {
   HiOutlineClock,
   HiOutlineEnvelope,
   HiOutlineLink,
+  HiOutlineBars3,
 } from 'react-icons/hi2'
 import { FaWhatsapp } from 'react-icons/fa'
 import { useBusiness } from '../../hooks/useBusiness'
@@ -111,7 +112,7 @@ function TrialWidget({ business }) {
   )
 }
 
-export default function TopBar({ title }) {
+export default function TopBar({ title, onMenuClick }) {
   const { data: business } = useBusiness()
   const branchCtx = useBranch()
   const [open, setOpen] = useState(false)
@@ -130,8 +131,22 @@ export default function TopBar({ title }) {
   const branches = branchCtx?.branches || []
 
   return (
-    <header className="h-14 bg-white border-b border-gray-100 flex items-center px-3 sm:px-6 gap-2 md:gap-3" dir="rtl">
-      <img src="/logo.png" alt="بسهولة" className="md:hidden w-8 h-8 rounded-lg object-contain flex-shrink-0" />
+    <header className="h-14 bg-white border-b border-gray-100 px-3 sm:px-6 sticky top-0 z-20 md:static" dir="rtl">
+      {/* Mobile: logo (right) — page title (center) — drawer button (left) */}
+      <div className="md:hidden h-14 flex items-center justify-between gap-2">
+        <img src="/logo.png" alt="بسهولة" className="w-[65px] rounded-xl object-contain flex-shrink-0" />
+        <h1 className="flex-1 text-center text-base font-bold text-gray-900 truncate px-1">{title}</h1>
+        <button
+          onClick={onMenuClick}
+          className="w-9 h-9 flex-shrink-0 rounded-xl flex items-center justify-center text-slate-600 hover:bg-slate-50 active:bg-slate-100 transition-colors"
+          aria-label="القائمة"
+        >
+          <HiOutlineBars3 className="w-6 h-6" />
+        </button>
+      </div>
+
+      {/* Desktop/tablet: original layout, unchanged */}
+      <div className="hidden md:flex h-14 items-center gap-3">
       <h1 className="text-base font-semibold text-gray-900 flex-1">{title}</h1>
 
       <div className="flex items-center gap-0.5 md:gap-2">
@@ -191,6 +206,7 @@ export default function TopBar({ title }) {
             <span className="text-sm text-gray-600 hidden sm:block truncate max-w-[120px]">{business.name}</span>
           </div>
         )}
+      </div>
       </div>
     </header>
   )

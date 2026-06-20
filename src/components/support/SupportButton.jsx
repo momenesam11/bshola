@@ -18,7 +18,7 @@ export default function SupportButton() {
   }, [])
 
   return (
-    <div className="fixed bottom-20 md:bottom-6 left-4 z-40" dir="rtl" ref={ref}>
+    <div className="fixed bottom-[calc(env(safe-area-inset-bottom)+16px)] md:bottom-6 left-4 z-40" dir="rtl" ref={ref}>
       {open && (
         <div className="absolute bottom-full mb-2 left-0 w-64 bg-white rounded-2xl shadow-xl border border-slate-100 p-4 space-y-3">
           <div className="flex items-center justify-between">

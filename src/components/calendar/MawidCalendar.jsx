@@ -101,14 +101,27 @@ function StatsBar({ businessId, branchId, startDate, endDate }) {
   ]
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-2 mb-4">
-      {items.map(item => (
-        <div key={item.label} className="bg-white rounded-xl border border-slate-100 p-4 sm:p-3 text-center shadow-sm">
-          <p className={`text-2xl sm:text-2xl font-bold ${item.color}`}>{item.value}</p>
-          <p className="text-sm sm:text-xs text-slate-400 mt-0.5">{item.label}</p>
-        </div>
-      ))}
-    </div>
+    <>
+      {/* Desktop/tablet: 4-box grid */}
+      <div className="hidden sm:grid grid-cols-4 gap-2 mb-4">
+        {items.map(item => (
+          <div key={item.label} className="bg-white rounded-xl border border-slate-100 p-3 text-center shadow-sm">
+            <p className={`text-2xl font-bold ${item.color}`}>{item.value}</p>
+            <p className="text-xs text-slate-400 mt-0.5">{item.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Mobile: single-row scroll strip — lighter than a stacked 2x2 grid */}
+      <div className="sm:hidden flex gap-2 overflow-x-auto pb-1 mb-4 scrollbar-none">
+        {items.map(item => (
+          <div key={item.label} className="flex-shrink-0 min-w-[88px] bg-white rounded-2xl border border-slate-100 px-4 py-3 text-center shadow-sm">
+            <p className={`text-xl font-bold leading-none ${item.color}`}>{item.value}</p>
+            <p className="text-xs text-slate-400 mt-1 whitespace-nowrap">{item.label}</p>
+          </div>
+        ))}
+      </div>
+    </>
   )
 }
 
@@ -134,6 +147,43 @@ function ViewSwitcher({ view, onChange }) {
           >
             <Icon className="w-4 h-4 flex-shrink-0" />
             <span className="hidden sm:block">{t.label}</span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+// ─── Mobile Date Strip — replaces day/week/month tabs on phones ────
+function DateStrip({ date, onSelect }) {
+  const containerRef = useRef(null)
+  const days = Array.from({ length: 21 }, (_, i) => addDays(subDays(date, 10), i))
+
+  useEffect(() => {
+    const el = containerRef.current?.querySelector('[data-selected="true"]')
+    el?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+  }, [date])
+
+  return (
+    <div ref={containerRef} className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+      {days.map(day => {
+        const selected = isSameDay(day, date)
+        const today = isToday(day)
+        return (
+          <button
+            key={day.toString()}
+            data-selected={selected}
+            onClick={() => onSelect(day)}
+            className={`flex-shrink-0 w-[50px] flex flex-col items-center gap-1 py-2.5 rounded-2xl transition-colors active:scale-95 ${
+              selected
+                ? 'bg-accent-500 text-white shadow-sm'
+                : today
+                  ? 'bg-accent-50 text-accent-700'
+                  : 'bg-white border border-slate-100 text-slate-600'
+            }`}
+          >
+            <span className="text-[11px] font-medium opacity-80 leading-none">{AR_DAYS_SHORT[day.getDay()]}</span>
+            <span className="text-base font-bold leading-none">{format(day, 'd')}</span>
           </button>
         )
       })}
@@ -182,40 +232,40 @@ function DayView({ businessId, branchId, date, onApptClick, onSlotClick, showBra
   const totalHeight = HOURS.length * 2 * SLOT_H // 2 slots per hour
 
   return (
-    <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
-      {/* Mobile: full-width list */}
+    <div className="md:bg-white md:rounded-xl md:border md:border-slate-100 md:overflow-hidden">
+      {/* Mobile: spaced cards instead of a dense divided list */}
       <div className="md:hidden">
         {isLoading ? (
-          <div className="p-4 space-y-2">{[1, 2, 3].map(i => <div key={i} className="h-16 bg-slate-50 rounded-xl animate-pulse" />)}</div>
+          <div className="space-y-2">{[1, 2, 3].map(i => <div key={i} className="h-[72px] bg-slate-100 rounded-2xl animate-pulse" />)}</div>
         ) : appts.length === 0 ? (
-          <div className="p-10 text-center">
+          <div className="py-14 text-center bg-white rounded-2xl border border-slate-100">
             <HiOutlineCalendarDays className="w-10 h-10 text-slate-200 mx-auto mb-2" />
             <p className="text-slate-400 text-sm">لا مواعيد في هذا اليوم</p>
           </div>
         ) : (
-          <div className="divide-y divide-slate-50">
+          <div className="space-y-2">
             {appts.map(appt => (
               <div
                 key={appt.id}
-                className="flex items-center gap-3 px-4 py-3.5 hover:bg-slate-50 transition-colors"
+                className="flex items-center gap-3 bg-white rounded-2xl border border-slate-100 shadow-sm px-4 py-3.5 active:bg-slate-50 transition-colors"
               >
-                <div className={`w-2 h-10 rounded-full flex-shrink-0 ${STATUS_BG[appt.status]}`} />
+                <div className={`w-1.5 h-12 rounded-full flex-shrink-0 ${STATUS_BG[appt.status]}`} />
                 <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onApptClick(appt)}>
-                  <p className="font-semibold text-sm text-slate-900 truncate">{appt.client_name}</p>
-                  <p className="text-xs text-slate-500 truncate">
+                  <p className="font-bold text-[15px] text-slate-900 truncate">{appt.client_name}</p>
+                  <p className="text-sm text-slate-500 truncate mt-0.5">
                     {appt.services?.name}
                     {showBranch && appt.branches?.name && ` · ${appt.branches.name}`}
                   </p>
                 </div>
-                <span className="text-xs text-slate-400 font-mono flex-shrink-0 cursor-pointer" onClick={() => onApptClick(appt)}>
+                <span className="text-sm text-slate-500 font-mono font-medium flex-shrink-0 cursor-pointer" onClick={() => onApptClick(appt)}>
                   {appt.appointment_time?.slice(0, 5)}
                 </span>
                 <button
                   onClick={() => navigate(`/patients/${appt.client_phone}`)}
-                  className="flex-shrink-0 w-8 h-8 rounded-lg bg-primary-50 hover:bg-primary-100 flex items-center justify-center text-primary-500 transition-colors"
+                  className="flex-shrink-0 w-9 h-9 rounded-xl bg-primary-50 active:bg-primary-100 flex items-center justify-center text-primary-500 transition-colors"
                   title="ملف المريض"
                 >
-                  <HiOutlineUserCircle className="w-4 h-4" />
+                  <HiOutlineUserCircle className="w-[18px] h-[18px]" />
                 </button>
               </div>
             ))}
@@ -639,66 +689,59 @@ export default function MawidCalendar({ businessId, onApptClick, onNewAppt }) {
         </button>
       </div>
 
-      {/* Controls — mobile: two clean rows instead of one cramped wrapping row */}
-      <div className="sm:hidden space-y-2 mb-4">
-        <div className="flex items-center gap-2 bg-white rounded-2xl border border-slate-100 p-1.5">
-          <button
-            onClick={goForward}
-            className="w-10 h-10 flex-shrink-0 rounded-xl hover:bg-slate-100 active:bg-slate-100 transition-colors text-slate-500 flex items-center justify-center"
-            aria-label="التالي"
-          >
-            <HiOutlineChevronRight className="w-5 h-5" />
-          </button>
-          <button onClick={goToday} className="flex-1 text-center py-1.5 rounded-xl hover:bg-slate-50 transition-colors">
-            <span className="text-sm font-bold text-slate-900 truncate block">{heading}</span>
-          </button>
-          <button
-            onClick={goBack}
-            className="w-10 h-10 flex-shrink-0 rounded-xl hover:bg-slate-100 active:bg-slate-100 transition-colors text-slate-500 flex items-center justify-center"
-            aria-label="السابق"
-          >
-            <HiOutlineChevronLeft className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <div className="relative flex-shrink-0">
-            <input
-              ref={dateInputRef}
-              type="date"
-              value={format(date, 'yyyy-MM-dd')}
-              onChange={e => {
-                if (!e.target.value) return
-                const d = new Date(e.target.value + 'T00:00:00')
-                setDate(d)
-                setView('day')
-              }}
-              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-            />
+      {/* Controls — mobile: no day/week/month tabs, just a scrollable date strip */}
+      <div className="sm:hidden mb-3">
+        <div className="flex items-center justify-between mb-2 px-0.5">
+          <button onClick={goToday} className="text-sm font-bold text-slate-900">{heading}</button>
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <input
+                ref={dateInputRef}
+                type="date"
+                value={format(date, 'yyyy-MM-dd')}
+                onChange={e => {
+                  if (!e.target.value) return
+                  const d = new Date(e.target.value + 'T00:00:00')
+                  setDate(d)
+                }}
+                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+              />
+              <button
+                onClick={() => dateInputRef.current?.showPicker?.()}
+                className="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors text-slate-500 flex items-center justify-center"
+                aria-label="انتقل لتاريخ"
+              >
+                <HiOutlineCalendarDays className="w-[18px] h-[18px]" />
+              </button>
+            </div>
             <button
-              onClick={() => dateInputRef.current?.showPicker?.()}
-              className="w-11 h-11 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors text-slate-500 flex items-center justify-center"
-              aria-label="انتقل لتاريخ"
+              onClick={() => onNewAppt?.({ date: format(date, 'yyyy-MM-dd'), time: null })}
+              className="w-9 h-9 flex-shrink-0 bg-accent-500 active:bg-accent-600 text-white rounded-xl transition-colors flex items-center justify-center"
+              aria-label="موعد جديد"
             >
-              <HiOutlineCalendarDays className="w-5 h-5" />
+              <HiOutlinePlus className="w-[18px] h-[18px]" />
             </button>
           </div>
-
-          <div className="flex-1">
-            <ViewSwitcher view={view} onChange={setView} />
-          </div>
-
-          <button
-            onClick={() => onNewAppt?.({ date: format(date, 'yyyy-MM-dd'), time: null })}
-            className="w-11 h-11 flex-shrink-0 bg-accent-500 active:bg-accent-600 text-white rounded-xl transition-colors flex items-center justify-center"
-            aria-label="موعد جديد"
-          >
-            <HiOutlinePlus className="w-5 h-5" />
-          </button>
         </div>
+        <DateStrip date={date} onSelect={setDate} />
       </div>
 
-      {/* Calendar view */}
+      {/* Mobile: always a single-day agenda — no week/month grids, they don't read well on a phone */}
+      <div className="sm:hidden">
+        <DayView
+          businessId={businessId}
+          branchId={branchId}
+          date={date}
+          onApptClick={onApptClick}
+          onSlotClick={handleSlotClick}
+          showBranch={isMultiBranch}
+          colorByBranch={viewingAllBranches}
+          branches={branches}
+        />
+      </div>
+
+      {/* Calendar view — desktop/tablet: respects the day/week/month tabs */}
+      <div className="hidden sm:block">
       {view === 'day' && (
         <DayView
           businessId={businessId}
@@ -736,6 +779,7 @@ export default function MawidCalendar({ businessId, onApptClick, onNewAppt }) {
           branches={branches}
         />
       )}
+      </div>
     </div>
   )
 }

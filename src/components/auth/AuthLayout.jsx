@@ -11,7 +11,7 @@ export default function AuthLayout({ title, subtitle, children }) {
           }}
         />
         <div className="relative z-10">
-          <img src="/logo.png" alt="بسهولة" className="h-10 w-auto object-contain" />
+          <img src="/logo-dark.png" alt="بسهولة" className="h-[4.5rem] w-auto object-contain" />
         </div>
 
         <div className="relative z-10 max-w-md">

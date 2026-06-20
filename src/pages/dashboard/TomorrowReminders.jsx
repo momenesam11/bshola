@@ -42,30 +42,30 @@ function ReminderCard({ appt, business, onSent }) {
 
   return (
     <div
-      className={`flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all ${
+      className={`flex items-center gap-3 px-4 py-3.5 sm:py-3 rounded-2xl border transition-all ${
         sent ? 'bg-accent-50 border-accent-100' : 'bg-white border-slate-100'
       }`}
       dir="rtl"
     >
-      {/* Avatar */}
-      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center text-white font-bold text-sm leading-none flex-shrink-0">
+      {/* Avatar — hidden on mobile, kept on desktop/tablet */}
+      <div className="hidden sm:flex sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-accent-400 to-accent-600 items-center justify-center text-white font-bold text-sm leading-none flex-shrink-0">
         {initials}
       </div>
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <p className="font-semibold text-sm text-slate-900 truncate">{appt.client_name}</p>
-        <div className="flex items-center flex-wrap gap-2 mt-0.5">
+        <p className="font-bold text-[15px] sm:text-sm sm:font-semibold text-slate-900 truncate">{appt.client_name}</p>
+        <div className="flex items-center flex-wrap gap-2 mt-1 sm:mt-0.5">
           {appt.services?.name && (
-            <span className="text-xs text-slate-500 truncate">{appt.services.name}</span>
+            <span className="text-sm sm:text-xs text-slate-500 truncate">{appt.services.name}</span>
           )}
-          <span className="flex items-center gap-0.5 text-xs text-slate-400 font-mono">
-            <HiOutlineClock className="w-3 h-3" />
+          <span className="flex items-center gap-0.5 text-sm sm:text-xs text-slate-400 font-mono">
+            <HiOutlineClock className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
             {time}
           </span>
           {appt.branches?.name && (
-            <span className="flex items-center gap-0.5 text-xs text-slate-400">
-              <HiOutlineBuildingOffice2 className="w-3 h-3" />
+            <span className="flex items-center gap-0.5 text-sm sm:text-xs text-slate-400">
+              <HiOutlineBuildingOffice2 className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
               {appt.branches.name}
             </span>
           )}
