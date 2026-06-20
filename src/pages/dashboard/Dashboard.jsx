@@ -53,10 +53,10 @@ export default function Dashboard() {
         appointment={selectedAppt}
       />
 
-      {/* Mobile FAB */}
+      {/* Mobile FAB — right side, so it never overlaps the support button (bottom-left) */}
       <button
         onClick={() => handleNewAppt({ date: today })}
-        className="md:hidden fixed bottom-20 left-4 z-40 w-14 h-14 bg-accent-500 hover:bg-accent-600 text-white rounded-full shadow-lg flex items-center justify-center transition-colors active:scale-90"
+        className="md:hidden fixed bottom-20 right-4 z-40 w-14 h-14 bg-accent-500 hover:bg-accent-600 text-white rounded-full shadow-lg flex items-center justify-center transition-colors active:scale-90"
         style={{ bottom: 'calc(env(safe-area-inset-bottom) + 72px)' }}
         aria-label="إضافة موعد جديد"
       >

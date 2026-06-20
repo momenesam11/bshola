@@ -8,6 +8,9 @@ import AdminDashboard from './pages/admin/AdminDashboard'
 
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
+import ForgotPassword from './pages/auth/ForgotPassword'
+import ResetPassword from './pages/auth/ResetPassword'
+import AuthCallback from './pages/auth/AuthCallback'
 import OnboardingFlow from './pages/onboarding/OnboardingFlow'
 import Dashboard from './pages/dashboard/Dashboard'
 import AppointmentList from './pages/dashboard/AppointmentList'
@@ -100,6 +103,9 @@ export default function App() {
           {/* Public */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/book/:businessSlug" element={<BookingPage />} />
           <Route path="/mawid-super-admin-2025" element={<AdminDashboard />} />
 

@@ -14,7 +14,9 @@ export function StatCard({ label, value, Icon, color = 'accent' }) {
     accent: 'bg-accent-50 text-accent-600',
     blue: 'bg-blue-50 text-blue-600',
     orange: 'bg-orange-50 text-orange-600',
+    amber: 'bg-amber-50 text-amber-600',
     red: 'bg-red-50 text-red-600',
+    slate: 'bg-slate-100 text-slate-600',
   }
   return (
     <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 sm:p-5">

@@ -18,7 +18,7 @@ import RetargetModal from './RetargetModal'
 
 function Avatar({ name }) {
   return (
-    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
+    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center text-white text-xl font-bold leading-none flex-shrink-0">
       {name?.slice(0, 2) || '؟؟'}
     </div>
   )

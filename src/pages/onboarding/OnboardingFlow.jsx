@@ -18,17 +18,19 @@ import {
   HiOutlineCamera,
   HiOutlinePhoto,
   HiOutlineGlobeAlt,
-  HiOutlineClipboard,
+  HiOutlineChevronLeft,
 } from 'react-icons/hi2'
-import { FaInstagram, FaFacebook, FaWhatsapp } from 'react-icons/fa'
+import { FaInstagram, FaFacebook } from 'react-icons/fa'
 import { z } from 'zod'
 import confetti from 'canvas-confetti'
 import { supabase } from '../../lib/supabase'
+import { phoneSchema } from '../../lib/validators'
 import { DEFAULT_REMINDER_TEMPLATE, MEDICAL_TYPES } from '../../utils/constants'
 import { useCreateBusiness, useUpsertService, uploadBusinessAsset } from '../../hooks/useBusiness'
 import Button from '../../components/ui/Button'
 import Input, { Select } from '../../components/ui/Input'
 import ScheduleBlockEditor from '../../components/ui/ScheduleBlockEditor'
+import BookingLinkActions from '../../components/booking/BookingLinkActions'
 const STEPS = ['نوع النشاط', 'معلوماتك', 'الفروع', 'ساعات العمل', 'الخدمات', 'هويتك']
 
 // Context-aware content based on business type
@@ -83,10 +85,15 @@ const TYPE_CONFIG = {
   },
 }
 
-const stepBusinessInfoSchema = z.object({
-  name: z.string().min(2, 'اسم النشاط يجب أن يكون حرفين على الأقل'),
-  public_phone: z.string().optional(),
-})
+function getStepBusinessInfoSchema(requireOwnerPhone) {
+  return z.object({
+    name: z.string().min(2, 'اسم النشاط يجب أن يكون حرفين على الأقل'),
+    public_phone: z.string().optional(),
+    ownerPhone: requireOwnerPhone
+      ? phoneSchema('رقم الواتساب غير صحيح')
+      : z.string().optional(),
+  })
+}
 
 const BUSINESS_VERTICAL_TYPES = [
   { key: 'clinic', icon: HiOutlineHeart, name: 'عيادة طبية', desc: 'أسنان، جلدية، عيون، عامة', services: ['كشف', 'متابعة', 'أشعة', 'تنظيف أسنان', 'حشو', 'خلع'] },
@@ -117,27 +124,15 @@ const CANCELLATION_OPTIONS = [
 
 function ProgressBar({ step }) {
   return (
-    <div className="mb-8">
+    <div className="mb-4 sm:mb-6">
       <div className="flex items-center justify-between mb-2">
-        {STEPS.map((label, i) => (
-          <div key={i} className="flex flex-col items-center gap-1 flex-1">
-            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium transition-colors ${
-              i < step ? 'bg-accent-500 text-white'
-              : i === step ? 'bg-accent-500 text-white ring-4 ring-accent-100'
-              : 'bg-gray-100 text-gray-400'
-            }`}>
-              {i < step ? <HiOutlineCheck className="w-3.5 h-3.5" /> : i + 1}
-            </div>
-            <span className={`text-[10px] hidden sm:block text-center ${i === step ? 'text-accent-600 font-medium' : 'text-gray-400'}`}>
-              {label}
-            </span>
-          </div>
-        ))}
+        <span className="text-xs font-bold text-slate-500">خطوة {step + 1} من {STEPS.length}</span>
+        <span className="text-xs font-medium text-accent-600">{STEPS[step]}</span>
       </div>
-      <div className="relative h-1 bg-gray-100 rounded-full mt-2">
+      <div className="relative h-1.5 bg-gray-100 rounded-full overflow-hidden">
         <div
-          className="absolute h-1 bg-accent-500 rounded-full transition-all duration-300"
-          style={{ width: `${(step / (STEPS.length - 1)) * 100}%` }}
+          className="absolute inset-y-0 right-0 h-full bg-accent-500 rounded-full transition-all duration-300"
+          style={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
         />
       </div>
     </div>
@@ -148,12 +143,31 @@ function ProgressBar({ step }) {
 function StepBusinessType({ onNext }) {
   const [selected, setSelected] = useState(null)
   return (
-    <div className="space-y-6" dir="rtl">
+    <div className="space-y-4 sm:space-y-6" dir="rtl">
       <div>
-        <h2 className="text-2xl font-bold text-slate-900">ما نوع بيزنسك؟</h2>
+        <h2 className="text-xl sm:text-2xl font-bold text-slate-900">ما نوع بيزنسك؟</h2>
         <p className="text-slate-500 text-sm mt-1">هنخصص النظام ليك بناءً على نشاطك</p>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+
+      {/* Mobile: compact tappable list — tap = select + auto-advance, no extra "التالي" needed */}
+      <div className="sm:hidden space-y-2">
+        {BUSINESS_VERTICAL_TYPES.map(type => {
+          const Icon = type.icon
+          return (
+            <button key={type.key} type="button" onClick={() => onNext(type)}
+              className="w-full flex items-center gap-3 px-4 rounded-xl border border-slate-100 bg-white hover:border-accent-200 hover:bg-slate-50 active:scale-[0.98] transition-all min-h-[56px]">
+              <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
+                <Icon className="w-5 h-5 text-slate-600" />
+              </div>
+              <span className="flex-1 text-right font-bold text-sm text-slate-900">{type.name}</span>
+              <HiOutlineChevronLeft className="w-4 h-4 text-slate-300 flex-shrink-0" />
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Desktop / tablet: card grid, select then press التالي */}
+      <div className="hidden sm:grid grid-cols-2 lg:grid-cols-3 gap-3">
         {BUSINESS_VERTICAL_TYPES.map(type => {
           const Icon = type.icon
           const isSelected = selected?.key === type.key
@@ -174,14 +188,16 @@ function StepBusinessType({ onNext }) {
           )
         })}
       </div>
-      <Button onClick={() => selected && onNext(selected)} disabled={!selected} className="w-full">التالي</Button>
+      <Button onClick={() => selected && onNext(selected)} disabled={!selected} className="w-full hidden sm:flex">التالي</Button>
     </div>
   )
 }
 
 // ── Step 1: Business Info ──────────────────────────────────────────
-function StepBusinessInfo({ onNext, onBack, vertical }) {
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({ resolver: zodResolver(stepBusinessInfoSchema) })
+function StepBusinessInfo({ onNext, onBack, vertical, requireOwnerPhone }) {
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
+    resolver: zodResolver(getStepBusinessInfoSchema(requireOwnerPhone)),
+  })
   const cfg = TYPE_CONFIG[vertical?.key] || TYPE_CONFIG.other
   return (
     <form onSubmit={handleSubmit(onNext)} className="space-y-4" dir="rtl">
@@ -190,6 +206,17 @@ function StepBusinessInfo({ onNext, onBack, vertical }) {
         <p className="text-gray-500 text-sm mt-1">أخبرنا عن نشاطك حتى نضبط النظام لك</p>
       </div>
       <Input label={cfg.businessNameLabel} placeholder={cfg.businessNamePlaceholder} error={errors.name?.message} {...register('name')} />
+      {requireOwnerPhone && (
+        <Input
+          label="رقم واتساب بتاعك"
+          type="tel"
+          placeholder="201XXXXXXXXX"
+          dir="ltr"
+          helper="هنتواصل معاك عليه للاشتراك"
+          error={errors.ownerPhone?.message}
+          {...register('ownerPhone')}
+        />
+      )}
       <Input
         label="رقم التواصل مع العيادة (يظهر للعملاء)"
         type="tel"
@@ -199,7 +226,7 @@ function StepBusinessInfo({ onNext, onBack, vertical }) {
         error={errors.public_phone?.message}
         {...register('public_phone')}
       />
-      <div className="flex gap-3 mt-2">
+      <div className="flex gap-3 mt-2 sticky bottom-0 bg-white pt-3 pb-1 -mx-4 px-4 md:static md:bg-transparent md:mx-0 md:px-0 md:pt-0 md:pb-0">
         <Button variant="secondary" type="button" onClick={onBack} className="flex-1">السابق</Button>
         <Button type="submit" loading={isSubmitting} className="flex-1">التالي</Button>
       </div>
@@ -237,7 +264,7 @@ function StepBranches({ onNext, onBack, vertical }) {
   }
 
   return (
-    <div className="space-y-6" dir="rtl">
+    <div className="space-y-4 sm:space-y-6" dir="rtl">
       <div>
         <h2 className="text-xl font-bold text-slate-900">هل عندك أكتر من فرع؟</h2>
         <p className="text-slate-500 text-sm mt-1">تقدر تضيف فروع أكتر بعدين من الإعدادات</p>
@@ -304,7 +331,7 @@ function StepBranches({ onNext, onBack, vertical }) {
         )}
       </div>
 
-      <div className="flex gap-3">
+      <div className="flex gap-3 sticky bottom-0 bg-white pt-3 pb-1 -mx-4 px-4 md:static md:bg-transparent md:mx-0 md:px-0 md:pt-0 md:pb-0">
         <Button variant="secondary" onClick={onBack} className="flex-1">السابق</Button>
         <Button onClick={() => onNext({ branches: isMulti ? branches : [branches[0]], capacity: isClinic ? 1 : capacity })} className="flex-1">التالي</Button>
       </div>
@@ -316,13 +343,14 @@ function StepBranches({ onNext, onBack, vertical }) {
 function StepWorkingHours({ onNext, onBack }) {
   const [blocks, setBlocks] = useState({})
   const [slotDuration, setSlotDuration] = useState(30)
+  const [isValid, setIsValid] = useState(true)
   return (
     <div className="space-y-4" dir="rtl">
       <div className="mb-6">
         <h2 className="text-xl font-bold text-gray-900">ساعات العمل</h2>
         <p className="text-gray-500 text-sm mt-1">حدد الأيام والفترات التي تستقبل فيها العملاء — يمكنك إضافة أكتر من فترة لليوم الواحد</p>
       </div>
-      <ScheduleBlockEditor value={blocks} onChange={setBlocks} />
+      <ScheduleBlockEditor value={blocks} onChange={setBlocks} onValidityChange={setIsValid} />
       <Select label="مدة الموعد الواحد" value={slotDuration} onChange={e => setSlotDuration(Number(e.target.value))}>
         <option value={15}>15 دقيقة</option>
         <option value={30}>30 دقيقة</option>
@@ -330,9 +358,9 @@ function StepWorkingHours({ onNext, onBack }) {
         <option value={60}>ساعة كاملة</option>
         <option value={90}>ساعة ونصف</option>
       </Select>
-      <div className="flex gap-3 mt-2">
+      <div className="flex gap-3 mt-2 sticky bottom-0 bg-white pt-3 pb-1 -mx-4 px-4 md:static md:bg-transparent md:mx-0 md:px-0 md:pt-0 md:pb-0">
         <Button variant="secondary" onClick={onBack} className="flex-1">السابق</Button>
-        <Button onClick={() => onNext({ schedule_blocks: blocks, slot_duration: slotDuration })} className="flex-1">التالي</Button>
+        <Button onClick={() => onNext({ schedule_blocks: blocks, slot_duration: slotDuration })} disabled={!isValid} className="flex-1">التالي</Button>
       </div>
     </div>
   )
@@ -411,7 +439,7 @@ function StepServices({ onNext, onBack, businessVertical }) {
         </div>
       )}
 
-      <div className="flex gap-3">
+      <div className="flex gap-3 sticky bottom-0 bg-white pt-3 pb-1 -mx-4 px-4 md:static md:bg-transparent md:mx-0 md:px-0 md:pt-0 md:pb-0">
         <Button variant="secondary" onClick={onBack} className="flex-1">السابق</Button>
         <Button onClick={() => onNext({ services: [...selected].map(name => ({ name, duration_minutes: durations[name] ?? 30, price: null })) })} disabled={selected.size === 0} className="flex-1">التالي</Button>
       </div>
@@ -663,7 +691,7 @@ function StepIdentity({ onNext, onBack, businessName, vertical }) {
         </div>
       </div>
 
-      <div className="flex gap-3 pt-2">
+      <div className="flex gap-3 pt-2 sticky bottom-0 bg-white pt-3 pb-1 -mx-4 px-4 md:static md:bg-transparent md:mx-0 md:px-0 md:pb-0">
         <Button variant="secondary" onClick={onBack} className="flex-1">السابق</Button>
         <Button onClick={() => onNext({ logoFile, coverFile, brandColor, booking_slug: slug || null, bio, years_experience: Number(years) || null, specialty, instagram_url: instagram || null, facebook_url: facebook || null, google_reviews_url: googleReviews || null, welcome_message: welcomeMsg, cancellation_policy: cancelPolicy })} className="flex-1">
           إنهاء الإعداد
@@ -676,26 +704,12 @@ function StepIdentity({ onNext, onBack, businessName, vertical }) {
 // ── Share Kit (Completion Screen) ──────────────────────────────────
 function ShareKitScreen({ businessName, slug }) {
   const navigate = useNavigate()
-  const [copied, setCopied] = useState(false)
-  const [msgCopied, setMsgCopied] = useState(false)
-  const bookingUrl = `https://mawid.app/book/${slug || 'your-link'}`
+  const bookingUrl = `${window.location.origin}/book/${slug || 'your-link'}`
   const shareMsg = `احجز موعدك مع ${businessName} بسهولة من الرابط ده 👇\n${bookingUrl}\n⏰ اختار الوقت المناسب ليك وهنبعتلك تأكيد على واتساب`
 
   useEffect(() => {
     confetti({ particleCount: 120, spread: 80, origin: { y: 0.4 }, colors: ['#10B981', '#6366F1', '#F59E0B', '#EF4444'] })
   }, [])
-
-  function copyLink() {
-    navigator.clipboard.writeText(bookingUrl)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  function copyMsg() {
-    navigator.clipboard.writeText(shareMsg)
-    setMsgCopied(true)
-    setTimeout(() => setMsgCopied(false), 2000)
-  }
 
   return (
     <div className="text-center space-y-6" dir="rtl">
@@ -709,30 +723,10 @@ function ShareKitScreen({ businessName, slug }) {
         <h2 className="font-bold text-slate-900 text-base">شارك رابط الحجز بتاعك</h2>
 
         {/* Booking link */}
-        <div className="flex items-center gap-2 bg-slate-50 rounded-xl px-3 py-2.5 border border-slate-200">
-          <span className="flex-1 text-sm text-slate-700 font-mono truncate" dir="ltr">{bookingUrl}</span>
-          <button onClick={copyLink}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${copied ? 'bg-accent-100 text-accent-700' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'}`}>
-            {copied ? <HiOutlineCheck className="w-3.5 h-3.5" /> : <HiOutlineClipboard className="w-3.5 h-3.5" />}
-            {copied ? 'تم النسخ' : 'نسخ'}
-          </button>
-          <a href={`https://wa.me/?text=${encodeURIComponent('احجز موعدك معايا بسهولة من هنا 👇 ' + bookingUrl)}`} target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-500 hover:bg-green-600 text-white transition-colors">
-            <FaWhatsapp className="w-3.5 h-3.5" />
-            شارك
-          </a>
+        <div className="bg-slate-50 rounded-xl px-3 py-2.5 border border-slate-200">
+          <span className="block text-sm text-slate-700 font-mono truncate" dir="ltr">{bookingUrl}</span>
         </div>
-
-        {/* Ready message */}
-        <div>
-          <p className="text-xs font-medium text-slate-500 mb-2">رسالة جاهزة للنسخ والمشاركة</p>
-          <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 text-sm text-slate-700 whitespace-pre-line leading-relaxed">{shareMsg}</div>
-          <button onClick={copyMsg}
-            className={`mt-2 w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-medium transition-colors ${msgCopied ? 'bg-accent-100 text-accent-700' : 'border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-            {msgCopied ? <HiOutlineCheck className="w-4 h-4" /> : <HiOutlineClipboard className="w-4 h-4" />}
-            {msgCopied ? 'تم النسخ' : 'نسخ الرسالة'}
-          </button>
-        </div>
+        <BookingLinkActions url={bookingUrl} shareMessage={shareMsg} />
       </div>
 
       <Button onClick={() => navigate('/dashboard')} className="w-full text-base py-4">ابدأ الاستخدام</Button>
@@ -749,6 +743,7 @@ export default function OnboardingFlow() {
   const [shareKit, setShareKit] = useState(null)
   const createBusiness = useCreateBusiness()
   const upsertService = useUpsertService()
+  const requireOwnerPhone = !sessionStorage.getItem('mawid_pending_owner_phone')
 
   function next(updates) {
     setData(prev => ({ ...prev, ...updates }))
@@ -765,10 +760,10 @@ export default function OnboardingFlow() {
     setLoading(true)
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      const pendingOwnerPhone = sessionStorage.getItem('mawid_pending_owner_phone')
+      const ownerPhone = sessionStorage.getItem('mawid_pending_owner_phone') || data.ownerPhone
 
       const identityFields = {
-        ...(pendingOwnerPhone ? { owner_phone: pendingOwnerPhone } : {}),
+        ...(ownerPhone ? { owner_phone: ownerPhone } : {}),
         public_phone: data.public_phone || null,
         brand_color: identityValues.brandColor,
         bio: identityValues.bio || null,
@@ -846,7 +841,7 @@ export default function OnboardingFlow() {
         }
       }
 
-      if (pendingOwnerPhone) sessionStorage.removeItem('mawid_pending_owner_phone')
+      sessionStorage.removeItem('mawid_pending_owner_phone')
 
       setShareKit({ name: business.name, slug: business.booking_slug })
       setStep(6)
@@ -873,24 +868,30 @@ export default function OnboardingFlow() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4" dir="rtl">
-      <div className="w-full max-w-2xl">
-        <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-12 h-12 bg-accent-500 rounded-2xl mb-2 shadow-lg">
-            <span className="text-white font-bold text-xl">ب</span>
+    <div className="h-screen md:min-h-screen md:h-auto bg-gray-50 flex flex-col md:items-center md:justify-center md:p-4" dir="rtl">
+      <div className="w-full md:max-w-2xl flex flex-col h-full md:h-auto min-h-0">
+
+        {/* Header — fixed, doesn't scroll */}
+        <div className="flex-shrink-0 text-center pt-4 pb-1 md:pt-0 md:pb-0 md:mb-6">
+          <div className="inline-flex items-center justify-center w-10 h-10 md:w-12 md:h-12 bg-accent-500 rounded-2xl mb-1 md:mb-2 shadow-lg">
+            <span className="text-white font-bold text-lg md:text-xl">ب</span>
           </div>
-          <p className="text-gray-500 text-sm">إعداد حسابك</p>
+          <p className="text-gray-500 text-xs md:text-sm">إعداد حسابك</p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <ProgressBar step={step} />
-
-          {step === 0 && <StepBusinessType onNext={handleStep0} />}
-          {step === 1 && <StepBusinessInfo onNext={handleStep1} onBack={() => setStep(0)} vertical={data.vertical} />}
-          {step === 2 && <StepBranches onNext={handleStep2} onBack={() => setStep(1)} vertical={data.vertical} />}
-          {step === 3 && <StepWorkingHours onNext={handleStep3} onBack={() => setStep(2)} />}
-          {step === 4 && <StepServices onNext={handleStep4} onBack={() => setStep(3)} businessVertical={data.vertical} />}
-          {step === 5 && <StepIdentity onNext={handleStep5} onBack={() => setStep(4)} businessName={data.name} vertical={data.vertical} />}
+        {/* Card — progress fixed, step content scrolls within */}
+        <div className="flex-1 md:flex-initial flex flex-col bg-white md:rounded-2xl shadow-sm border-0 md:border border-gray-100 overflow-hidden min-h-0">
+          <div className="flex-shrink-0 px-4 md:px-6 pt-4 md:pt-6">
+            <ProgressBar step={step} />
+          </div>
+          <div className="flex-1 overflow-y-auto px-4 md:px-6 pb-4 md:pb-6 min-h-0">
+            {step === 0 && <StepBusinessType onNext={handleStep0} />}
+            {step === 1 && <StepBusinessInfo onNext={handleStep1} onBack={() => setStep(0)} vertical={data.vertical} requireOwnerPhone={requireOwnerPhone} />}
+            {step === 2 && <StepBranches onNext={handleStep2} onBack={() => setStep(1)} vertical={data.vertical} />}
+            {step === 3 && <StepWorkingHours onNext={handleStep3} onBack={() => setStep(2)} />}
+            {step === 4 && <StepServices onNext={handleStep4} onBack={() => setStep(3)} businessVertical={data.vertical} />}
+            {step === 5 && <StepIdentity onNext={handleStep5} onBack={() => setStep(4)} businessName={data.name} vertical={data.vertical} />}
+          </div>
         </div>
       </div>
     </div>

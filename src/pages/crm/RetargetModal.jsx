@@ -116,7 +116,7 @@ export default function RetargetModal({ onClose, businessId, business, singleCli
               <div className="flex gap-2">
                 {['الجمهور', 'الرسالة', 'الإرسال'].map((s, i) => (
                   <div key={i} className="flex items-center gap-1 flex-1">
-                    <div className={`w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center ${i <= step ? 'bg-accent-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                    <div className={`w-6 h-6 rounded-full text-xs font-bold leading-none flex items-center justify-center ${i <= step ? 'bg-accent-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
                       {i < step ? <HiOutlineCheck className="w-3 h-3" /> : i + 1}
                     </div>
                     <span className={`text-xs ${i === step ? 'text-accent-600 font-medium' : 'text-slate-400'}`}>{s}</span>

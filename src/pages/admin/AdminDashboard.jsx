@@ -230,7 +230,7 @@ function Dashboard() {
                   <tr key={b.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50">
                     <td className="px-4 py-3 font-medium text-gray-900">{b.name}</td>
                     <td className="px-4 py-3 text-gray-500">{businessTypeLabel(b.type)}</td>
-                    <td className="px-4 py-3 text-gray-500" dir="ltr">{b.owner_phone || b.phone || '—'}</td>
+                    <td className="px-4 py-3 text-gray-500 text-right" dir="ltr">{b.owner_phone || b.phone || '—'}</td>
                     <td className="px-4 py-3 text-gray-500">{formatDate(b.created_at)}</td>
                     <td className="px-4 py-3">
                       <div className="text-gray-700">{formatDate(b.trial_ends_at)}</div>

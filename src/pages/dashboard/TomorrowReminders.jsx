@@ -48,7 +48,7 @@ function ReminderCard({ appt, business, onSent }) {
       dir="rtl"
     >
       {/* Avatar */}
-      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center text-white font-bold text-sm leading-none flex-shrink-0">
         {initials}
       </div>
 
@@ -128,7 +128,7 @@ function SendAllModal({ appts, business, onDone, onClose }) {
 
         {/* Current client */}
         <div className="bg-slate-50 rounded-2xl p-4 text-center space-y-1">
-          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center text-white font-bold text-lg mx-auto mb-2">
+          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center text-white font-bold text-lg leading-none mx-auto mb-2">
             {(current?.client_name || '').slice(0, 2)}
           </div>
           <p className="font-bold text-slate-900">{current?.client_name}</p>
@@ -195,7 +195,7 @@ export default function TomorrowReminders({ businessId, business }) {
             <div className="flex items-center gap-2">
               <h2 className="font-bold text-slate-800 text-sm">تذكيرات بكرا</h2>
               {pendingCount > 0 && (
-                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-500 text-white">
+                <span className="text-xs font-bold leading-none px-2 py-1 rounded-full bg-blue-500 text-white">
                   {pendingCount}
                 </span>
               )}

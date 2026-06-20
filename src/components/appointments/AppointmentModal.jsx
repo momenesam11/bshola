@@ -264,15 +264,15 @@ export default function AppointmentModal({ open, onClose, businessId, initialDat
           )}
         </div>
 
-        {/* Date + Time */}
-        <div className="grid grid-cols-2 gap-2">
-          <div>
+        {/* Date + Time — stacked on mobile, native pickers need full width to not collide */}
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="w-full sm:w-1/2">
             <label className="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1">
               <HiOutlineCalendarDays className="w-3.5 h-3.5" /> التاريخ
             </label>
             <input type="date" {...register('appointment_date')} className={fieldCls(errors.appointment_date)} />
           </div>
-          <div>
+          <div className="w-full sm:w-1/2">
             <label className="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1">
               <HiOutlineClock className="w-3.5 h-3.5" /> الوقت
             </label>

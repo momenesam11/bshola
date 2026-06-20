@@ -87,11 +87,11 @@ export default function Reports() {
     <PageWrapper title="التقارير">
 {/* Date Range */}
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 mb-6" dir="rtl">
-        <div className="flex flex-wrap gap-3 items-center">
-          <div className="flex gap-2">
+        <div className="space-y-3 sm:space-y-0 sm:flex sm:flex-wrap sm:gap-3 sm:items-center">
+          <div className="flex gap-2 overflow-x-auto pb-0.5 -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible scrollbar-none">
             {PRESETS.map(p => (
               <button key={p.key} onClick={() => applyPreset(p.key)}
-                className={`px-3 py-2 rounded-xl text-sm font-medium transition-colors min-h-[36px] ${preset === p.key ? 'bg-accent-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                className={`flex-shrink-0 px-3 py-2 rounded-xl text-sm font-medium transition-colors min-h-[40px] sm:min-h-[36px] ${preset === p.key ? 'bg-accent-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
                 {p.label}
               </button>
             ))}
@@ -106,7 +106,7 @@ export default function Reports() {
             </div>
           )}
           <button onClick={() => downloadCSV(appointments)} disabled={appointments.length === 0}
-            className="mr-auto flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-40 transition-colors">
+            className="w-full sm:w-auto sm:mr-auto flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-40 transition-colors min-h-[44px] sm:min-h-0">
             <HiOutlineArrowDownTray className="w-4 h-4" />
             تصدير CSV
           </button>
@@ -129,14 +129,16 @@ export default function Reports() {
 
       {/* Filter + Table */}
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden" dir="rtl">
-        <div className="flex gap-2 p-4 border-b border-gray-50 flex-wrap items-center">
-          {STATUS_FILTERS.map(s => (
-            <button key={s.value} onClick={() => setStatusFilter(s.value)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors min-h-[32px] ${statusFilter === s.value ? 'bg-accent-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-              {s.label}
-            </button>
-          ))}
-          <span className="mr-auto text-xs text-gray-400">{filtered.length} موعد</span>
+        <div className="flex items-center gap-2 p-4 border-b border-gray-50">
+          <div className="flex gap-2 overflow-x-auto scrollbar-none">
+            {STATUS_FILTERS.map(s => (
+              <button key={s.value} onClick={() => setStatusFilter(s.value)}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors min-h-[36px] sm:min-h-[32px] ${statusFilter === s.value ? 'bg-accent-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                {s.label}
+              </button>
+            ))}
+          </div>
+          <span className="mr-auto flex-shrink-0 text-xs text-gray-400">{filtered.length} موعد</span>
         </div>
 
         {isLoading ? (
@@ -147,33 +149,57 @@ export default function Reports() {
             <p className="text-gray-400 text-sm">لا توجد بيانات في هذه الفترة</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-slate-50 border-b border-slate-100">
-                <tr>
-                  {['العميل', 'الخدمة', 'التاريخ', 'الوقت', 'الحالة'].map(h => (
-                    <th key={h} className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((appt, i) => (
-                  <tr key={appt.id} className={`border-b border-slate-50 last:border-0 transition-colors hover:bg-slate-50/50 ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}`}>
-                    <td className="px-4 py-3.5">
-                      <p className="font-semibold text-slate-900 text-sm">{appt.client_name}</p>
-                      <p className="text-xs text-slate-400 font-mono mt-0.5" dir="ltr">{appt.client_phone}</p>
-                    </td>
-                    <td className="px-4 py-3.5 text-sm text-slate-600 whitespace-nowrap">{appt.services?.name || '—'}</td>
-                    <td className="px-4 py-3.5 text-sm text-slate-600 whitespace-nowrap">{formatDateAr(appt.appointment_date, 'd MMM yyyy')}</td>
-                    <td className="px-4 py-3.5 text-sm text-slate-600 whitespace-nowrap font-mono" dir="ltr">{formatTime12(appt.appointment_time?.slice(0, 5))}</td>
-                    <td className="px-4 py-3.5"><StatusBadge status={appt.status} /></td>
+          <>
+            {/* Desktop / tablet: table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full table-fixed">
+                <thead className="bg-slate-50 border-b border-slate-100">
+                  <tr>
+                    <th className="px-4 py-3 text-right text-sm font-semibold text-slate-500 w-[28%]">العميل</th>
+                    <th className="px-4 py-3 text-right text-sm font-semibold text-slate-500 w-[20%]">الخدمة</th>
+                    <th className="px-4 py-3 text-right text-sm font-semibold text-slate-500 w-[20%]">التاريخ</th>
+                    <th className="px-4 py-3 text-right text-sm font-semibold text-slate-500 w-[16%]">الوقت</th>
+                    <th className="px-4 py-3 text-right text-sm font-semibold text-slate-500 w-[16%]">الحالة</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {filtered.map((appt, i) => (
+                    <tr key={appt.id} className={`border-b border-slate-50 last:border-0 transition-colors hover:bg-slate-50/50 ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}`}>
+                      <td className="px-4 py-3.5 align-middle">
+                        <p className="font-semibold text-slate-900 text-sm truncate">{appt.client_name}</p>
+                        <p className="text-xs text-slate-400 font-mono mt-0.5 text-right" dir="ltr">{appt.client_phone}</p>
+                      </td>
+                      <td className="px-4 py-3.5 align-middle text-sm text-slate-600 truncate">{appt.services?.name || '—'}</td>
+                      <td className="px-4 py-3.5 align-middle text-sm text-slate-600 truncate">{formatDateAr(appt.appointment_date, 'd MMM yyyy')}</td>
+                      <td className="px-4 py-3.5 align-middle text-sm text-slate-600 font-mono text-right" dir="ltr">{formatTime12(appt.appointment_time?.slice(0, 5))}</td>
+                      <td className="px-4 py-3.5 align-middle"><StatusBadge status={appt.status} /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile: card list — avoids horizontal scroll */}
+            <div className="md:hidden divide-y divide-slate-50">
+              {filtered.map(appt => (
+                <div key={appt.id} className="px-4 py-3.5 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-semibold text-slate-900 text-sm truncate">{appt.client_name}</p>
+                    <StatusBadge status={appt.status} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-y-1 text-sm">
+                    <span className="text-slate-400">الخدمة</span>
+                    <span className="text-slate-700 text-right truncate">{appt.services?.name || '—'}</span>
+                    <span className="text-slate-400">التاريخ</span>
+                    <span className="text-slate-700 text-right">{formatDateAr(appt.appointment_date, 'd MMM yyyy')}</span>
+                    <span className="text-slate-400">الوقت</span>
+                    <span className="text-slate-700 text-right font-mono" dir="ltr">{formatTime12(appt.appointment_time?.slice(0, 5))}</span>
+                  </div>
+                  <p className="text-xs text-slate-400 font-mono text-right" dir="ltr">{appt.client_phone}</p>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
     </PageWrapper>

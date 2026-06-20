@@ -3,11 +3,9 @@ import { Link } from 'react-router-dom'
 import {
   HiOutlineArrowLeft,
   HiOutlineCalendar,
-  HiOutlineExclamationTriangle,
   HiOutlineChartBar,
   HiOutlineLink,
   HiOutlineUsers,
-  HiOutlineBuildingOffice2,
   HiOutlineHeart,
   HiOutlineScissors,
   HiOutlineBolt,
@@ -18,9 +16,10 @@ import {
   HiXMark,
   HiChevronDown,
   HiChevronUp,
-  HiCheck
+  HiCheck,
+  HiStar
 } from 'react-icons/hi2'
-import { FaWhatsapp } from 'react-icons/fa'
+import { FaWhatsapp, FaInstagramSquare, FaTwitter, FaFacebook } from 'react-icons/fa'
 
 // Reusable scroll-triggered animation wrapper
 function FadeIn({ children, delay = 0 }) {
@@ -59,6 +58,14 @@ function FadeIn({ children, delay = 0 }) {
       style={{ transitionDelay: `${delay}ms` }}
     >
       {children}
+    </div>
+  )
+}
+
+function Stars() {
+  return (
+    <div className="flex gap-0.5 mb-3">
+      {[...Array(5)].map((_, i) => <HiStar key={i} className="w-4 h-4 text-amber-400" />)}
     </div>
   )
 }
@@ -155,40 +162,40 @@ export default function LandingPage() {
       }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-14">
-            
+
             {/* Logo on Right in RTL */}
             <div className="flex-shrink-0 flex items-center gap-2">
               <Link to="/" className="flex items-center gap-2">
                 <svg className="w-9 h-9 text-[#16B89A]" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M75 50C75 63.8071 63.8071 75 50 75C36.1929 75 25 63.8071 25 50C25 36.1929 36.1929 25 50 25C52.5 25 54.8 25.4 57 26.1" stroke="currentColor" strokeWidth="10" strokeLinecap="round" />
                   <path d="M50 75C53.866 75 57.618 73.953 60.875 72" stroke="currentColor" strokeWidth="10" strokeLinecap="round" />
-                  <circle cx="42" cy="45" r="7" fill="#0F2C4E" />
+                  <circle cx="42" cy="45" r="7" fill={isScrolled ? '#0F2C4E' : '#fff'} />
                   <circle cx="58" cy="45" r="7" fill="#16B89A" />
                   <path d="M38 58C42 62 48 62 52 58" stroke="#16B89A" strokeWidth="6" strokeLinecap="round" />
                 </svg>
-                <span className="text-2xl font-bold tracking-tight text-[#0F2C4E]">بسهولة</span>
+                <span className={`text-2xl font-bold tracking-tight transition-colors ${isScrolled ? 'text-[#0F2C4E]' : 'text-white'}`}>بسهولة</span>
               </Link>
             </div>
 
             {/* Nav Links Center */}
             <div className="hidden md:flex items-center gap-8">
-              <a href="#features" onClick={(e) => handleScrollTo(e, 'features')} className="text-sm font-medium text-[#0F2C4E]/80 hover:text-accent transition-colors">المميزات</a>
-              <a href="#testimonials" onClick={(e) => handleScrollTo(e, 'testimonials')} className="text-sm font-medium text-[#0F2C4E]/80 hover:text-accent transition-colors">آراء العملاء</a>
-              <a href="#pricing" onClick={(e) => handleScrollTo(e, 'pricing')} className="text-sm font-medium text-[#0F2C4E]/80 hover:text-accent transition-colors">الأسعار</a>
-              <a href="#faq" onClick={(e) => handleScrollTo(e, 'faq')} className="text-sm font-medium text-[#0F2C4E]/80 hover:text-accent transition-colors">تواصل معنا</a>
+              <a href="#features" onClick={(e) => handleScrollTo(e, 'features')} className={`text-sm font-medium transition-colors hover:text-accent ${isScrolled ? 'text-[#0F2C4E]/80' : 'text-white/80'}`}>المميزات</a>
+              <a href="#testimonials" onClick={(e) => handleScrollTo(e, 'testimonials')} className={`text-sm font-medium transition-colors hover:text-accent ${isScrolled ? 'text-[#0F2C4E]/80' : 'text-white/80'}`}>آراء العملاء</a>
+              <a href="#pricing" onClick={(e) => handleScrollTo(e, 'pricing')} className={`text-sm font-medium transition-colors hover:text-accent ${isScrolled ? 'text-[#0F2C4E]/80' : 'text-white/80'}`}>الأسعار</a>
+              <a href="#faq" onClick={(e) => handleScrollTo(e, 'faq')} className={`text-sm font-medium transition-colors hover:text-accent ${isScrolled ? 'text-[#0F2C4E]/80' : 'text-white/80'}`}>تواصل معنا</a>
             </div>
 
             {/* CTA Left */}
             <div className="hidden md:flex items-center gap-4">
-              <Link to="/login" className="text-sm font-medium text-[#0F2C4E] hover:text-accent transition-colors">تسجيل الدخول</Link>
+              <Link to="/login" className={`text-sm font-medium transition-colors hover:text-accent ${isScrolled ? 'text-[#0F2C4E]' : 'text-white'}`}>تسجيل الدخول</Link>
               <Link to="/register" className="bg-[#16B89A] hover:bg-accent-600 text-white text-sm font-bold px-6 py-2.5 rounded-xl shadow-lg shadow-accent/20 transition-all hover:scale-102 active:scale-98">
-                جرّب مجاناً
+                ابدأ مجاناً
               </Link>
             </div>
 
             {/* Mobile Menu Button */}
             <div className="md:hidden flex items-center">
-              <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-[#0F2C4E] hover:text-accent p-2" aria-label="Toggle menu">
+              <button onClick={() => setIsMenuOpen(!isMenuOpen)} className={`p-2 transition-colors hover:text-accent ${isScrolled ? 'text-[#0F2C4E]' : 'text-white'}`} aria-label="Toggle menu">
                 {isMenuOpen ? <HiXMark className="w-6 h-6" /> : <HiBars3 className="w-6 h-6" />}
               </button>
             </div>
@@ -213,170 +220,185 @@ export default function LandingPage() {
         )}
       </nav>
 
-      {/* 2. HERO SECTION */}
-      <section className="pt-28 pb-16 md:pt-36 md:pb-24 overflow-hidden bg-gradient-to-b from-[#D7F5EE]/40 via-white to-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* 2. HERO SECTION — dark navy with glowing orbs + dashboard mockup */}
+      <section className="relative pt-32 pb-20 md:pt-40 md:pb-28 overflow-hidden bg-gradient-to-br from-[#081A30] via-[#0F2C4E] to-[#0a2240]">
+        {/* Decorative glow orbs — slow pulse + drift for a living background */}
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-accent/20 rounded-full blur-3xl pointer-events-none animate-glow-pulse" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl pointer-events-none animate-drift" style={{ animationDelay: '1.5s' }} />
+        <div className="absolute top-1/3 right-10 w-40 h-40 bg-white/5 rounded-full blur-2xl pointer-events-none animate-float-slow" />
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
-            
+
             {/* Right Column: Title & CTA */}
             <div className="lg:col-span-6 flex flex-col items-start text-right">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#D7F5EE] text-[#08594A] text-xs font-bold mb-6">
-                <span className="text-base leading-none">🗓️</span>
-                <span>نظام حجز ومتابعة عملاء بالواتساب لبيزنسي</span>
-              </div>
-              
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#0F2C4E] leading-tight mb-6">
-                وقف خسارة الغياب.
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white leading-tight mb-6">
+                أوقف خسارة المواعيد
                 <br />
-                <span className="text-[#16B89A]">خلي عملاءك يحجزوا، ويفكروا، ويرجعوا.</span>
+                واجعل الحجز يتم <span className="text-[#16B89A]">تلقائياً</span>
               </h1>
-              
-              <p className="text-lg text-slate-500 mb-8 leading-relaxed max-w-xl">
-                بسهولة هو نظام إدارة حجوزات وعملاء بالواتساب — للعيادات، الصالونات، مراكز اللياقة، والمزيد. جرّبه مجاناً 14 يوم بدون أي بطاقة بنكية.
+
+              <p className="text-lg text-slate-300 mb-8 leading-relaxed max-w-xl">
+                نظام حجز مواعيد ذكي لزيادة الحجوزات، تقليل الإلغاءات، وتوفير وقتك لتحسين تجربة عملائك.
               </p>
-              
+
               <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto mb-8">
                 <Link to="/register" className="inline-flex items-center justify-center gap-2 bg-[#16B89A] hover:bg-accent-600 text-white text-base font-bold px-8 py-4 rounded-2xl shadow-xl shadow-accent/25 transition-all hover:scale-102 active:scale-98">
-                  <span>ابدأ تجربتك المجانية لمدة 14 يوم</span>
+                  <span>ابدأ تجربة مجانية الآن</span>
                   <HiOutlineArrowLeft className="w-5 h-5" />
                 </Link>
-                <a href="#features" onClick={(e) => handleScrollTo(e, 'features')} className="inline-flex items-center justify-center bg-white hover:bg-slate-50 text-[#0F2C4E] text-base font-semibold px-8 py-4 rounded-2xl border border-slate-200 transition-colors shadow-sm">
-                  شوف إزاي بيشتغل
+                <a href="#features" onClick={(e) => handleScrollTo(e, 'features')} className="inline-flex items-center justify-center bg-white/5 hover:bg-white/10 text-white text-base font-semibold px-8 py-4 rounded-2xl border border-white/20 transition-colors backdrop-blur-sm">
+                  احجز عرضاً توضيحياً
                 </a>
               </div>
-              
+
               {/* Trust Row */}
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-slate-400 font-medium border-t border-slate-100 pt-6 w-full lg:w-auto">
-                <span className="flex items-center gap-1">✓ بدون بطاقة بنكية</span>
-                <span className="flex items-center gap-1">✓ إعداد في 10 دقايق</span>
-                <span className="flex items-center gap-1">✓ إلغاء في أي وقت</span>
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-slate-300 font-medium border-t border-white/10 pt-6 w-full lg:w-auto">
+                <span className="flex items-center gap-1.5">✓ لا يلزم بطاقة ائتمان</span>
+                <span className="flex items-center gap-1.5">⏱ إعداد خلال 5 دقائق</span>
+                <span className="flex items-center gap-1.5">🎁 14 يوم تجربة مجاناً</span>
               </div>
             </div>
 
-            {/* Left Column: Stylized calendar mockup */}
-            <div className="lg:col-span-6 relative flex justify-center items-center">
-              
-              {/* Decorative gradients behind mockup */}
-              <div className="absolute -top-10 -right-10 w-72 h-72 bg-[#D7F5EE]/60 rounded-full blur-3xl -z-10" />
-              <div className="absolute -bottom-10 -left-10 w-72 h-72 bg-blue-100/50 rounded-full blur-3xl -z-10" />
+            {/* Left Column: Dashboard mockup with floating widgets */}
+            <div className="lg:col-span-6 relative flex justify-center items-center mt-8 lg:mt-0">
 
-              {/* Main CSS Browser Calendar Mockup */}
-              <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col">
-                
-                {/* Browser Header */}
-                <div className="bg-slate-50 border-b border-slate-100 px-4 py-3.5 flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-3 h-3 rounded-full bg-rose-400" />
-                    <span className="w-3 h-3 rounded-full bg-amber-400" />
-                    <span className="w-3 h-3 rounded-full bg-emerald-400" />
-                  </div>
-                  <div className="bg-white border border-slate-200 rounded-lg px-6 py-1 text-xs text-slate-400 font-medium select-none text-center truncate max-w-[200px]">
-                    bessohola.com/booking
-                  </div>
-                  <div className="w-12" /> {/* spacing */}
+              {/* Floating stat card: total bookings */}
+              <div className="absolute -top-6 right-4 sm:right-12 z-20 bg-[#0F2C4E]/90 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl p-4 flex items-center gap-3 animate-bounce-slow">
+                <div className="w-10 h-10 rounded-xl bg-accent/20 flex items-center justify-center text-accent flex-shrink-0">
+                  <HiOutlineChartBar className="w-5 h-5" />
+                </div>
+                <div className="text-right">
+                  <div className="text-[10px] text-slate-300 font-bold">إجمالي الحجوزات</div>
+                  <div className="text-lg font-black text-white">+2,450</div>
+                  <div className="text-[9px] text-accent font-bold">↑ نسبة الشهر الماضي</div>
+                </div>
+              </div>
+
+              {/* Dashboard window */}
+              <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-white/10 overflow-hidden flex">
+
+                {/* Mini sidebar */}
+                <div className="w-12 sm:w-14 bg-[#F8FAFC] border-l border-slate-100 flex flex-col items-center py-4 gap-3 flex-shrink-0">
+                  {[HiOutlineCalendar, HiOutlineUsers, HiOutlineChartBar, HiOutlineWrenchScrewdriver].map((Icon, i) => (
+                    <div key={i} className={`w-8 h-8 rounded-lg flex items-center justify-center ${i === 0 ? 'bg-accent text-white' : 'text-slate-400'}`}>
+                      <Icon className="w-4 h-4" />
+                    </div>
+                  ))}
                 </div>
 
                 {/* Calendar Workspace Mockup */}
-                <div className="p-4 sm:p-5 bg-white flex flex-col gap-4">
-                  {/* Calendar Top Controls */}
+                <div className="flex-1 p-4 sm:p-5 bg-white flex flex-col gap-4 min-w-0">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm font-bold text-[#0F2C4E]">يونيو 2026</span>
+                    <span className="text-sm font-bold text-[#0F2C4E]">مايو 2025</span>
                     <div className="flex gap-1.5">
-                      <button className="p-1 rounded bg-slate-100 hover:bg-slate-200 text-xs text-slate-500 font-bold" disabled>&lt;</button>
-                      <button className="p-1 rounded bg-slate-100 hover:bg-slate-200 text-xs text-slate-500 font-bold" disabled>&gt;</button>
+                      <button className="p-1 rounded bg-slate-100 text-xs text-slate-500 font-bold" disabled>&lt;</button>
+                      <button className="p-1 rounded bg-slate-100 text-xs text-slate-500 font-bold" disabled>&gt;</button>
                     </div>
                   </div>
 
-                  {/* Calendar Grid header (RTL - Saturday to Friday) */}
                   <div className="grid grid-cols-7 gap-1 text-center border-b border-slate-100 pb-2">
                     {['سبت', 'أحد', 'إثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة'].map((day) => (
-                      <span key={day} className="text-xs font-bold text-slate-400">{day}</span>
+                      <span key={day} className="text-[10px] sm:text-xs font-bold text-slate-400">{day}</span>
                     ))}
                   </div>
 
-                  {/* Calendar Grid cells */}
                   <div className="grid grid-cols-7 gap-1.5">
-                    {/* Empty starting cells */}
                     <div className="aspect-square bg-slate-50/50 rounded-lg p-1 text-[10px] text-slate-300">٢٨</div>
                     <div className="aspect-square bg-slate-50/50 rounded-lg p-1 text-[10px] text-slate-300">٢٩</div>
                     <div className="aspect-square bg-slate-50/50 rounded-lg p-1 text-[10px] text-slate-300">٣٠</div>
-                    
-                    {/* Actual active calendar cells */}
-                    <div className="aspect-square bg-slate-50 rounded-lg p-1 flex flex-col justify-between border border-slate-100">
-                      <span className="text-[10px] font-bold text-slate-400">١</span>
-                    </div>
-                    
-                    {/* Cell with Booking item */}
-                    <div className="aspect-square bg-[#D7F5EE]/40 border border-[#8FE0CD] rounded-lg p-1 flex flex-col justify-between">
-                      <span className="text-[10px] font-bold text-[#08594A]">٢</span>
-                      <div className="bg-[#16B89A] text-white text-[7px] p-0.5 rounded text-center truncate font-bold">
-                        أحمد كمال
-                      </div>
-                    </div>
 
-                    <div className="aspect-square bg-slate-50 rounded-lg p-1 flex flex-col justify-between border border-slate-100">
+                    <div className="aspect-square bg-[#D7F5EE]/40 border border-[#8FE0CD] rounded-lg p-1 flex flex-col justify-between">
+                      <span className="text-[10px] font-bold text-[#08594A]">١</span>
+                      <div className="bg-[#16B89A] text-white text-[7px] p-0.5 rounded text-center truncate font-bold">أحمد</div>
+                    </div>
+                    <div className="aspect-square bg-slate-50 rounded-lg p-1 border border-slate-100">
+                      <span className="text-[10px] font-bold text-slate-400">٢</span>
+                    </div>
+                    <div className="aspect-square bg-slate-50 rounded-lg p-1 border border-slate-100">
                       <span className="text-[10px] font-bold text-slate-400">٣</span>
                     </div>
-
-                    <div className="aspect-square bg-slate-50 rounded-lg p-1 flex flex-col justify-between border border-slate-100">
-                      <span className="text-[10px] font-bold text-slate-400">٤</span>
-                    </div>
-
-                    {/* Another booking */}
                     <div className="aspect-square bg-[#E8EEF4] border border-blue-200 rounded-lg p-1 flex flex-col justify-between">
-                      <span className="text-[10px] font-bold text-[#0F2C4E]">٥</span>
-                      <div className="bg-[#0F2C4E] text-white text-[7px] p-0.5 rounded text-center truncate font-bold">
-                        منى زكي
-                      </div>
+                      <span className="text-[10px] font-bold text-[#0F2C4E]">٤</span>
+                      <div className="bg-[#0F2C4E] text-white text-[7px] p-0.5 rounded text-center truncate font-bold">منى</div>
                     </div>
-
-                    <div className="aspect-square bg-slate-50 rounded-lg p-1 flex flex-col justify-between border border-slate-100">
+                    <div className="aspect-square bg-slate-50 rounded-lg p-1 border border-slate-100">
+                      <span className="text-[10px] font-bold text-slate-400">٥</span>
+                    </div>
+                    <div className="aspect-square bg-slate-50 rounded-lg p-1 border border-slate-100">
                       <span className="text-[10px] font-bold text-slate-400">٦</span>
                     </div>
-
-                    {/* Active hover select demo */}
-                    <div className="aspect-square bg-white border-2 border-dashed border-[#16B89A] rounded-lg p-1 flex flex-col justify-between relative cursor-pointer group">
-                      <span className="text-[10px] font-bold text-accent">٧</span>
-                      <div className="bg-accent/10 text-accent text-[8px] p-0.5 rounded text-center font-bold">
-                        + متاح
-                      </div>
+                    <div className="aspect-square bg-slate-50 rounded-lg p-1 border border-slate-100">
+                      <span className="text-[10px] font-bold text-slate-400">٧</span>
                     </div>
 
-                    <div className="aspect-square bg-slate-50 rounded-lg p-1 flex flex-col justify-between border border-slate-100">
+                    <div className="aspect-square bg-slate-50 rounded-lg p-1 border border-slate-100">
                       <span className="text-[10px] font-bold text-slate-400">٨</span>
                     </div>
-                    <div className="aspect-square bg-slate-50 rounded-lg p-1 flex flex-col justify-between border border-slate-100">
+                    <div className="aspect-square bg-slate-50 rounded-lg p-1 border border-slate-100">
                       <span className="text-[10px] font-bold text-slate-400">٩</span>
                     </div>
-                    <div className="aspect-square bg-slate-50 rounded-lg p-1 flex flex-col justify-between border border-slate-100">
+                    <div className="aspect-square bg-slate-50 rounded-lg p-1 border border-slate-100">
                       <span className="text-[10px] font-bold text-slate-400">١٠</span>
                     </div>
-                    <div className="aspect-square bg-slate-50 rounded-lg p-1 flex flex-col justify-between border border-slate-100">
-                      <span className="text-[10px] font-bold text-slate-400">١١</span>
+                    <div className="aspect-square bg-white border-2 border-dashed border-accent rounded-lg p-1">
+                      <span className="text-[10px] font-bold text-accent">١١</span>
+                    </div>
+                    <div className="aspect-square bg-slate-50 rounded-lg p-1 border border-slate-100">
+                      <span className="text-[10px] font-bold text-slate-400">١٢</span>
+                    </div>
+                    <div className="aspect-square bg-slate-50 rounded-lg p-1 border border-slate-100">
+                      <span className="text-[10px] font-bold text-slate-400">١٣</span>
+                    </div>
+                    <div className="aspect-square bg-slate-50 rounded-lg p-1 border border-slate-100">
+                      <span className="text-[10px] font-bold text-slate-400">١٤</span>
+                    </div>
+
+                    <div className="aspect-square bg-slate-50 rounded-lg p-1 border border-slate-100">
+                      <span className="text-[10px] font-bold text-slate-400">١٥</span>
+                    </div>
+                    <div className="aspect-square bg-slate-50 rounded-lg p-1 border border-slate-100">
+                      <span className="text-[10px] font-bold text-slate-400">١٦</span>
+                    </div>
+                    <div className="aspect-square bg-slate-50 rounded-lg p-1 border border-slate-100">
+                      <span className="text-[10px] font-bold text-slate-400">١٧</span>
+                    </div>
+                    <div className="aspect-square bg-slate-50 rounded-lg p-1 border border-slate-100">
+                      <span className="text-[10px] font-bold text-slate-400">١٨</span>
+                    </div>
+                    <div className="aspect-square bg-slate-50 rounded-lg p-1 border border-slate-100">
+                      <span className="text-[10px] font-bold text-slate-400">١٩</span>
+                    </div>
+                    <div className="aspect-square bg-accent rounded-lg p-1 shadow-md">
+                      <span className="text-[10px] font-bold text-white">٢٠</span>
+                    </div>
+                    <div className="aspect-square bg-slate-50 rounded-lg p-1 border border-slate-100">
+                      <span className="text-[10px] font-bold text-slate-400">٢١</span>
                     </div>
                   </div>
-
-                  {/* Summary row */}
-                  <div className="border-t border-slate-100 pt-3.5 flex justify-between items-center text-xs">
-                    <span className="text-slate-400 font-medium">الخدمات المفعلة: ٢</span>
-                    <span className="text-[#0F2C4E] font-bold flex items-center gap-1">
-                      <span className="w-2 h-2 rounded-full bg-[#16B89A]" />
-                      استقبال الحجوزات مفتوح
-                    </span>
-                  </div>
                 </div>
-
               </div>
 
-              {/* Floating accent card overlapping (absolute position) */}
-              <div className="absolute -bottom-6 -left-6 sm:left-4 bg-white rounded-xl shadow-xl border border-slate-100 p-4 flex items-center gap-3 animate-bounce-slow max-w-[200px]">
-                <div className="w-10 h-10 rounded-full bg-[#D7F5EE] flex items-center justify-center text-xl">
-                  📅
+              {/* Floating stat card: attendance rate */}
+              <div className="absolute -bottom-6 -left-2 sm:left-2 z-20 bg-white rounded-2xl shadow-2xl border border-slate-100 p-4 flex items-center gap-3 max-w-[190px] animate-float" style={{ animationDelay: '0.8s' }}>
+                <div className="w-11 h-11 rounded-full border-4 border-accent/20 flex items-center justify-center flex-shrink-0 relative">
+                  <span className="absolute inset-0 rounded-full border-4 border-accent border-t-transparent rotate-45" />
+                  <span className="text-[10px] font-black text-[#0F2C4E]">92%</span>
                 </div>
-                <div>
-                  <div className="text-xs text-slate-400 font-bold">حالة اليوم</div>
-                  <div className="text-sm font-black text-[#0F2C4E]">12 موعد اليوم</div>
+                <div className="text-right">
+                  <div className="text-[10px] text-slate-400 font-bold">معدل الحضور</div>
+                  <div className="text-sm font-black text-accent-600">ممتاز</div>
                 </div>
+              </div>
+
+              {/* Floating avatar group */}
+              <div className="hidden sm:flex absolute top-1/2 -left-6 z-20 bg-white rounded-2xl shadow-2xl border border-slate-100 p-3 items-center gap-2 animate-float-slow" style={{ animationDelay: '0.4s' }}>
+                <div className="flex -space-x-2 rtl:space-x-reverse">
+                  {['from-rose-300 to-rose-500', 'from-blue-300 to-blue-500', 'from-amber-300 to-amber-500'].map((g, i) => (
+                    <div key={i} className={`w-7 h-7 rounded-full bg-gradient-to-br ${g} border-2 border-white`} />
+                  ))}
+                </div>
+                <span className="text-xs font-black text-[#0F2C4E]">+1.2K</span>
               </div>
 
             </div>
@@ -388,368 +410,115 @@ export default function LandingPage() {
       {/* 3. SOCIAL PROOF STRIP */}
       <section className="py-8 bg-slate-50 border-y border-slate-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">
-            بُني خصيصاً لاحتياجات السوق المصري والعربي
+          <p className="text-sm font-bold text-slate-400 mb-5">
+            أكثر من 5,000+ شركة تعتمد علينا يومياً
           </p>
-          <div className="flex flex-wrap justify-center items-center gap-8 sm:gap-12 md:gap-16 text-slate-500 text-sm font-medium">
-            <span className="flex items-center gap-2">
-              <HiOutlineHeart className="w-5 h-5 text-[#0F2C4E]/60" /> عيادات ومراكز طبية
-            </span>
-            <span className="flex items-center gap-2">
-              <HiOutlineScissors className="w-5 h-5 text-[#0F2C4E]/60" /> صالونات ومراكز تجميل
-            </span>
-            <span className="flex items-center gap-2">
-              <HiOutlineBolt className="w-5 h-5 text-[#0F2C4E]/60" /> أندية وصالات رياضية
-            </span>
-            <span className="flex items-center gap-2">
-              <HiOutlineAcademicCap className="w-5 h-5 text-[#0F2C4E]/60" /> أكاديميات ومراكز تعليمية
-            </span>
+          <div className="flex flex-wrap justify-center items-center gap-8 sm:gap-12 md:gap-16 text-slate-400 text-base font-bold opacity-80 grayscale">
+            <span className="flex items-center gap-1.5"><HiOutlineHeart className="w-5 h-5" /> عيادات الصفوة</span>
+            <span className="flex items-center gap-1.5"><HiOutlineBolt className="w-5 h-5" /> FIT LIFE</span>
+            <span className="flex items-center gap-1.5"><HiOutlineScissors className="w-5 h-5" /> مركز بسمة</span>
+            <span className="flex items-center gap-1.5"><HiOutlineHeart className="w-5 h-5" /> IDEAL DENTAL</span>
+            <span className="flex items-center gap-1.5"><HiOutlineRectangleGroup className="w-5 h-5" /> RITAN</span>
+            <span className="flex items-center gap-1.5"><HiOutlineHeart className="w-5 h-5" /> NOVA CLINIC</span>
           </div>
         </div>
       </section>
 
-      {/* 4. PROBLEM/PAIN SECTION */}
+      {/* 4. CHALLENGES → SOLUTION COMPARISON */}
       <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+
           <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl font-black text-[#0F2C4E] mb-4">بتعرف الإحساس ده؟</h2>
-            <div className="w-16 h-1 bg-rose-400 mx-auto rounded-full" />
+            <h2 className="text-3xl font-black text-[#0F2C4E] mb-4">من التحديات إلى الحلول</h2>
+            <div className="w-16 h-1 bg-accent mx-auto rounded-full" />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            
-            {/* Card 1 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch relative">
+
+            {/* Challenges */}
             <FadeIn delay={100}>
-              <div className="bg-slate-50 hover:bg-white rounded-2xl p-8 border border-slate-100 transition-all duration-300 hover:shadow-lg flex flex-col h-full text-right">
-                <div className="w-12 h-12 rounded-xl bg-rose-50 flex items-center justify-center text-rose-500 mb-6">
-                  <HiOutlineCalendar className="w-6 h-6" />
-                </div>
-                <h3 className="text-xl font-bold text-[#0F2C4E] mb-3">مواعيد فوضى على واتساب</h3>
-                <p className="text-slate-500 leading-relaxed text-sm">
-                  كل حجز يدوي، وأي تعارض بيكلفك وقت وعملاء
-                </p>
+              <div className="bg-rose-50/60 border border-rose-100 rounded-3xl p-8 h-full">
+                <h3 className="text-lg font-black text-rose-600 mb-6 text-center">التحديات اليومية</h3>
+                <ul className="space-y-4">
+                  {[
+                    'مواعيد ضائعة وإلغاءات مفاجئة',
+                    'مكالمات ورسائل مرهقة لا تنتهي',
+                    'إدارة بدوية مرهقة وخطأ بشري',
+                    'عدم استغلال كامل للوقت',
+                    'عملاء غير راضين',
+                  ].map((t) => (
+                    <li key={t} className="flex items-center justify-end gap-2 text-sm font-semibold text-slate-600 text-right">
+                      <span>{t}</span>
+                      <HiXMark className="w-5 h-5 text-rose-400 flex-shrink-0" />
+                    </li>
+                  ))}
+                </ul>
               </div>
             </FadeIn>
 
-            {/* Card 2 */}
+            {/* Solution */}
             <FadeIn delay={200}>
-              <div className="bg-slate-50 hover:bg-white rounded-2xl p-8 border border-slate-100 transition-all duration-300 hover:shadow-lg flex flex-col h-full text-right">
-                <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center text-amber-500 mb-6">
-                  <HiOutlineExclamationTriangle className="w-6 h-6" />
-                </div>
-                <h3 className="text-xl font-bold text-[#0F2C4E] mb-3">غياب بيخسرك فلوس</h3>
-                <p className="text-slate-500 leading-relaxed text-sm">
-                  عميل بينسى الموعد، والوقت يضيع من غير أي إيراد
-                </p>
+              <div className="bg-accent-50/60 border border-accent-100 rounded-3xl p-8 h-full">
+                <h3 className="text-lg font-black text-accent-700 mb-6 text-center">مع بسهولة</h3>
+                <ul className="space-y-4">
+                  {[
+                    'حجوزات تلقائية 24/7 بدون تدخل',
+                    'تذكيرات ذكية تقلل الإلغاءات',
+                    'تقويم موحد وتنظيم كامل',
+                    'زيادة الإشغال والإيرادات',
+                    'تجربة احترافية لعملائك',
+                  ].map((t) => (
+                    <li key={t} className="flex items-center justify-end gap-2 text-sm font-semibold text-[#0F2C4E] text-right">
+                      <span>{t}</span>
+                      <HiCheck className="w-5 h-5 text-accent flex-shrink-0" />
+                    </li>
+                  ))}
+                </ul>
               </div>
             </FadeIn>
 
-            {/* Card 3 */}
-            <FadeIn delay={300}>
-              <div className="bg-slate-50 hover:bg-white rounded-2xl p-8 border border-slate-100 transition-all duration-300 hover:shadow-lg flex flex-col h-full text-right">
-                <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 mb-6">
-                  <HiOutlineChartBar className="w-6 h-6" />
-                </div>
-                <h3 className="text-xl font-bold text-[#0F2C4E] mb-3">مفيش بيانات تساعدك تقرر</h3>
-                <p className="text-slate-500 leading-relaxed text-sm">
-                  مش عارف عملاءك الدائمين مين، ومين محتاج تتابعه
-                </p>
+            {/* Arrow connector (desktop only) */}
+            <div className="hidden md:flex absolute inset-0 items-center justify-center pointer-events-none">
+              <div className="w-12 h-12 rounded-full bg-[#0F2C4E] text-white flex items-center justify-center shadow-xl rotate-180">
+                <HiOutlineArrowLeft className="w-5 h-5" />
               </div>
-            </FadeIn>
+            </div>
 
           </div>
         </div>
       </section>
 
-      {/* 5. SOLUTION / FEATURES SECTION */}
-      <section id="features" className="py-20 bg-slate-50/50 border-t border-slate-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          
-          <div className="text-center max-w-3xl mx-auto mb-20">
-            <h2 className="text-3xl font-black text-[#0F2C4E] mb-4">بسهولة بيحل ده كله</h2>
-            <p className="text-lg text-slate-500">كل اللي تحتاجه لإدارة بيزنسك في مكان واحد</p>
-            <div className="w-16 h-1 bg-[#16B89A] mx-auto rounded-full mt-4" />
-          </div>
-
-          <div className="flex flex-col gap-24">
-            
-            {/* Feature 1: Branded Booking Page */}
-            <FadeIn>
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-                <div className="lg:col-span-5 order-2 lg:order-1 flex justify-center">
-                  {/* Visual Mockup */}
-                  <div className="w-full max-w-[320px] bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden flex flex-col aspect-[9/16] relative">
-                    <div className="h-6 bg-slate-800 flex items-center justify-center">
-                      <span className="w-16 h-4 bg-slate-900 rounded-full" />
-                    </div>
-                    {/* Header */}
-                    <div className="p-4 bg-slate-50 border-b border-slate-100 flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-accent flex items-center justify-center text-white font-bold">ص</div>
-                      <div>
-                        <h4 className="text-sm font-bold text-[#0F2C4E]">صالون النخبة للتجميل</h4>
-                        <p className="text-[10px] text-slate-400">فرع مصر الجديدة</p>
-                      </div>
-                    </div>
-                    {/* Services list */}
-                    <div className="p-4 flex flex-col gap-3 flex-grow overflow-y-auto">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">اختار الخدمة</span>
-                      <div className="border border-slate-100 rounded-xl p-3 bg-white hover:border-accent transition-colors flex justify-between items-center">
-                        <div>
-                          <p className="text-xs font-bold text-[#0F2C4E]">قص وتصفيف كلاسيك</p>
-                          <p className="text-[10px] text-slate-400">⏱️ ٣٠ دقيقة · ٧٥ جنيه</p>
-                        </div>
-                        <button className="bg-accent/10 text-accent font-bold text-xs px-3 py-1.5 rounded-lg">حجز</button>
-                      </div>
-                      <div className="border border-slate-100 rounded-xl p-3 bg-white flex justify-between items-center">
-                        <div>
-                          <p className="text-xs font-bold text-[#0F2C4E]">تنعيم وحلاقة ذقن</p>
-                          <p className="text-[10px] text-slate-400">⏱️ ٢٠ دقيقة · ٥٠ جنيه</p>
-                        </div>
-                        <button className="bg-accent/10 text-accent font-bold text-xs px-3 py-1.5 rounded-lg">حجز</button>
-                      </div>
-                      
-                      {/* Booking calendar sample inside phone */}
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mt-2">اختار الوقت المناسب</span>
-                      <div className="flex gap-2 justify-center overflow-x-auto pb-1">
-                        <span className="bg-[#D7F5EE] border border-accent text-accent font-bold text-[10px] px-2.5 py-1 rounded-lg text-center">السبت<br/>١٢ يونيو</span>
-                        <span className="bg-slate-50 border border-slate-100 text-slate-500 text-[10px] px-2.5 py-1 rounded-lg text-center">الأحد<br/>١٣ يونيو</span>
-                        <span className="bg-slate-50 border border-slate-100 text-slate-500 text-[10px] px-2.5 py-1 rounded-lg text-center">الإثنين<br/>١٤ يونيو</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="lg:col-span-7 order-1 lg:order-2 text-right">
-                  <div className="w-12 h-12 rounded-xl bg-[#D7F5EE] flex items-center justify-center text-accent mb-6">
-                    <HiOutlineLink className="w-6 h-6" />
-                  </div>
-                  <h3 className="text-2xl font-black text-[#0F2C4E] mb-4">صفحة حجز خاصة بيك</h3>
-                  <p className="text-slate-500 text-base leading-relaxed mb-6">
-                    رابط حجز بهويتك — شعارك، ألوانك، ومعلوماتك. عملاؤك يحجزوا في ثواني من أي مكان، بدون تطبيق.
-                  </p>
-                </div>
-              </div>
-            </FadeIn>
-
-            {/* Feature 2: WhatsApp Reminder */}
-            <FadeIn>
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-                <div className="lg:col-span-7 text-right">
-                  <div className="w-12 h-12 rounded-xl bg-teal-50 flex items-center justify-center text-[#16B89A] mb-6">
-                    <FaWhatsapp className="w-7 h-7" />
-                  </div>
-                  <h3 className="text-2xl font-black text-[#0F2C4E] mb-4">تذكير واتساب أوتوماتيك</h3>
-                  <p className="text-slate-500 text-base leading-relaxed mb-6">
-                    قلل الغياب بتذكير عملاءك تلقائياً قبل موعدهم. النظام بيجهزلك الرسالة، وانت بس تضغط إرسال.
-                  </p>
-                </div>
-                <div className="lg:col-span-5 flex justify-center">
-                  {/* Visual Mockup: WhatsApp bubble */}
-                  <div className="w-full max-w-[320px] bg-[#E5DDD5] rounded-3xl shadow-xl border border-slate-200 overflow-hidden flex flex-col aspect-[9/16] relative p-3">
-                    {/* WhatsApp Top Header Bar */}
-                    <div className="absolute top-0 left-0 right-0 bg-[#075E54] text-white px-4 py-2 flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-slate-300 flex-shrink-0" />
-                      <div>
-                        <p className="text-xs font-bold">بسهولة للتأكيد</p>
-                        <p className="text-[8px] text-emerald-300">متصل الآن</p>
-                      </div>
-                    </div>
-
-                    <div className="flex-grow flex flex-col justify-end gap-3 pb-12 pt-10">
-                      {/* WhatsApp message bubble */}
-                      <div className="bg-[#DCF8C6] border border-slate-300/30 rounded-xl p-3 max-w-[90%] self-end shadow-sm text-right text-xs text-slate-800 relative">
-                        <p className="font-bold mb-1 text-[#075E54]">تذكير بموعدك 📅</p>
-                        <p className="mb-2">أهلاً أستاذ محمد، نود تذكيرك بموعد حجزك غداً في <span className="font-bold">صالون النخبة</span>.</p>
-                        <p className="text-[10px] text-slate-600 bg-white/60 p-2 rounded-lg mb-2">
-                          📌 <span className="font-bold">الخدمة:</span> حلاقة شعر كلاسيك<br/>
-                          ⏰ <span className="font-bold">الموعد:</span> السبت ٥:٠٠ مساءً
-                        </p>
-                        <p>لتعديل الحجز أو الإلغاء، يرجى الضغط هنا: booking.me/r/159</p>
-                        <span className="text-[8px] text-slate-400 absolute bottom-1 left-2">٩:٠٠ م ✓✓</span>
-                      </div>
-
-                      {/* Action Button inside App Mockup */}
-                      <div className="bg-white rounded-xl shadow-lg border border-slate-100 p-2.5 flex items-center justify-between text-xs mx-4">
-                        <span className="font-bold text-slate-500">الرسالة جاهزة للإرسال</span>
-                        <button className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors">
-                          <FaWhatsapp className="w-4 h-4" />
-                          <span>إرسال</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </FadeIn>
-
-            {/* Feature 3: Clients History */}
-            <FadeIn>
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-                <div className="lg:col-span-5 order-2 lg:order-1 flex justify-center">
-                  {/* Visual Mockup: Client Profile Card */}
-                  <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl border border-slate-100 p-5 flex flex-col gap-4">
-                    {/* Header */}
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-full bg-[#D7F5EE] flex items-center justify-center font-bold text-accent text-lg">مح</div>
-                      <div className="flex-grow">
-                        <div className="flex items-center gap-2">
-                          <h4 className="text-sm font-bold text-[#0F2C4E]">محمد علي كمال</h4>
-                          <span className="bg-[#D7F5EE] text-[#08594A] text-[9px] px-2 py-0.5 rounded-full font-bold">عميل دائم ✨</span>
-                        </div>
-                        <p className="text-xs text-slate-400">الهاتف: 0106754xxxx</p>
-                      </div>
-                    </div>
-                    {/* Stats */}
-                    <div className="grid grid-cols-3 gap-2 bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
-                      <div>
-                        <div className="text-xs text-slate-400">الحجوزات</div>
-                        <div className="text-base font-black text-[#0F2C4E]">١٨</div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-slate-400">الغياب</div>
-                        <div className="text-base font-black text-rose-500">٠</div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-slate-400">المبيعات</div>
-                        <div className="text-base font-black text-emerald-600">١٢٥٠ ج</div>
-                      </div>
-                    </div>
-                    {/* Timeline logs */}
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">آخر الحجوزات</p>
-                      <div className="flex flex-col gap-2">
-                        <div className="flex justify-between items-center text-xs border-b border-slate-50 pb-2">
-                          <span className="font-semibold text-[#0F2C4E]">قص وتصفيف كلاسيك</span>
-                          <span className="text-slate-400">منذ يومين</span>
-                        </div>
-                        <div className="flex justify-between items-center text-xs border-b border-slate-50 pb-2">
-                          <span className="font-semibold text-[#0F2C4E]">عناية بالوجه والماسك</span>
-                          <span className="text-slate-400">١٢ مايو ٢٠٢٦</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="lg:col-span-7 order-1 lg:order-2 text-right">
-                  <div className="w-12 h-12 rounded-xl bg-[#D7F5EE] flex items-center justify-center text-accent mb-6">
-                    <HiOutlineUsers className="w-6 h-6" />
-                  </div>
-                  <h3 className="text-2xl font-black text-[#0F2C4E] mb-4">كل عميل وتاريخه في مكان واحد</h3>
-                  <p className="text-slate-500 text-base leading-relaxed mb-6">
-                    اعرف عملاءك الدائمين، مين محتاج متابعة، وكام مرة حجزوا — كل ده أوتوماتيك من غير ما تكتب حاجة.
-                  </p>
-                </div>
-              </div>
-            </FadeIn>
-
-            {/* Feature 4: Multi Branch Management */}
-            <FadeIn>
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-                <div className="lg:col-span-7 text-right">
-                  <div className="w-12 h-12 rounded-xl bg-teal-50 flex items-center justify-center text-accent mb-6">
-                    <HiOutlineBuildingOffice2 className="w-6 h-6" />
-                  </div>
-                  <h3 className="text-2xl font-black text-[#0F2C4E] mb-4">إدارة فروع متعددة</h3>
-                  <p className="text-slate-500 text-base leading-relaxed mb-6">
-                    عندك أكتر من فرع؟ ولا مشكلة. كل فرع بمواعيده وتقاريره، وانت تتابع الكل من حساب واحد.
-                  </p>
-                </div>
-                <div className="lg:col-span-5 flex justify-center">
-                  {/* Visual Mockup: Branch Switcher */}
-                  <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl border border-slate-100 p-5 flex flex-col gap-4">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">لوحة التحكم الرئيسية</span>
-                    <div className="border border-slate-100 rounded-xl p-3 bg-slate-50 flex justify-between items-center">
-                      <span className="text-xs font-semibold text-slate-500">الفرع النشط حالياً</span>
-                      <div className="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-[#0F2C4E] font-bold flex items-center gap-2 shadow-sm cursor-pointer hover:border-accent">
-                        <span>📍 فرع المعادي</span>
-                        <HiChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                      </div>
-                    </div>
-
-                    {/* Dropdown list mockup */}
-                    <div className="border border-slate-100 rounded-xl overflow-hidden shadow-sm flex flex-col text-right">
-                      <div className="p-2.5 bg-[#D7F5EE]/40 border-b border-slate-100 flex items-center justify-between text-xs text-[#08594A] font-bold">
-                        <span>📍 فرع المعادي</span>
-                        <HiCheck className="w-4 h-4 text-accent" />
-                      </div>
-                      <div className="p-2.5 bg-white border-b border-slate-100 flex items-center justify-between text-xs text-[#0F2C4E] font-medium hover:bg-slate-50 cursor-pointer">
-                        <span>📍 فرع التجمع الخامس</span>
-                        <span className="text-[9px] text-slate-400">نشط</span>
-                      </div>
-                      <div className="p-2.5 bg-white flex items-center justify-between text-xs text-[#0F2C4E] font-medium hover:bg-slate-50 cursor-pointer">
-                        <span>📍 فرع مصر الجديدة</span>
-                        <span className="text-[9px] text-slate-400">نشط</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </FadeIn>
-
-          </div>
-        </div>
-      </section>
-
-      {/* 6. HOW IT WORKS */}
+      {/* 5. HOW IT WORKS — 5 steps */}
       <section className="py-20 bg-white border-t border-slate-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          
+
           <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl font-black text-[#0F2C4E] mb-4">آلية التشغيل: بيزنسك شغال أوتوماتيك في 4 خطوات</h2>
+            <h2 className="text-3xl font-black text-[#0F2C4E] mb-4">كيف يعمل بسهولة؟</h2>
             <p className="text-lg text-slate-500">نظام حجز ذكي ومتكامل مصمم خصيصاً ليسهل حياة أصحاب الأعمال وعملائهم</p>
             <div className="w-16 h-1 bg-accent mx-auto rounded-full mt-4" />
           </div>
 
           {/* Stepper Pipeline */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 relative">
-            
-            {/* Step 1 */}
-            <div className="bg-[#F8FAFC] border border-slate-100 rounded-2xl p-6 relative hover:shadow-lg transition-shadow duration-300 flex flex-col h-full text-right">
-              <span className="absolute -top-4 -right-4 w-10 h-10 rounded-full bg-accent text-white flex items-center justify-center font-black shadow-md">١</span>
-              <div className="w-12 h-12 rounded-xl bg-accent-50 flex items-center justify-center text-accent mb-6 mt-2">
-                <HiOutlineWrenchScrewdriver className="w-6 h-6" />
-              </div>
-              <h3 className="text-lg font-bold text-[#0F2C4E] mb-3">حدد نشاطك ومواعيدك</h3>
-              <p className="text-slate-500 text-sm leading-relaxed">
-                في دقيقتين بس، حدد تخصص نشاطك (عيادة، صالون، جيم)، ضيف خدماتك، وساعات عملك المتاحة.
-              </p>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 relative">
 
-            {/* Step 2 */}
-            <div className="bg-[#F8FAFC] border border-slate-100 rounded-2xl p-6 relative hover:shadow-lg transition-shadow duration-300 flex flex-col h-full text-right">
-              <span className="absolute -top-4 -right-4 w-10 h-10 rounded-full bg-[#0F2C4E] text-white flex items-center justify-center font-black shadow-md">٢</span>
-              <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-primary-700 mb-6 mt-2">
-                <HiOutlineLink className="w-6 h-6" />
-              </div>
-              <h3 className="text-lg font-bold text-[#0F2C4E] mb-3">شير لينك الحجز</h3>
-              <p className="text-slate-500 text-sm leading-relaxed">
-                انسخ رابط الحجز المخصص لمشروعك، وحطه في بايو إنستجرام، فيسبوك، أو ابعته لعملائك مباشرة.
-              </p>
-            </div>
-
-            {/* Step 3 */}
-            <div className="bg-[#F8FAFC] border border-slate-100 rounded-2xl p-6 relative hover:shadow-lg transition-shadow duration-300 flex flex-col h-full text-right">
-              <span className="absolute -top-4 -right-4 w-10 h-10 rounded-full bg-accent text-white flex items-center justify-center font-black shadow-md">٣</span>
-              <div className="w-12 h-12 rounded-xl bg-accent-50 flex items-center justify-center text-accent mb-6 mt-2">
-                <HiOutlineCalendar className="w-6 h-6" />
-              </div>
-              <h3 className="text-lg font-bold text-[#0F2C4E] mb-3">العميل يحجز تلقائي</h3>
-              <p className="text-slate-500 text-sm leading-relaxed">
-                عميلك هيفتح الرابط، يختار الخدمة والموعد اللي يناسبه، ويحجز في ثواني بدون تطبيق وبدون تعقيد.
-              </p>
-            </div>
-
-            {/* Step 4 */}
-            <div className="bg-[#F8FAFC] border border-slate-100 rounded-2xl p-6 relative hover:shadow-lg transition-shadow duration-300 flex flex-col h-full text-right">
-              <span className="absolute -top-4 -right-4 w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center font-black shadow-md">٤</span>
-              <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-500 mb-6 mt-2">
-                <FaWhatsapp className="w-6 h-6" />
-              </div>
-              <h3 className="text-lg font-bold text-[#0F2C4E] mb-3">تابع وذكّر على واتساب</h3>
-              <p className="text-slate-500 text-sm leading-relaxed">
-                النظام بيجهزلك رسائل التذكير بالموعد والتفاصيل. بضغطة واحدة بتبعت للعميل على الواتساب وتمنع غيابه تماماً.
-              </p>
-            </div>
+            {[
+              { n: '١', icon: HiOutlineWrenchScrewdriver, title: 'أنشئ صفحتك', desc: 'في دقيقتين، حدد نشاطك وخدماتك وساعات عملك.', color: 'bg-accent', iconBg: 'bg-accent-50 text-accent' },
+              { n: '٢', icon: HiOutlineLink, title: 'شارك رابط الحجز', desc: 'انسخ رابطك وحطه في بايو إنستجرام أو واتساب.', color: 'bg-[#0F2C4E]', iconBg: 'bg-blue-50 text-primary-700' },
+              { n: '٣', icon: HiOutlineCalendar, title: 'يختار العميل', desc: 'عميلك يختار الخدمة والموعد اللي يناسبه بنفسه.', color: 'bg-accent', iconBg: 'bg-accent-50 text-accent' },
+              { n: '٤', icon: FaWhatsapp, title: 'تأكيد وتذكير تلقائي', desc: 'النظام بيذكّر العميل قبل الموعد ويقلل الإلغاءات.', color: 'bg-emerald-500', iconBg: 'bg-emerald-50 text-emerald-500' },
+              { n: '٥', icon: HiOutlineChartBar, title: 'تقديم الخدمة', desc: 'تقدم خدمتك في الموعد المحدد بكل سهولة.', color: 'bg-amber-500', iconBg: 'bg-amber-50 text-amber-500' },
+            ].map((s, i) => (
+              <FadeIn key={s.n} delay={i * 100}>
+                <div className="bg-[#F8FAFC] border border-slate-100 rounded-2xl p-6 relative hover:shadow-lg transition-shadow duration-300 flex flex-col h-full text-right">
+                  <span className={`absolute -top-4 -right-4 w-10 h-10 rounded-full ${s.color} text-white flex items-center justify-center leading-none font-black shadow-md`}>{s.n}</span>
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-6 mt-2 ${s.iconBg}`}>
+                    <s.icon className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-lg font-bold text-[#0F2C4E] mb-3">{s.title}</h3>
+                  <p className="text-slate-500 text-sm leading-relaxed">{s.desc}</p>
+                </div>
+              </FadeIn>
+            ))}
 
           </div>
 
@@ -758,6 +527,39 @@ export default function LandingPage() {
               <span>ابدأ دلوقتي مجاناً</span>
               <HiOutlineArrowLeft className="w-5 h-5" />
             </Link>
+          </div>
+
+        </div>
+      </section>
+
+      {/* 6. FEATURES — simple icon grid */}
+      <section id="features" className="py-20 bg-slate-50/50 border-t border-slate-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <h2 className="text-3xl font-black text-[#0F2C4E] mb-4">ميزات صنعت لأجلك</h2>
+            <p className="text-lg text-slate-500">كل اللي تحتاجه لإدارة بيزنسك في مكان واحد</p>
+            <div className="w-16 h-1 bg-[#16B89A] mx-auto rounded-full mt-4" />
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6">
+            {[
+              { icon: HiOutlineCalendar, title: 'حجز 24/7', desc: 'استقبل الحجوزات في أي وقت' },
+              { icon: FaWhatsapp, title: 'تذكيرات ذكية', desc: 'رسائل واتساب تقلل عدم الحضور' },
+              { icon: HiOutlineChartBar, title: 'مدفوعات إلكترونية', desc: 'ادفع الآن أو لاحقاً بكل أمان' },
+              { icon: HiOutlineLink, title: 'تقارير وتحليلات', desc: 'اعرف أداء عملك وخذ قرارات أفضل' },
+              { icon: HiOutlineUsers, title: 'إدارة الفريق', desc: 'صلاحيات متعددة وتنظيم المهام' },
+            ].map((f, i) => (
+              <FadeIn key={f.title} delay={i * 80}>
+                <div className="bg-white border border-slate-100 rounded-2xl p-6 flex flex-col items-center text-center gap-3 h-full hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+                  <div className="w-12 h-12 rounded-xl bg-[#D7F5EE] flex items-center justify-center text-accent">
+                    <f.icon className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-sm font-bold text-[#0F2C4E]">{f.title}</h3>
+                  <p className="text-xs text-slate-500 leading-relaxed">{f.desc}</p>
+                </div>
+              </FadeIn>
+            ))}
           </div>
 
         </div>
@@ -774,14 +576,16 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
             {verticals.map((v, i) => (
-              <div key={i} className="bg-white border border-slate-100 hover:border-accent/40 rounded-2xl p-6 sm:p-8 flex flex-col items-center justify-center text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-lg cursor-pointer">
-                <div className="mb-4">
-                  {v.icon}
+              <FadeIn key={i} delay={(i % 3) * 100}>
+                <div className="bg-white border border-slate-100 hover:border-accent/40 rounded-2xl p-6 sm:p-8 flex flex-col items-center justify-center text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-lg cursor-pointer">
+                  <div className="mb-4">
+                    {v.icon}
+                  </div>
+                  <h3 className="text-base sm:text-lg font-bold text-[#0F2C4E]">
+                    {v.title}
+                  </h3>
                 </div>
-                <h3 className="text-base sm:text-lg font-bold text-[#0F2C4E]">
-                  {v.title}
-                </h3>
-              </div>
+              </FadeIn>
             ))}
           </div>
 
@@ -801,49 +605,58 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             
             {/* Testimonial 1 */}
-            <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100 relative flex flex-col justify-between">
-              <span className="text-5xl text-accent/20 absolute top-4 right-4 leading-none font-serif">“</span>
-              <p className="text-slate-600 text-sm leading-relaxed mb-6 relative z-10 font-medium">
-                "وفّرت ساعتين يومياً كنت بضيعهم في مكالمات الحجز وواتساب، وعملائي مبسوطين جداً بالسهولة. بلمحة واحدة في الصباح بعرف جدول يومي كامل."
-              </p>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center font-bold text-rose-600 text-sm">أك</div>
-                <div>
-                  <h4 className="text-xs font-bold text-[#0F2C4E]">د. أحمد كمال</h4>
-                  <p className="text-[10px] text-slate-400">طبيب أسنان - عيادة كمال</p>
+            <FadeIn delay={0}>
+              <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100 relative flex flex-col justify-between h-full">
+                <span className="text-5xl text-accent/20 absolute top-4 right-4 leading-none font-serif">“</span>
+                <Stars />
+                <p className="text-slate-600 text-sm leading-relaxed mb-6 relative z-10 font-medium">
+                  "وفّرت ساعتين يومياً كنت بضيعهم في مكالمات الحجز وواتساب، وعملائي مبسوطين جداً بالسهولة. بلمحة واحدة في الصباح بعرف جدول يومي كامل."
+                </p>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center font-bold text-rose-600 text-sm leading-none">أك</div>
+                  <div>
+                    <h4 className="text-xs font-bold text-[#0F2C4E]">د. أحمد كمال</h4>
+                    <p className="text-[10px] text-slate-400">طبيب أسنان - عيادة كمال</p>
+                  </div>
                 </div>
               </div>
-            </div>
+            </FadeIn>
 
             {/* Testimonial 2 */}
-            <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100 relative flex flex-col justify-between">
-              <span className="text-5xl text-accent/20 absolute top-4 right-4 leading-none font-serif">“</span>
-              <p className="text-slate-600 text-sm leading-relaxed mb-6 relative z-10 font-medium">
-                "تذكير الواتساب قلل غياب العملاء لأقل من 5%. خطوة فارقة في شغلي، الحجوزات بتتحرك بسلاسة ومبقاش عندي أوقات ضايعة."
-              </p>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center font-bold text-purple-600 text-sm">سج</div>
-                <div>
-                  <h4 className="text-xs font-bold text-[#0F2C4E]">سارة الجارحي</h4>
-                  <p className="text-[10px] text-slate-400">صالون سارة للتجميل</p>
+            <FadeIn delay={100}>
+              <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100 relative flex flex-col justify-between h-full">
+                <span className="text-5xl text-accent/20 absolute top-4 right-4 leading-none font-serif">“</span>
+                <Stars />
+                <p className="text-slate-600 text-sm leading-relaxed mb-6 relative z-10 font-medium">
+                  "تذكير الواتساب قلل غياب العملاء لأقل من 5%. خطوة فارقة في شغلي، الحجوزات بتتحرك بسلاسة ومبقاش عندي أوقات ضايعة."
+                </p>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center font-bold text-purple-600 text-sm leading-none">سج</div>
+                  <div>
+                    <h4 className="text-xs font-bold text-[#0F2C4E]">سارة الجارحي</h4>
+                    <p className="text-[10px] text-slate-400">صالون سارة للتجميل</p>
+                  </div>
                 </div>
               </div>
-            </div>
+            </FadeIn>
 
             {/* Testimonial 3 */}
-            <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100 relative flex flex-col justify-between">
-              <span className="text-5xl text-accent/20 absolute top-4 right-4 leading-none font-serif">“</span>
-              <p className="text-slate-600 text-sm leading-relaxed mb-6 relative z-10 font-medium">
-                "النظام رائع وبيجمع كل حجوزات المشتركين في مكان واحد من غير فوضى. إضافة خدمات جديدة وحساب اشتراكات وتدريب سهل جداً."
-              </p>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-600 text-sm">كح</div>
-                <div>
-                  <h4 className="text-xs font-bold text-[#0F2C4E]">كابتن حازم</h4>
-                  <p className="text-[10px] text-slate-400">مدرب صالة رياضية - FitZone</p>
+            <FadeIn delay={200}>
+              <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100 relative flex flex-col justify-between h-full">
+                <span className="text-5xl text-accent/20 absolute top-4 right-4 leading-none font-serif">“</span>
+                <Stars />
+                <p className="text-slate-600 text-sm leading-relaxed mb-6 relative z-10 font-medium">
+                  "النظام رائع وبيجمع كل حجوزات المشتركين في مكان واحد من غير فوضى. إضافة خدمات جديدة وحساب اشتراكات وتدريب سهل جداً."
+                </p>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-600 text-sm leading-none">كح</div>
+                  <div>
+                    <h4 className="text-xs font-bold text-[#0F2C4E]">كابتن حازم</h4>
+                    <p className="text-[10px] text-slate-400">مدرب صالة رياضية - FitZone</p>
+                  </div>
                 </div>
               </div>
-            </div>
+            </FadeIn>
 
           </div>
         </div>
@@ -862,6 +675,7 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
             
             {/* Offer 1: 1 Month */}
+            <FadeIn delay={0}>
             <div className="bg-white border border-slate-200 rounded-3xl p-8 flex flex-col justify-between shadow-sm relative text-right transition-transform hover:scale-102">
               <div>
                 <span className="bg-slate-100 text-slate-700 text-xs font-extrabold px-3 py-1 rounded-full mb-4 inline-block">
@@ -886,8 +700,10 @@ export default function LandingPage() {
                 ابدأ التجربة مجاناً
               </Link>
             </div>
+            </FadeIn>
 
             {/* Offer 2: 3 Months */}
+            <FadeIn delay={100}>
             <div className="bg-white border-2 border-accent rounded-3xl p-8 flex flex-col justify-between shadow-xl relative text-right scale-100 md:scale-105 z-10">
               <span className="absolute -top-4 right-1/2 translate-x-1/2 bg-[#16B89A] text-white text-xs font-extrabold px-4 py-1.5 rounded-full uppercase tracking-wider">
                 الأكثر طلباً وتوفيراً
@@ -917,8 +733,10 @@ export default function LandingPage() {
                 ابدأ التجربة مجاناً
               </Link>
             </div>
+            </FadeIn>
 
             {/* Offer 3: 6 Months */}
+            <FadeIn delay={200}>
             <div className="bg-white border border-slate-200 rounded-3xl p-8 flex flex-col justify-between shadow-sm relative text-right transition-transform hover:scale-102">
               <div>
                 <span className="bg-amber-100 text-amber-800 text-xs font-extrabold px-3 py-1 rounded-full mb-4 inline-block">
@@ -945,6 +763,7 @@ export default function LandingPage() {
                 ابدأ التجربة مجاناً
               </Link>
             </div>
+            </FadeIn>
 
           </div>
 
@@ -969,26 +788,28 @@ export default function LandingPage() {
 
           <div className="space-y-4">
             {faqs.map((faq, idx) => (
-              <div key={idx} className="border border-slate-100 rounded-2xl overflow-hidden transition-all duration-300">
-                <button
-                  onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
-                  className="w-full px-6 py-5 bg-slate-50 hover:bg-slate-100/50 flex justify-between items-center text-right transition-colors"
-                >
-                  <span className="font-bold text-[#0F2C4E] text-sm sm:text-base">{faq.q}</span>
-                  {openFaq === idx ? (
-                    <HiChevronUp className="w-5 h-5 text-accent flex-shrink-0" />
-                  ) : (
-                    <HiChevronDown className="w-5 h-5 text-[#0F2C4E]/60 flex-shrink-0" />
-                  )}
-                </button>
-                <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
-                  openFaq === idx ? 'max-h-40 border-t border-slate-100' : 'max-h-0'
-                }`}>
-                  <div className="px-6 py-5 text-sm text-slate-500 leading-relaxed bg-white text-right">
-                    {faq.a}
+              <FadeIn key={idx} delay={idx * 60}>
+                <div className="border border-slate-100 rounded-2xl overflow-hidden transition-all duration-300">
+                  <button
+                    onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
+                    className="w-full px-6 py-5 bg-slate-50 hover:bg-slate-100/50 flex justify-between items-center text-right transition-colors"
+                  >
+                    <span className="font-bold text-[#0F2C4E] text-sm sm:text-base">{faq.q}</span>
+                    {openFaq === idx ? (
+                      <HiChevronUp className="w-5 h-5 text-accent flex-shrink-0" />
+                    ) : (
+                      <HiChevronDown className="w-5 h-5 text-[#0F2C4E]/60 flex-shrink-0" />
+                    )}
+                  </button>
+                  <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
+                    openFaq === idx ? 'max-h-40 border-t border-slate-100' : 'max-h-0'
+                  }`}>
+                    <div className="px-6 py-5 text-sm text-slate-500 leading-relaxed bg-white text-right">
+                      {faq.a}
+                    </div>
                   </div>
                 </div>
-              </div>
+              </FadeIn>
             ))}
           </div>
 
@@ -998,14 +819,15 @@ export default function LandingPage() {
       {/* 10. FINAL CTA SECTION */}
       <section className="py-24 bg-[#0F2C4E] text-white text-center relative overflow-hidden">
         {/* Background glow effects */}
-        <div className="absolute -top-24 -right-24 w-80 h-80 bg-accent/20 rounded-full blur-3xl" />
-        <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl" />
+        <div className="absolute -top-24 -right-24 w-80 h-80 bg-accent/20 rounded-full blur-3xl animate-glow-pulse" />
+        <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl animate-drift" style={{ animationDelay: '2s' }} />
 
+        <FadeIn>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 relative z-10">
           <h2 className="text-3xl sm:text-4xl font-black mb-6 leading-tight">
             جاهز تبدأ تنظم بيزنسك؟
           </h2>
-          
+
           <p className="text-lg text-slate-300 mb-10 max-w-2xl mx-auto leading-relaxed">
             انضم لأصحاب الأعمال اللي بدأوا يوفروا وقتهم وفلوسهم مع بسهولة
           </p>
@@ -1019,6 +841,7 @@ export default function LandingPage() {
             بدون بطاقة بنكية · إعداد في 10 دقايق
           </p>
         </div>
+        </FadeIn>
       </section>
 
       {/* 11. FOOTER */}
@@ -1039,9 +862,20 @@ export default function LandingPage() {
                 </svg>
                 <span className="text-xl font-bold text-white">بسهولة</span>
               </div>
-              <p className="text-sm text-slate-500 leading-relaxed max-w-xs">
+              <p className="text-sm text-slate-500 leading-relaxed max-w-xs mb-4">
                 تنظيم أسهل، عملاء أكثر
               </p>
+              <div className="flex items-center gap-3">
+                <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-accent flex items-center justify-center text-slate-300 hover:text-white transition-colors" aria-label="Instagram">
+                  <FaInstagramSquare className="w-4 h-4" />
+                </a>
+                <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-accent flex items-center justify-center text-slate-300 hover:text-white transition-colors" aria-label="Twitter">
+                  <FaTwitter className="w-4 h-4" />
+                </a>
+                <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-accent flex items-center justify-center text-slate-300 hover:text-white transition-colors" aria-label="Facebook">
+                  <FaFacebook className="w-4 h-4" />
+                </a>
+              </div>
             </div>
 
             {/* Col 2: Navigation Links */}

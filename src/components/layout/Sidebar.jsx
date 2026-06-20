@@ -37,8 +37,7 @@ export default function Sidebar() {
         {/* Logo */}
         <div className="px-6 py-5 border-b border-slate-100">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-primary-700 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-sm">ب</div>
-            <span className="font-bold text-slate-900 text-lg">بسهولة</span>
+            <img src="/logo.png" alt="بسهولة" className="w-15 h-15 rounded-xl object-contain flex-shrink-0" />
           </div>
           {business && (
             <p className="text-xs text-slate-400 mt-1.5 truncate">{business.name}</p>
@@ -101,7 +100,7 @@ export default function Sidebar() {
       <aside className="hidden md:flex lg:hidden fixed top-0 right-0 h-screen w-16 bg-white border-l border-slate-100 flex-col z-30 items-center">
         {/* Logo */}
         <div className="py-5 border-b border-slate-100 w-full flex justify-center">
-          <div className="w-8 h-8 bg-primary-700 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-sm">ب</div>
+          <img src="/logo.png" alt="بسهولة" className="w-8 h-8 rounded-xl object-contain" />
         </div>
 
         {/* Nav icons */}

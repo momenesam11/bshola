@@ -125,7 +125,7 @@ function PatientHeader({ clientPhone, clientName, visits = [], diagnoses = [] })
       {/* Main header row */}
       <div className="px-4 sm:px-6 pt-5 pb-4 flex items-start gap-4">
         <div className="relative flex-shrink-0">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center text-white text-xl font-bold shadow-md">
+          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center text-white text-xl font-bold leading-none shadow-md">
             {initials}
           </div>
         </div>
@@ -584,7 +584,7 @@ function TabPrescriptions({ businessId, clientPhone }) {
 }
 
 // ─── TAB 4: Attachments ────────────────────────────────────────────
-function TabAttachments({ businessId, clientPhone }) {
+function TabAttachments({ businessId, clientPhone, isMedical }) {
   const { data: attachments = [], isLoading } = useAttachments(businessId, clientPhone)
   const upload = useUploadAttachment(businessId, clientPhone)
   const del = useDeleteAttachment(businessId, clientPhone)
@@ -593,17 +593,25 @@ function TabAttachments({ businessId, clientPhone }) {
   const [lightbox, setLightbox] = useState(null)
   const [dragOver, setDragOver] = useState(false)
 
+  async function uploadDirect(file) {
+    try { await upload.mutateAsync({ file, fileType: 'other', notes: '' }); toast.success('تم الرفع بنجاح') }
+    catch (e) { toast.error(e.message) }
+  }
+
   function handleFileChange(e) {
     const file = e.target.files?.[0]
     if (!file) return
-    setPending({ file, fileType: 'other', notes: '' })
+    if (isMedical) setPending({ file, fileType: 'other', notes: '' })
+    else uploadDirect(file)
     e.target.value = ''
   }
 
   function handleDrop(e) {
     e.preventDefault(); setDragOver(false)
     const file = e.dataTransfer.files?.[0]
-    if (file) setPending({ file, fileType: 'other', notes: '' })
+    if (!file) return
+    if (isMedical) setPending({ file, fileType: 'other', notes: '' })
+    else uploadDirect(file)
   }
 
   async function handleUpload() {
@@ -637,6 +645,12 @@ function TabAttachments({ businessId, clientPhone }) {
         <p className="text-xs text-slate-400">JPG، PNG، PDF</p>
         <input ref={fileRef} type="file" accept="image/*,.pdf" onChange={handleFileChange} className="hidden" />
       </div>
+
+      {!isMedical && upload.isPending && (
+        <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+          <div className="h-1.5 bg-accent-500 rounded-full animate-pulse w-3/4" />
+        </div>
+      )}
 
       {/* Pending file config */}
       {pending && (
@@ -673,12 +687,12 @@ function TabAttachments({ businessId, clientPhone }) {
           <p className="text-slate-400 text-sm">لسه مفيش ملفات مرفوعة</p>
         </div>
       ) : (
-        <div className="columns-2 sm:columns-3 gap-3 space-y-0">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {attachments.map(att => (
-            <div key={att.id} className="bg-white border border-slate-100 rounded-xl overflow-hidden group mb-3 break-inside-avoid">
+            <div key={att.id} className="bg-white border border-slate-100 rounded-xl overflow-hidden group flex flex-col">
               {isImage(att.file_url) ? (
-                <div className="relative bg-slate-50 cursor-pointer" onClick={() => setLightbox(att)}>
-                  <img src={att.file_url} alt={att.file_name} className="w-full object-cover" />
+                <div className="relative bg-slate-50 cursor-pointer aspect-square" onClick={() => setLightbox(att)}>
+                  <img src={att.file_url} alt={att.file_name} className="absolute inset-0 w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                     <button onClick={e => { e.stopPropagation(); handleDelete(att) }} className="p-2 bg-red-500 text-white rounded-xl">
                       <HiOutlineTrash className="w-4 h-4" />
@@ -686,7 +700,7 @@ function TabAttachments({ businessId, clientPhone }) {
                   </div>
                 </div>
               ) : (
-                <div className="aspect-video bg-slate-50 flex flex-col items-center justify-center gap-2 p-4">
+                <div className="aspect-square bg-slate-50 flex flex-col items-center justify-center gap-2 p-4">
                   <HiOutlineDocument className="w-8 h-8 text-slate-300" />
                   <p className="text-xs text-slate-400 text-center truncate w-full">{att.file_name}</p>
                 </div>
@@ -696,7 +710,7 @@ function TabAttachments({ businessId, clientPhone }) {
                   <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${FILE_TYPE_COLORS[att.file_type] || FILE_TYPE_COLORS.other}`}>
                     {FILE_TYPE_LABELS[att.file_type] || 'أخرى'}
                   </span>
-                  <span className="text-[10px] text-slate-300">{format(new Date(att.uploaded_at), 'dd/MM/yy')}</span>
+                  <span className="text-[10px] text-slate-500 font-medium">{format(new Date(att.uploaded_at), 'dd/MM/yy')}</span>
                 </div>
                 {att.notes && <p className="text-[10px] text-slate-400 mt-1 truncate">{att.notes}</p>}
               </div>
@@ -776,7 +790,7 @@ export default function PatientRecord() {
             {tab === 'info' && business && !isMedical && <TabBasicInfoSimple businessId={business.id} clientPhone={clientPhone} clientName={clientName} visits={visits} />}
             {tab === 'visits' && business && isMedical && <TabVisits businessId={business.id} clientPhone={clientPhone} clientName={clientName} />}
             {tab === 'prescriptions' && business && isMedical && <TabPrescriptions businessId={business.id} clientPhone={clientPhone} />}
-            {tab === 'attachments' && business && <TabAttachments businessId={business.id} clientPhone={clientPhone} />}
+            {tab === 'attachments' && business && <TabAttachments businessId={business.id} clientPhone={clientPhone} isMedical={isMedical} />}
           </div>
         </div>
       </div>

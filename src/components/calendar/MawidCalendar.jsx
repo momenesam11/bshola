@@ -101,11 +101,11 @@ function StatsBar({ businessId, branchId, startDate, endDate }) {
   ]
 
   return (
-    <div className="grid grid-cols-4 gap-2 mb-4">
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-2 mb-4">
       {items.map(item => (
-        <div key={item.label} className="bg-white rounded-xl border border-slate-100 p-3 text-center shadow-sm">
-          <p className={`text-lg sm:text-2xl font-bold ${item.color}`}>{item.value}</p>
-          <p className="text-xs text-slate-400 mt-0.5">{item.label}</p>
+        <div key={item.label} className="bg-white rounded-xl border border-slate-100 p-4 sm:p-3 text-center shadow-sm">
+          <p className={`text-2xl sm:text-2xl font-bold ${item.color}`}>{item.value}</p>
+          <p className="text-sm sm:text-xs text-slate-400 mt-0.5">{item.label}</p>
         </div>
       ))}
     </div>
@@ -309,7 +309,7 @@ function DayView({ businessId, branchId, date, onApptClick, onSlotClick, showBra
 }
 
 // ─── WEEK VIEW ─────────────────────────────────────────────────────
-function WeekView({ businessId, branchId, date, onApptClick, onSlotClick, onDayClick, showBranch }) {
+function WeekView({ businessId, branchId, date, onApptClick, onSlotClick, onDayClick, showBranch, colorByBranch, branches }) {
   const weekStart = startOfWeek(date, { weekStartsOn: WEEK_START })
   const days = eachDayOfInterval({ start: weekStart, end: endOfWeek(date, { weekStartsOn: WEEK_START }) })
   const { data: appts = [] } = useAppointmentsForWeek(businessId, branchId, date)
@@ -353,19 +353,22 @@ function WeekView({ businessId, branchId, date, onApptClick, onSlotClick, onDayC
                 className={`p-2 border-l border-slate-50 last:border-0 ${today ? 'bg-accent-50/40' : ''}`}
               >
                 <div className="space-y-1">
-                  {dayAppts.map(appt => (
-                    <div
-                      key={appt.id}
-                      onClick={() => onApptClick(appt)}
-                      className={`px-2 py-1 rounded-lg text-xs cursor-pointer hover:opacity-80 transition-opacity border truncate ${STATUS_LIGHT[appt.status]}`}
-                    >
-                      <span className="font-medium">{appt.client_name}</span>
-                      <span className="text-[10px] block opacity-70">
-                        {appt.appointment_time?.slice(0, 5)}
-                        {showBranch && appt.branches?.name && ` · ${appt.branches.name}`}
-                      </span>
-                    </div>
-                  ))}
+                  {dayAppts.map(appt => {
+                    const branchColor = colorByBranch ? getBranchColor(appt.branch_id, branches) : null
+                    return (
+                      <div
+                        key={appt.id}
+                        onClick={() => onApptClick(appt)}
+                        className={`px-2 py-1 rounded-lg text-xs cursor-pointer hover:opacity-80 transition-opacity border truncate ${STATUS_LIGHT[appt.status]} ${branchColor ? `border-r-4 ${branchColor.border}` : ''}`}
+                      >
+                        <span className="font-medium">{appt.client_name}</span>
+                        <span className="text-[10px] block opacity-70">
+                          {appt.appointment_time?.slice(0, 5)}
+                          {showBranch && appt.branches?.name && ` · ${appt.branches.name}`}
+                        </span>
+                      </div>
+                    )
+                  })}
                   {dayAppts.length === 0 && (
                     <div
                       onClick={() => onSlotClick(null, ds)}
@@ -383,7 +386,7 @@ function WeekView({ businessId, branchId, date, onApptClick, onSlotClick, onDayC
 }
 
 // ─── MONTH VIEW ────────────────────────────────────────────────────
-function MonthView({ businessId, branchId, date, onApptClick, onDayClick, showBranch }) {
+function MonthView({ businessId, branchId, date, onApptClick, onDayClick, showBranch, colorByBranch, branches }) {
   const monthStart = startOfMonth(date)
   const monthEnd = endOfMonth(date)
   const gridStart = startOfWeek(monthStart, { weekStartsOn: WEEK_START })
@@ -424,7 +427,7 @@ function MonthView({ businessId, branchId, date, onApptClick, onDayClick, showBr
               }`}
             >
               {/* Date number */}
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold mx-auto mb-1 ${
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold leading-none mx-auto mb-1 ${
                 today
                   ? 'bg-accent-500 text-white'
                   : inMonth ? 'text-slate-800' : 'text-slate-300'
@@ -434,16 +437,19 @@ function MonthView({ businessId, branchId, date, onApptClick, onDayClick, showBr
 
               {/* Appointment chips */}
               <div className="space-y-0.5">
-                {visible.map(appt => (
-                  <div
-                    key={appt.id}
-                    onClick={e => { e.stopPropagation(); onApptClick(appt) }}
-                    className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] truncate cursor-pointer hover:opacity-80 ${STATUS_LIGHT[appt.status]}`}
-                  >
-                    <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${STATUS_BG[appt.status]}`} />
-                    <span className="truncate">{appt.client_name}</span>
-                  </div>
-                ))}
+                {visible.map(appt => {
+                  const branchColor = colorByBranch ? getBranchColor(appt.branch_id, branches) : null
+                  return (
+                    <div
+                      key={appt.id}
+                      onClick={e => { e.stopPropagation(); onApptClick(appt) }}
+                      className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] truncate cursor-pointer hover:opacity-80 ${STATUS_LIGHT[appt.status]} ${branchColor ? `border-r-2 ${branchColor.border}` : ''}`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${STATUS_BG[appt.status]}`} />
+                      <span className="truncate">{appt.client_name}</span>
+                    </div>
+                  )
+                })}
                 {overflow > 0 && (
                   <button
                     onClick={e => { e.stopPropagation(); setPopoverDay(day) }}
@@ -466,19 +472,22 @@ function MonthView({ businessId, branchId, date, onApptClick, onDayClick, showBr
               {format(popoverDay, 'EEEE dd MMMM', { locale: ar })}
             </p>
             <div className="space-y-2">
-              {getDayAppts(popoverDay).map(appt => (
-                <div
-                  key={appt.id}
-                  onClick={() => { onApptClick(appt); setPopoverDay(null) }}
-                  className={`px-3 py-2 rounded-xl border cursor-pointer hover:opacity-80 ${STATUS_LIGHT[appt.status]}`}
-                >
-                  <p className="text-sm font-medium">{appt.client_name}</p>
-                  <p className="text-xs opacity-70">
-                    {appt.appointment_time?.slice(0, 5)} — {appt.services?.name}
-                    {showBranch && appt.branches?.name && ` — ${appt.branches.name}`}
-                  </p>
-                </div>
-              ))}
+              {getDayAppts(popoverDay).map(appt => {
+                const branchColor = colorByBranch ? getBranchColor(appt.branch_id, branches) : null
+                return (
+                  <div
+                    key={appt.id}
+                    onClick={() => { onApptClick(appt); setPopoverDay(null) }}
+                    className={`px-3 py-2 rounded-xl border cursor-pointer hover:opacity-80 ${STATUS_LIGHT[appt.status]} ${branchColor ? `border-r-4 ${branchColor.border}` : ''}`}
+                  >
+                    <p className="text-sm font-medium">{appt.client_name}</p>
+                    <p className="text-xs opacity-70">
+                      {appt.appointment_time?.slice(0, 5)} — {appt.services?.name}
+                      {showBranch && appt.branches?.name && ` — ${appt.branches.name}`}
+                    </p>
+                  </div>
+                )
+              })}
             </div>
           </div>
         </div>
@@ -494,6 +503,8 @@ export default function MawidCalendar({ businessId, onApptClick, onNewAppt }) {
   const dateInputRef = useRef(null)
   const branchCtx = useBranch()
   const isMultiBranch = !!branchCtx?.isMultiBranch
+  const branches = branchCtx?.branches || []
+  const viewingAllBranches = isMultiBranch && !!branchCtx?.currentBranch?.isAll
   // Only filter by branch when the business genuinely has more than one —
   // for the common single-branch case, skip the filter entirely so the
   // calendar can never mismatch against the active branch.
@@ -554,8 +565,23 @@ export default function MawidCalendar({ businessId, onApptClick, onNewAppt }) {
       {/* Stats */}
       <StatsBar businessId={businessId} branchId={branchId} startDate={statsRange.start} endDate={statsRange.end} />
 
-      {/* Controls */}
-      <div className="flex items-center gap-3 mb-4 flex-wrap">
+      {/* Branch legend — shown only when viewing all branches together */}
+      {viewingAllBranches && branches.length > 0 && (
+        <div className="flex items-center gap-3 flex-wrap mb-3 px-1">
+          {branches.map(branch => {
+            const color = getBranchColor(branch.id, branches)
+            return (
+              <span key={branch.id} className="flex items-center gap-1.5 text-xs text-slate-500">
+                <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${color.dot}`} />
+                {branch.name}
+              </span>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Controls — desktop/tablet: single row */}
+      <div className="hidden sm:flex items-center gap-3 mb-4 flex-wrap">
         <div className="flex items-center gap-1">
           <button
             onClick={goForward}
@@ -613,6 +639,65 @@ export default function MawidCalendar({ businessId, onApptClick, onNewAppt }) {
         </button>
       </div>
 
+      {/* Controls — mobile: two clean rows instead of one cramped wrapping row */}
+      <div className="sm:hidden space-y-2 mb-4">
+        <div className="flex items-center gap-2 bg-white rounded-2xl border border-slate-100 p-1.5">
+          <button
+            onClick={goForward}
+            className="w-10 h-10 flex-shrink-0 rounded-xl hover:bg-slate-100 active:bg-slate-100 transition-colors text-slate-500 flex items-center justify-center"
+            aria-label="التالي"
+          >
+            <HiOutlineChevronRight className="w-5 h-5" />
+          </button>
+          <button onClick={goToday} className="flex-1 text-center py-1.5 rounded-xl hover:bg-slate-50 transition-colors">
+            <span className="text-sm font-bold text-slate-900 truncate block">{heading}</span>
+          </button>
+          <button
+            onClick={goBack}
+            className="w-10 h-10 flex-shrink-0 rounded-xl hover:bg-slate-100 active:bg-slate-100 transition-colors text-slate-500 flex items-center justify-center"
+            aria-label="السابق"
+          >
+            <HiOutlineChevronLeft className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div className="relative flex-shrink-0">
+            <input
+              ref={dateInputRef}
+              type="date"
+              value={format(date, 'yyyy-MM-dd')}
+              onChange={e => {
+                if (!e.target.value) return
+                const d = new Date(e.target.value + 'T00:00:00')
+                setDate(d)
+                setView('day')
+              }}
+              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+            />
+            <button
+              onClick={() => dateInputRef.current?.showPicker?.()}
+              className="w-11 h-11 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors text-slate-500 flex items-center justify-center"
+              aria-label="انتقل لتاريخ"
+            >
+              <HiOutlineCalendarDays className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="flex-1">
+            <ViewSwitcher view={view} onChange={setView} />
+          </div>
+
+          <button
+            onClick={() => onNewAppt?.({ date: format(date, 'yyyy-MM-dd'), time: null })}
+            className="w-11 h-11 flex-shrink-0 bg-accent-500 active:bg-accent-600 text-white rounded-xl transition-colors flex items-center justify-center"
+            aria-label="موعد جديد"
+          >
+            <HiOutlinePlus className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
       {/* Calendar view */}
       {view === 'day' && (
         <DayView
@@ -622,6 +707,8 @@ export default function MawidCalendar({ businessId, onApptClick, onNewAppt }) {
           onApptClick={onApptClick}
           onSlotClick={handleSlotClick}
           showBranch={isMultiBranch}
+          colorByBranch={viewingAllBranches}
+          branches={branches}
         />
       )}
       {view === 'week' && (
@@ -633,6 +720,8 @@ export default function MawidCalendar({ businessId, onApptClick, onNewAppt }) {
           onSlotClick={handleSlotClick}
           onDayClick={handleDayClick}
           showBranch={isMultiBranch}
+          colorByBranch={viewingAllBranches}
+          branches={branches}
         />
       )}
       {view === 'month' && (
@@ -643,6 +732,8 @@ export default function MawidCalendar({ businessId, onApptClick, onNewAppt }) {
           onApptClick={onApptClick}
           onDayClick={handleDayClick}
           showBranch={isMultiBranch}
+          colorByBranch={viewingAllBranches}
+          branches={branches}
         />
       )}
     </div>

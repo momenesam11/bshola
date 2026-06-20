@@ -6,6 +6,8 @@ import { supabase } from '../../lib/supabase'
 import { loginSchema } from '../../lib/validators'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
+import AuthLayout from '../../components/auth/AuthLayout'
+import GoogleButton from '../../components/auth/GoogleButton'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -30,53 +32,61 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6" style={{ background: 'linear-gradient(135deg, #E8EEF4, #D7F5EE)' }}>
-      <div className="w-full max-w-sm">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-700 rounded-2xl mb-3 shadow-lg">
-            <span className="text-white font-bold text-3xl">ب</span>
-          </div>
-          <h1 className="text-2xl font-bold text-primary-700">بسهولة</h1>
-          <p className="text-gray-500 text-sm mt-1">تنظيم أسهل، عملاء أكثر</p>
-        </div>
-
-        <div className="sm:bg-white sm:rounded-2xl sm:shadow-sm sm:border sm:border-gray-100 sm:p-6">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <Input
-              label="البريد الإلكتروني"
-              type="email"
-              placeholder="example@email.com"
-              dir="ltr"
-              error={errors.email?.message}
-              {...register('email')}
-            />
-            <Input
-              label="كلمة المرور"
-              type="password"
-              placeholder="••••••••"
-              dir="ltr"
-              error={errors.password?.message}
-              {...register('password')}
-            />
-
-            {serverError && (
-              <div className="bg-red-50 text-red-600 text-sm px-3 py-2 rounded-lg">{serverError}</div>
-            )}
-
-            <Button type="submit" loading={isSubmitting} className="w-full">
-              تسجيل الدخول
-            </Button>
-          </form>
-
-          <p className="text-center text-sm text-gray-500 mt-4">
-            لسه معاك حساب؟{' '}
-            <Link to="/register" className="text-accent-600 font-medium hover:underline">
-              سجل دلوقتي
-            </Link>
-          </p>
-        </div>
+    <AuthLayout
+      title="أهلاً بيك في بسهولة!"
+      subtitle="سيب التنظيم والمتابعة اليدوية وركز في عملك — زود إنتاجيتك وفر وقتك مع بسهولة."
+    >
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold text-gray-900">أهلاً بيك تاني!</h2>
+        <p className="text-gray-500 text-sm mt-1">
+          لسه معاك حساب؟{' '}
+          <Link to="/register" className="text-accent-600 font-medium hover:underline">
+            سجل حساب جديد دلوقتي
+          </Link>
+        </p>
       </div>
-    </div>
+
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <Input
+          label="البريد الإلكتروني"
+          type="email"
+          placeholder="example@email.com"
+          dir="ltr"
+          error={errors.email?.message}
+          {...register('email')}
+        />
+        <div>
+          <Input
+            label="كلمة المرور"
+            type="password"
+            placeholder="••••••••"
+            dir="ltr"
+            error={errors.password?.message}
+            {...register('password')}
+          />
+          <div className="text-left mt-1.5">
+            <Link to="/forgot-password" className="text-xs text-gray-500 hover:text-accent-600 hover:underline">
+              نسيت كلمة المرور؟
+            </Link>
+          </div>
+        </div>
+
+        {serverError && (
+          <div className="bg-red-50 text-red-600 text-sm px-3 py-2 rounded-lg">{serverError}</div>
+        )}
+
+        <Button type="submit" loading={isSubmitting} className="w-full">
+          تسجيل الدخول
+        </Button>
+      </form>
+
+      <div className="flex items-center gap-3 my-5">
+        <div className="flex-1 h-px bg-gray-200" />
+        <span className="text-xs text-gray-400">أو</span>
+        <div className="flex-1 h-px bg-gray-200" />
+      </div>
+
+      <GoogleButton label="الدخول بحساب Google" />
+    </AuthLayout>
   )
 }

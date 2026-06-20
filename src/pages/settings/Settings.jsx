@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import {
   HiOutlinePlus,
   HiOutlineXMark,
@@ -7,7 +8,6 @@ import {
   HiOutlineCamera,
   HiOutlinePhoto,
   HiOutlineGlobeAlt,
-  HiOutlineLink,
   HiOutlineTrash,
 } from 'react-icons/hi2'
 import { FaInstagram, FaFacebook } from 'react-icons/fa'
@@ -23,9 +23,11 @@ import {
   useUpdateBusinessIdentity,
   uploadBusinessAsset,
 } from '../../hooks/useBusiness'
-import { DAYS_ORDER, DAYS_AR, REMINDER_OPTIONS, DEFAULT_REMINDER_TEMPLATE } from '../../utils/constants'
-import { normalizeWorkingHours } from '../../utils/dateHelpers'
+import { REMINDER_OPTIONS, DEFAULT_REMINDER_TEMPLATE } from '../../utils/constants'
 import { supabase } from '../../lib/supabase'
+import { useBranch } from '../../context/BranchContext'
+import ScheduleBlockEditor from '../../components/ui/ScheduleBlockEditor'
+import BookingLinkActions from '../../components/booking/BookingLinkActions'
 
 const BRAND_COLORS = [
   { hex: '#10B981', label: 'أخضر' },
@@ -47,7 +49,7 @@ const CANCELLATION_OPTIONS = [
 
 function Section({ title, subtitle, children }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5" dir="rtl">
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 sm:p-6 space-y-4 sm:space-y-5" dir="rtl">
       <div className="pb-3 border-b border-slate-50">
         <h2 className="text-base font-bold text-slate-900">{title}</h2>
         {subtitle && <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>}
@@ -68,60 +70,85 @@ function SaveFeedback({ status, msg }) {
   return null
 }
 
-function Toggle({ on, onChange }) {
-  return (
-    <button type="button" onClick={() => onChange(!on)}
-      className={`relative w-11 h-6 rounded-full transition-colors duration-200 flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-accent-400 focus:ring-offset-1 ${on ? 'bg-accent-500' : 'bg-slate-300'}`}
-      role="switch" aria-checked={on}>
-      <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200 ${on ? 'translate-x-5' : 'translate-x-0'}`} />
-    </button>
-  )
-}
+// ── Working Hours Section — edits the currently selected branch's schedule ──
+function WorkingHoursSection({ business }) {
+  const qc = useQueryClient()
+  const branchCtx = useBranch()
+  const isMultiBranch = !!branchCtx?.isMultiBranch
+  const currentBranch = branchCtx?.currentBranch
+  const [scheduleBlocks, setScheduleBlocks] = useState({})
+  const [isValid, setIsValid] = useState(true)
+  const [slotDuration, setSlotDuration] = useState(business?.slot_duration || 30)
+  const [saveStatus, setSaveStatus] = useState(null)
+  const [saveMsg, setSaveMsg] = useState('')
 
-function DayRow({ day, config, onChange }) {
-  const active = config?.active ?? false
-  const periods = config?.periods ?? [{ open: '09:00', close: '18:00' }]
+  useEffect(() => {
+    if (currentBranch && !currentBranch.isAll) {
+      setScheduleBlocks(currentBranch.schedule_blocks || {})
+    }
+  }, [currentBranch?.id])
 
-  function setActive(val) { onChange(day, { ...config, active: val }) }
-  function updatePeriod(idx, field, val) {
-    const next = periods.map((p, i) => i === idx ? { ...p, [field]: val } : p)
-    onChange(day, { ...config, periods: next })
+  useEffect(() => {
+    setSlotDuration(business?.slot_duration || 30)
+  }, [business?.slot_duration])
+
+  async function handleSave() {
+    if (!currentBranch || currentBranch.isAll) return
+    setSaveStatus('loading')
+    try {
+      const { error: branchError } = await supabase
+        .from('branches')
+        .update({ schedule_blocks: scheduleBlocks })
+        .eq('id', currentBranch.id)
+      if (branchError) throw branchError
+      const { error: bizError } = await supabase
+        .from('businesses')
+        .update({ slot_duration: slotDuration })
+        .eq('id', business.id)
+      if (bizError) throw bizError
+      qc.invalidateQueries({ queryKey: ['branches', business.id] })
+      qc.invalidateQueries({ queryKey: ['business'] })
+      setSaveStatus('ok')
+      setTimeout(() => setSaveStatus(null), 2500)
+    } catch (e) {
+      setSaveStatus('error')
+      setSaveMsg(e?.message || String(e))
+    }
   }
-  function addPeriod() {
-    if (periods.length >= 2) return
-    onChange(day, { ...config, periods: [...periods, { open: '16:00', close: '22:00' }] })
+
+  if (!currentBranch) {
+    return <div className="h-24 bg-slate-50 rounded-xl animate-pulse" />
   }
-  function removePeriod(idx) { onChange(day, { ...config, periods: periods.filter((_, i) => i !== idx) }) }
+
+  if (currentBranch.isAll) {
+    return (
+      <p className="text-sm text-slate-500">
+        اختر فرع محدد من القائمة في الأعلى لتعديل ساعات عمله، أو من{' '}
+        <Link to="/settings/branches" className="text-accent-600 hover:underline font-medium">إدارة الفروع</Link>.
+      </p>
+    )
+  }
 
   return (
-    <div className={`rounded-xl border p-3 transition-colors ${active ? 'border-accent-200 bg-accent-50/60' : 'border-slate-100 bg-slate-50'}`}>
+    <div className="space-y-4">
+      {isMultiBranch && (
+        <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100 text-sm">
+          <span className="text-slate-500">بتعدل ساعات فرع:</span>
+          <span className="font-semibold text-slate-700">{currentBranch.name}</span>
+          <Link to="/settings/branches" className="text-accent-600 hover:underline text-xs mr-auto">إدارة كل الفروع</Link>
+        </div>
+      )}
+      <ScheduleBlockEditor value={scheduleBlocks} onChange={setScheduleBlocks} onValidityChange={setIsValid} />
+      <Select label="مدة الموعد الواحد" value={slotDuration} onChange={e => setSlotDuration(Number(e.target.value))}>
+        <option value={15}>15 دقيقة</option>
+        <option value={30}>30 دقيقة</option>
+        <option value={45}>45 دقيقة</option>
+        <option value={60}>ساعة كاملة</option>
+        <option value={90}>ساعة ونصف</option>
+      </Select>
       <div className="flex items-center gap-3">
-        <Toggle on={active} onChange={setActive} />
-        <span className={`text-sm font-semibold w-16 ${active ? 'text-slate-900' : 'text-slate-400'}`}>{DAYS_AR[day]}</span>
-        {active && (
-          <div className="flex-1 flex flex-col gap-2">
-            {periods.map((p, idx) => (
-              <div key={idx} className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs text-slate-400 w-8">{idx === 0 ? 'صبح' : 'مساء'}</span>
-                <input type="time" value={p.open} onChange={e => updatePeriod(idx, 'open', e.target.value)}
-                  className="border border-slate-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent-400 min-h-[36px]" dir="ltr" />
-                <span className="text-slate-400 text-xs">←</span>
-                <input type="time" value={p.close} onChange={e => updatePeriod(idx, 'close', e.target.value)}
-                  className="border border-slate-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent-400 min-h-[36px]" dir="ltr" />
-                {periods.length > 1 && (
-                  <button type="button" onClick={() => removePeriod(idx)} className="text-red-400 hover:text-red-600 p-1">
-                    <HiOutlineXMark className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-            ))}
-            {periods.length < 2 && (
-              <button type="button" onClick={addPeriod} className="flex items-center gap-1 text-xs text-accent-600 hover:text-accent-700 font-medium w-fit">
-                <HiOutlinePlus className="w-3.5 h-3.5" />إضافة فترة مسائية
-              </button>
-            )}
-          </div>
-        )}
+        <Button onClick={handleSave} loading={saveStatus === 'loading'} disabled={!isValid} size="sm">حفظ</Button>
+        <SaveFeedback status={saveStatus} msg={saveMsg} />
       </div>
     </div>
   )
@@ -338,21 +365,18 @@ function IdentitySection({ business, onSaved }) {
       {/* Booking slug */}
       <div>
         <p className="text-xs font-medium text-slate-600 mb-1.5">رابط الحجز المخصص</p>
-        <div className="flex items-center border border-slate-200 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-accent-400">
-          <span className="px-3 py-3 bg-slate-50 text-slate-400 text-xs border-l border-slate-200 flex-shrink-0 whitespace-nowrap">
+        <div className="flex flex-col sm:flex-row sm:items-center border border-slate-200 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-accent-400">
+          <span className="px-3 py-2 sm:py-3 bg-slate-50 text-slate-400 text-xs border-b sm:border-b-0 sm:border-l border-slate-200 flex-shrink-0 truncate" dir="ltr">
             {window.location.origin}/book/
           </span>
           <input value={slug} onChange={e => handleSlugChange(e.target.value)} placeholder="slug-الخاص-بيك" dir="ltr"
-            className="flex-1 px-3 py-3 text-sm focus:outline-none bg-white" />
+            className="flex-1 w-full px-3 py-3 text-sm focus:outline-none bg-white" />
         </div>
         {slugStatus === 'available' && <p className="text-xs text-accent-600 mt-1 flex items-center gap-1"><HiOutlineCheck className="w-3.5 h-3.5" />متاح</p>}
         {slugStatus === 'taken' && <p className="text-xs text-red-500 mt-1 flex items-center gap-1"><HiOutlineXMark className="w-3.5 h-3.5" />مش متاح، جرب تاني</p>}
-        <div className="mt-2 flex items-center gap-2 bg-slate-50 rounded-xl p-2.5 border border-slate-100">
-          <span className="text-xs text-accent-700 font-mono flex-1 truncate" dir="ltr">{bookingLink}</span>
-          <button type="button" onClick={() => navigator.clipboard.writeText(bookingLink)}
-            className="text-xs text-slate-500 hover:text-slate-700 px-2 py-1 rounded bg-white border border-slate-200 flex-shrink-0">
-            <HiOutlineLink className="w-3.5 h-3.5" />
-          </button>
+        <div className="mt-2 bg-slate-50 rounded-xl p-2.5 border border-slate-100">
+          <span className="block text-xs text-accent-700 font-mono truncate mb-2" dir="ltr">{bookingLink}</span>
+          <BookingLinkActions url={bookingLink} shareMessage={`احجز موعدك مع ${business?.name || ''} بسهولة من الرابط ده 👇\n${bookingLink}`} />
         </div>
       </div>
 
@@ -429,8 +453,6 @@ export default function Settings() {
   const { data: business, isLoading } = useBusiness()
   const updateBusiness = useUpdateBusiness()
   const [bizForm, setBizForm] = useState({ name: '', phone: '' })
-  const [workingHours, setWorkingHours] = useState({})
-  const [slotDuration, setSlotDuration] = useState(30)
   const [reminderHours, setReminderHours] = useState(24)
   const [reminderTemplate, setReminderTemplate] = useState(DEFAULT_REMINDER_TEMPLATE)
   const [saveStatus, setSaveStatus] = useState({})
@@ -438,8 +460,6 @@ export default function Settings() {
   useEffect(() => {
     if (business) {
       setBizForm({ name: business.name || '', phone: business.phone || '' })
-      setWorkingHours(normalizeWorkingHours(business.working_hours))
-      setSlotDuration(business.slot_duration || 30)
       setReminderHours(business.reminder_hours || 24)
       setReminderTemplate(business.reminder_template || DEFAULT_REMINDER_TEMPLATE)
     }
@@ -456,22 +476,19 @@ export default function Settings() {
     catch (e) { setStatus('biz', 'error', e?.message || String(e)) }
   }
 
-  async function saveHours() {
-    setStatus('hours', 'loading')
-    try { await updateBusiness.mutateAsync({ id: business.id, working_hours: workingHours, slot_duration: slotDuration }); setStatus('hours', 'ok') }
-    catch (e) { setStatus('hours', 'error', e?.message || String(e)) }
-  }
-
   async function saveReminder() {
     setStatus('reminder', 'loading')
     try { await updateBusiness.mutateAsync({ id: business.id, reminder_hours: reminderHours, reminder_template: reminderTemplate }); setStatus('reminder', 'ok') }
     catch (e) { setStatus('reminder', 'error', e?.message || String(e)) }
   }
 
-  function updateDayConfig(day, config) { setWorkingHours(prev => ({ ...prev, [day]: config })) }
-
   async function handleDeleteAccount() {
     if (!window.confirm('هل أنت متأكد من حذف الحساب؟ لا يمكن التراجع.')) return
+    await supabase.auth.signOut()
+    navigate('/login')
+  }
+
+  async function handleLogout() {
     await supabase.auth.signOut()
     navigate('/login')
   }
@@ -512,23 +529,8 @@ export default function Settings() {
         </Section>
 
         {/* ── Working Hours ─────────────────────────────────────── */}
-        <Section title="ساعات العمل" subtitle="كل يوم يدعم فترتين — صبح ومساء">
-          <div className="space-y-2.5">
-            {DAYS_ORDER.map(day => (
-              <DayRow key={day} day={day} config={workingHours[day]} onChange={updateDayConfig} />
-            ))}
-          </div>
-          <Select label="مدة الموعد الواحد" value={slotDuration} onChange={e => setSlotDuration(Number(e.target.value))}>
-            <option value={15}>15 دقيقة</option>
-            <option value={30}>30 دقيقة</option>
-            <option value={45}>45 دقيقة</option>
-            <option value={60}>ساعة كاملة</option>
-            <option value={90}>ساعة ونصف</option>
-          </Select>
-          <div className="flex items-center gap-3">
-            <Button onClick={saveHours} loading={saveStatus.hours === 'loading'} size="sm">حفظ</Button>
-            <SaveFeedback status={saveStatus.hours} msg={saveStatus.hoursMsg} />
-          </div>
+        <Section title="ساعات العمل" subtitle="يمكنك إضافة أكتر من فترة لليوم الواحد، بدون تقاطع بينها">
+          {business && <WorkingHoursSection business={business} />}
         </Section>
 
         {/* ── Reminders ─────────────────────────────────────────── */}
@@ -548,6 +550,13 @@ export default function Settings() {
             <SaveFeedback status={saveStatus.reminder} msg={saveStatus.reminderMsg} />
           </div>
         </Section>
+
+{/* ── Logout (mobile only — desktop/tablet sidebar already has it) ── */}
+        <div className="md:hidden">
+          <Button variant="secondary" onClick={handleLogout} className="w-full">
+            تسجيل الخروج
+          </Button>
+        </div>
 
 {/* ── Danger Zone ──────────────────────────────────────── */}
         <Section title="منطقة الخطر">

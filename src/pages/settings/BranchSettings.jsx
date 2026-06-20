@@ -85,6 +85,7 @@ function BranchForm({ branch, onSave, onCancel, saving, isClinic }) {
   const [phone, setPhone] = useState(branch?.phone || '')
   const [capacity, setCapacity] = useState(branch?.capacity || 1)
   const [scheduleBlocks, setScheduleBlocks] = useState(branch?.schedule_blocks || {})
+  const [isValid, setIsValid] = useState(true)
 
   function handleSubmit(e) {
     e.preventDefault()
@@ -138,7 +139,7 @@ function BranchForm({ branch, onSave, onCancel, saving, isClinic }) {
 
       <div>
         <label className="block text-xs font-medium text-slate-600 mb-2">ساعات العمل</label>
-        <ScheduleBlockEditor value={scheduleBlocks} onChange={setScheduleBlocks} />
+        <ScheduleBlockEditor value={scheduleBlocks} onChange={setScheduleBlocks} onValidityChange={setIsValid} />
       </div>
 
       <div className="flex gap-2 pt-1">
@@ -152,7 +153,7 @@ function BranchForm({ branch, onSave, onCancel, saving, isClinic }) {
         </button>
         <button
           type="submit"
-          disabled={saving || !name.trim()}
+          disabled={saving || !name.trim() || !isValid}
           className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 bg-accent-500 hover:bg-accent-600 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50 min-h-[44px]"
         >
           <HiOutlineCheck className="w-4 h-4" />

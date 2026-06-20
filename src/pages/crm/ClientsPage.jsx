@@ -3,9 +3,14 @@ import {
   HiOutlineUsers,
   HiOutlineMagnifyingGlass,
   HiOutlineBell,
+  HiOutlineFaceSmile,
+  HiOutlineClock,
+  HiOutlineXCircle,
+  HiOutlineXMark,
 } from 'react-icons/hi2'
 import { FaWhatsapp } from 'react-icons/fa'
 import PageWrapper from '../../components/layout/PageWrapper'
+import { StatCard } from '../../components/ui/Card'
 import { useBusiness } from '../../hooks/useBusiness'
 import { useClients, useClientStats } from '../../hooks/useClients'
 import { useTomorrowsAppointments } from '../../hooks/useAppointments'
@@ -46,7 +51,7 @@ function ClientCard({ client, onView, tomorrowAppt, businessName }) {
       {/* Top row */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-full bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+          <div className="w-11 h-11 rounded-full bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center text-white font-bold text-sm leading-none flex-shrink-0">
             {client.name.slice(0, 2)}
           </div>
           <div>
@@ -128,7 +133,19 @@ function ClientCard({ client, onView, tomorrowAppt, businessName }) {
   )
 }
 
-function EmptyState() {
+function EmptyState({ isFiltered, onClear }) {
+  if (isFiltered) {
+    return (
+      <div className="col-span-full flex flex-col items-center justify-center py-24 text-center" dir="rtl">
+        <HiOutlineMagnifyingGlass className="w-16 h-16 text-slate-300 mb-4" />
+        <h3 className="text-lg font-bold text-slate-700 mb-1">لا توجد نتائج</h3>
+        <p className="text-slate-400 text-sm max-w-xs mb-3">جرّب كلمة بحث مختلفة أو تصنيف آخر</p>
+        <button onClick={onClear} className="text-sm text-accent-600 font-medium hover:underline">
+          إلغاء الفلتر
+        </button>
+      </div>
+    )
+  }
   return (
     <div className="col-span-full flex flex-col items-center justify-center py-24 text-center" dir="rtl">
       <HiOutlineUsers className="w-16 h-16 text-slate-300 mb-4" />
@@ -161,15 +178,17 @@ export default function ClientsPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">العملاء</h1>
           <p className="text-slate-500 text-sm mt-0.5">كل عملائك في مكان واحد</p>
-          {stats && (
-            <div className="flex flex-wrap gap-3 mt-3">
-              <StatPill label="الكل" value={stats.total} color="slate" />
-              <StatPill label="منتظمين" value={stats['منتظم']} color="accent" />
-              <StatPill label="فاترين" value={stats['فاتر']} color="amber" />
-              <StatPill label="ضايعين" value={stats['ضايع']} color="red" />
-            </div>
-          )}
         </div>
+
+        {/* Stats */}
+        {stats && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <StatCard label="الكل" value={stats.total} Icon={HiOutlineUsers} color="slate" />
+            <StatCard label="منتظمين" value={stats['منتظم'] ?? 0} Icon={HiOutlineFaceSmile} color="accent" />
+            <StatCard label="فاترين" value={stats['فاتر'] ?? 0} Icon={HiOutlineClock} color="amber" />
+            <StatCard label="ضايعين" value={stats['ضايع'] ?? 0} Icon={HiOutlineXCircle} color="red" />
+          </div>
+        )}
 
         {/* Search */}
         <div className="relative">
@@ -179,8 +198,16 @@ export default function ClientsPage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="ابحث باسم العميل أو رقمه..."
-            className="w-full md:w-[400px] border border-slate-200 rounded-xl pr-11 pl-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent-400 focus:border-transparent"
+            className="w-full md:w-[400px] border border-slate-200 rounded-xl pr-11 pl-10 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent-400 focus:border-transparent"
           />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            >
+              <HiOutlineXMark className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
         {/* Filter tabs */}
@@ -224,7 +251,10 @@ export default function ClientsPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filtered.length === 0 ? (
-              <EmptyState />
+              <EmptyState
+                isFiltered={clients.length > 0}
+                onClear={() => { setSearch(''); setActiveTab('') }}
+              />
             ) : (
               filtered.map(client => (
                 <ClientCard
@@ -250,19 +280,5 @@ export default function ClientsPage() {
         />
       )}
     </PageWrapper>
-  )
-}
-
-function StatPill({ label, value, color }) {
-  const colors = {
-    slate: 'bg-slate-100 text-slate-700',
-    accent: 'bg-accent-100 text-accent-700',
-    amber: 'bg-amber-100 text-amber-700',
-    red: 'bg-red-100 text-red-700',
-  }
-  return (
-    <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full ${colors[color]}`}>
-      {label}: <strong>{value ?? 0}</strong>
-    </span>
   )
 }
