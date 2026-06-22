@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { todayISO } from '../utils/dateHelpers'
 
 // Egyptian/Arabic phone format — allows a leading "+" and spaces/dashes,
 // normalizes to 10-15 digits before validating.
@@ -51,18 +52,29 @@ export const serviceSchema = z.object({
   price: z.coerce.number().min(0).optional(),
 })
 
-export const appointmentSchema = z.object({
-  client_name: z.string().min(2, 'اسم العميل مطلوب'),
-  client_phone: z.preprocess(
-    v => String(v).replace(/[\s\-().+]/g, ''),
-    z.string().regex(/^[0-9]{10,15}$/, 'رقم الواتساب يجب أن يحتوي على أرقام فقط (10-15 رقم)')
-  ),
-  service_id: z.string().min(1, 'اختر الخدمة').uuid('اختر الخدمة'),
-  appointment_date: z.string().min(1, 'التاريخ مطلوب'),
-  appointment_time: z.string().min(1, 'الوقت مطلوب'),
-  status: z.enum(['confirmed', 'cancelled', 'no_show', 'completed']).default('confirmed'),
-  notes: z.string().optional(),
-})
+// isEdit skips the past-date check: editing an existing appointment (e.g.
+// marking yesterday's visit as completed/no_show after the fact) is a
+// normal, frequent action and must stay allowed. Only creating a brand new
+// appointment in the past is blocked.
+export function getAppointmentSchema(isEdit = false) {
+  const base = z.object({
+    client_name: z.string().min(2, 'اسم العميل مطلوب'),
+    client_phone: z.preprocess(
+      v => String(v).replace(/[\s\-().+]/g, ''),
+      z.string().regex(/^[0-9]{10,15}$/, 'رقم الواتساب يجب أن يحتوي على أرقام فقط (10-15 رقم)')
+    ),
+    service_id: z.string().min(1, 'اختر الخدمة').uuid('اختر الخدمة'),
+    appointment_date: z.string().min(1, 'التاريخ مطلوب'),
+    appointment_time: z.string().min(1, 'الوقت مطلوب'),
+    status: z.enum(['confirmed', 'cancelled', 'no_show', 'completed']).default('confirmed'),
+    notes: z.string().optional(),
+  })
+  if (isEdit) return base
+  return base.refine(d => d.appointment_date >= todayISO(), {
+    message: 'لا يمكن حجز موعد في تاريخ سابق',
+    path: ['appointment_date'],
+  })
+}
 
 export const bookingClientSchema = z.object({
   client_name: z.string().min(2, 'الاسم مطلوب'),

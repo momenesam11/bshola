@@ -107,7 +107,7 @@ export default function App() {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/book/:businessSlug" element={<BookingPage />} />
-          <Route path="/mawid-super-admin-2025" element={<AdminDashboard />} />
+          <Route path="/admin" element={<AdminDashboard />} />
 
           {/* Protected */}
           <Route path="/onboarding" element={<AuthGuard><OnboardingFlow /></AuthGuard>} />

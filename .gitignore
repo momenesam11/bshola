@@ -12,6 +12,24 @@ dist
 dist-ssr
 *.local
 
+# Secrets — VITE_SUPABASE_ANON_KEY ships in the bundle anyway, but real
+# per-developer env files shouldn't live in git regardless. Keep
+# .env.example / .env.test.example tracked (placeholders only).
+.env
+.env.*
+!.env.example
+!.env.test.example
+
+# Supabase CLI local/session state — connection strings, linked project
+# metadata, version cache. Regenerated per-machine, not project source.
+supabase/.temp
+
+# Playwright
+test-results
+playwright-report
+blob-report
+playwright/.cache
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

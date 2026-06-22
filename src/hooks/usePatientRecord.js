@@ -137,6 +137,18 @@ export function useAddPrescription(businessId, clientPhone) {
   })
 }
 
+// medical-files is a private bucket — public URLs no longer work, so every
+// view gets a freshly minted signed URL with a short expiry instead.
+const SIGNED_URL_TTL_SECONDS = 300
+
+async function getAttachmentSignedUrl(path) {
+  const { data, error } = await supabase.storage
+    .from('medical-files')
+    .createSignedUrl(path, SIGNED_URL_TTL_SECONDS)
+  if (error) throw error
+  return data.signedUrl
+}
+
 export function useAttachments(businessId, clientPhone) {
   return useQuery({
     queryKey: ['medical-attachments', businessId, clientPhone],
@@ -148,7 +160,18 @@ export function useAttachments(businessId, clientPhone) {
         .eq('client_phone', clientPhone)
         .order('uploaded_at', { ascending: false })
       if (error) throw error
-      return data
+
+      const withSignedUrls = await Promise.all(
+        data.map(async att => {
+          if (!att.file_path) return { ...att, signed_url: null }
+          try {
+            return { ...att, signed_url: await getAttachmentSignedUrl(att.file_path) }
+          } catch {
+            return { ...att, signed_url: null }
+          }
+        })
+      )
+      return withSignedUrls
     },
     enabled: !!businessId && !!clientPhone,
   })
@@ -167,10 +190,6 @@ export function useUploadAttachment(businessId, clientPhone) {
         .upload(path, file)
       if (uploadError) throw uploadError
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('medical-files')
-        .getPublicUrl(path)
-
       const { data, error } = await supabase
         .from('medical_attachments')
         .insert({
@@ -178,7 +197,8 @@ export function useUploadAttachment(businessId, clientPhone) {
           client_phone: clientPhone,
           appointment_id: appointmentId || null,
           file_name: file.name,
-          file_url: publicUrl,
+          file_url: path,
+          file_path: path,
           file_type: fileType,
           file_size: file.size,
           notes: notes || null,
@@ -195,10 +215,9 @@ export function useUploadAttachment(businessId, clientPhone) {
 export function useDeleteAttachment(businessId, clientPhone) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id, fileUrl }) => {
-      const path = fileUrl.split('medical-files/')[1]
-      if (path) {
-        await supabase.storage.from('medical-files').remove([path])
+    mutationFn: async ({ id, filePath }) => {
+      if (filePath) {
+        await supabase.storage.from('medical-files').remove([filePath])
       }
       const { error } = await supabase.from('medical_attachments').delete().eq('id', id)
       if (error) throw error

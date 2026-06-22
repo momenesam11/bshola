@@ -98,6 +98,19 @@ export function useDeleteService() {
   })
 }
 
+// Same "locked" definition TrialGuard uses to block the owner's dashboard:
+// explicitly suspended (is_active = false), or trial/paid period elapsed
+// with no active subscription. The public booking page must honor this too
+// — otherwise customers keep booking real appointments for a business that
+// stopped paying or got suspended, and the owner never finds out until
+// someone shows up.
+export function isBusinessLocked(business) {
+  if (!business) return false
+  if (business.is_active === false) return true
+  if (!business.trial_ends_at) return false
+  return new Date(business.trial_ends_at) < new Date()
+}
+
 export function usePublicBusiness(slug) {
   return useQuery({
     queryKey: ['public-business', slug],
@@ -105,13 +118,13 @@ export function usePublicBusiness(slug) {
       // Try by booking_slug first, then by id (backward compat)
       let { data, error } = await supabase
         .from('businesses')
-        .select('id, name, type, working_hours, slot_duration, logo_url, cover_url, brand_color, bio, specialty, years_experience, welcome_message, cancellation_policy, instagram_url, facebook_url, google_reviews_url, booking_slug, public_phone')
+        .select('id, name, type, working_hours, slot_duration, logo_url, cover_url, brand_color, bio, specialty, years_experience, welcome_message, cancellation_policy, instagram_url, facebook_url, google_reviews_url, booking_slug, public_phone, is_active, trial_ends_at, subscription_type')
         .eq('booking_slug', slug)
         .maybeSingle()
       if (!data) {
         const res = await supabase
           .from('businesses')
-          .select('id, name, type, working_hours, slot_duration, logo_url, cover_url, brand_color, bio, specialty, years_experience, welcome_message, cancellation_policy, instagram_url, facebook_url, google_reviews_url, booking_slug, public_phone')
+          .select('id, name, type, working_hours, slot_duration, logo_url, cover_url, brand_color, bio, specialty, years_experience, welcome_message, cancellation_policy, instagram_url, facebook_url, google_reviews_url, booking_slug, public_phone, is_active, trial_ends_at, subscription_type')
           .eq('id', slug)
           .maybeSingle()
         data = res.data

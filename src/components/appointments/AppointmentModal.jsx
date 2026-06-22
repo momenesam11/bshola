@@ -19,7 +19,7 @@ import {
 import { FaWhatsapp } from 'react-icons/fa'
 import Modal from '../ui/Modal'
 import Button from '../ui/Button'
-import { appointmentSchema } from '../../lib/validators'
+import { getAppointmentSchema } from '../../lib/validators'
 import { useCreateAppointment, useUpdateAppointment, useDeleteAppointment } from '../../hooks/useAppointments'
 import { useServices, useBusiness } from '../../hooks/useBusiness'
 import { useBranch } from '../../context/BranchContext'
@@ -111,7 +111,7 @@ export default function AppointmentModal({ open, onClose, businessId, initialDat
   const deleteAppt = useDeleteAppointment()
 
   const { register, handleSubmit, reset, control, setValue, getValues, formState: { errors, isSubmitting } } = useForm({
-    resolver: zodResolver(appointmentSchema),
+    resolver: zodResolver(getAppointmentSchema(isEdit)),
     defaultValues: {
       client_name: '', client_phone: '', service_id: '',
       appointment_date: initialDate || todayISO(),
@@ -188,7 +188,11 @@ export default function AppointmentModal({ open, onClose, businessId, initialDat
       }
       onClose()
     } catch (e) {
-      setSubmitError(e?.message || 'حدث خطأ أثناء الحفظ')
+      if (e?.message?.includes('CAPACITY_EXCEEDED')) {
+        setSubmitError('هذا الموعد ممتلئ بالفعل — اختر وقتاً آخر')
+      } else {
+        setSubmitError(e?.message || 'حدث خطأ أثناء الحفظ')
+      }
     }
   }
 

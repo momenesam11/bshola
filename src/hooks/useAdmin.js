@@ -1,39 +1,59 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabaseAdmin } from '../lib/supabaseAdmin'
 
+const TOKEN_KEY = 'mawid_admin_token'
+
+function getToken() {
+  return sessionStorage.getItem(TOKEN_KEY)
+}
+
+export function hasAdminToken() {
+  return !!getToken()
+}
+
+export function adminLogout() {
+  sessionStorage.removeItem(TOKEN_KEY)
+}
+
+// All admin reads/writes are proxied through the `admin` Edge Function —
+// the password and session token are checked there, server-side, against
+// the service-role key. Nothing here trusts the client.
+async function callAdmin(action, payload = {}) {
+  const { data, error } = await supabaseAdmin.functions.invoke('admin', {
+    body: { action, token: getToken(), ...payload },
+  })
+  if (error) {
+    if (error.context?.status === 401) {
+      adminLogout()
+      window.location.reload()
+    }
+    throw new Error(error.message || 'حدث خطأ')
+  }
+  if (!data?.success) throw new Error(data?.error || 'حدث خطأ')
+  return data
+}
+
+export async function adminLogin(password) {
+  const { data, error } = await supabaseAdmin.functions.invoke('admin', {
+    body: { action: 'login', password },
+  })
+  if (error || !data?.success) return null
+  sessionStorage.setItem(TOKEN_KEY, data.token)
+  return data.token
+}
+
 export function useAdminBusinesses() {
   return useQuery({
     queryKey: ['admin-businesses'],
-    queryFn: async () => {
-      const { data, error } = await supabaseAdmin
-        .from('businesses')
-        .select('id, name, type, phone, owner_phone, created_at, trial_started_at, trial_ends_at, is_active, subscription_type, activated_at')
-        .order('created_at', { ascending: false })
-      if (error) throw error
-      return data || []
-    },
+    queryFn: async () => (await callAdmin('list')).businesses,
+    enabled: hasAdminToken(),
   })
 }
 
 export function useActivateBusiness() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id, days }) => {
-      const { data, error } = await supabaseAdmin
-        .from('businesses')
-        .update({
-          subscription_type: 'paid',
-          is_active: true,
-          trial_ends_at: new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString(),
-          activated_at: new Date().toISOString(),
-          activated_by: 'owner',
-        })
-        .eq('id', id)
-        .select()
-        .single()
-      if (error) throw error
-      return data
-    },
+    mutationFn: ({ id, days }) => callAdmin('activate', { id, days }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-businesses'] }),
   })
 }
@@ -41,20 +61,7 @@ export function useActivateBusiness() {
 export function useExtendTrial() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id, currentTrialEndsAt, days }) => {
-      const base = currentTrialEndsAt && new Date(currentTrialEndsAt) > new Date()
-        ? new Date(currentTrialEndsAt)
-        : new Date()
-      const newEnd = new Date(base.getTime() + days * 24 * 60 * 60 * 1000)
-      const { data, error } = await supabaseAdmin
-        .from('businesses')
-        .update({ trial_ends_at: newEnd.toISOString(), is_active: true })
-        .eq('id', id)
-        .select()
-        .single()
-      if (error) throw error
-      return data
-    },
+    mutationFn: ({ id, currentTrialEndsAt, days }) => callAdmin('extend', { id, currentTrialEndsAt, days }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-businesses'] }),
   })
 }
@@ -62,16 +69,7 @@ export function useExtendTrial() {
 export function useDeactivateBusiness() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (id) => {
-      const { data, error } = await supabaseAdmin
-        .from('businesses')
-        .update({ is_active: false })
-        .eq('id', id)
-        .select()
-        .single()
-      if (error) throw error
-      return data
-    },
+    mutationFn: (id) => callAdmin('deactivate', { id }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-businesses'] }),
   })
 }

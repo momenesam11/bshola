@@ -622,11 +622,11 @@ function TabAttachments({ businessId, clientPhone, isMedical }) {
 
   async function handleDelete(att) {
     if (!window.confirm(`حذف "${att.file_name}"؟`)) return
-    try { await del.mutateAsync({ id: att.id, fileUrl: att.file_url }); toast.success('تم الحذف') }
+    try { await del.mutateAsync({ id: att.id, filePath: att.file_path }); toast.success('تم الحذف') }
     catch (e) { toast.error(e.message) }
   }
 
-  const isImage = url => /\.(jpg|jpeg|png|gif|webp)$/i.test(url)
+  const isImage = name => /\.(jpg|jpeg|png|gif|webp)$/i.test(name || '')
 
   return (
     <div className="p-4 sm:p-6 space-y-5">
@@ -690,9 +690,11 @@ function TabAttachments({ businessId, clientPhone, isMedical }) {
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {attachments.map(att => (
             <div key={att.id} className="bg-white border border-slate-100 rounded-xl overflow-hidden group flex flex-col">
-              {isImage(att.file_url) ? (
+              {isImage(att.file_name) ? (
                 <div className="relative bg-slate-50 cursor-pointer aspect-square" onClick={() => setLightbox(att)}>
-                  <img src={att.file_url} alt={att.file_name} className="absolute inset-0 w-full h-full object-cover" />
+                  {att.signed_url
+                    ? <img src={att.signed_url} alt={att.file_name} className="absolute inset-0 w-full h-full object-cover" />
+                    : <div className="absolute inset-0 flex items-center justify-center"><HiOutlinePhoto className="w-8 h-8 text-slate-300" /></div>}
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                     <button onClick={e => { e.stopPropagation(); handleDelete(att) }} className="p-2 bg-red-500 text-white rounded-xl">
                       <HiOutlineTrash className="w-4 h-4" />
@@ -725,7 +727,7 @@ function TabAttachments({ businessId, clientPhone, isMedical }) {
           <button className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors" onClick={() => setLightbox(null)}>
             <HiOutlineXMark className="w-8 h-8" />
           </button>
-          <img src={lightbox.file_url} alt={lightbox.file_name} className="max-w-full max-h-[85vh] rounded-xl object-contain shadow-2xl" onClick={e => e.stopPropagation()} />
+          <img src={lightbox.signed_url} alt={lightbox.file_name} className="max-w-full max-h-[85vh] rounded-xl object-contain shadow-2xl" onClick={e => e.stopPropagation()} />
         </div>
       )}
     </div>

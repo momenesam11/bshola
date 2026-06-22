@@ -14,11 +14,11 @@ import {
   getBusinessStatus,
   getAdminStats,
   searchBusinesses,
+  adminLogin,
+  adminLogout,
+  hasAdminToken,
 } from '../../hooks/useAdmin'
 import ActivateModal from '../../components/admin/ActivateModal'
-
-const ADMIN_PASSWORD = 'MawidOwner@2025'
-const SESSION_KEY = 'mawid_admin_authed'
 
 const STATUS_CONFIG = {
   trial: { label: 'تجربة نشطة 🟢', color: 'text-accent-600 bg-accent-50' },
@@ -52,11 +52,14 @@ function daysLeft(trialEndsAt) {
 function PasswordGate({ onAuthenticated }) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState(false)
+  const [loading, setLoading] = useState(false)
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
-    if (password === ADMIN_PASSWORD) {
-      sessionStorage.setItem(SESSION_KEY, 'true')
+    setLoading(true)
+    const token = await adminLogin(password)
+    setLoading(false)
+    if (token) {
       onAuthenticated()
     } else {
       setError(true)
@@ -86,9 +89,10 @@ function PasswordGate({ onAuthenticated }) {
         {error && <p className="text-xs text-red-500 mt-2">كلمة السر غلط</p>}
         <button
           type="submit"
-          className="w-full mt-4 bg-accent-500 text-white font-medium rounded-lg py-2.5 text-sm hover:bg-accent-600 transition-colors"
+          disabled={loading}
+          className="w-full mt-4 bg-accent-500 text-white font-medium rounded-lg py-2.5 text-sm hover:bg-accent-600 transition-colors disabled:opacity-50"
         >
-          دخول
+          {loading ? 'جاري التحقق...' : 'دخول'}
         </button>
       </form>
       <style>{`
@@ -151,7 +155,7 @@ function Dashboard() {
   }
 
   function handleLogout() {
-    sessionStorage.removeItem(SESSION_KEY)
+    adminLogout()
     window.location.reload()
   }
 
@@ -285,7 +289,7 @@ function Dashboard() {
 }
 
 export default function AdminDashboard() {
-  const [authenticated, setAuthenticated] = useState(() => sessionStorage.getItem(SESSION_KEY) === 'true')
+  const [authenticated, setAuthenticated] = useState(() => hasAdminToken())
 
   if (!authenticated) return <PasswordGate onAuthenticated={() => setAuthenticated(true)} />
   return <Dashboard />

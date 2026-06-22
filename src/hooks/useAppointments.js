@@ -80,15 +80,19 @@ export function useCreateAppointment() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (payload) => {
-      const { data, error } = await supabase
+      // No .select() here: anon (public booking page visitors) has no
+      // SELECT policy on appointments, so asking PostgREST to return the
+      // inserted row fails RLS even though the insert itself is valid.
+      // Neither caller (AppointmentModal, BookingPage) uses the resolved
+      // value — they just need the insert to succeed.
+      const { error } = await supabase
         .from('appointments')
         .insert(payload)
-        .select()
       if (error) {
         console.error('useCreateAppointment error:', error)
         throw new Error(error.message || JSON.stringify(error))
       }
-      return data?.[0]
+      return null
     },
     onSuccess: () => invalidateAll(qc),
   })

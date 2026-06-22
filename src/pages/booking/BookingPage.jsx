@@ -18,7 +18,7 @@ import {
   HiOutlineSparkles,
 } from 'react-icons/hi2'
 import { FaInstagram, FaFacebook } from 'react-icons/fa'
-import { usePublicBusiness, usePublicServices, usePublicBranches } from '../../hooks/useBusiness'
+import { usePublicBusiness, usePublicServices, usePublicBranches, isBusinessLocked } from '../../hooks/useBusiness'
 import { useBookedSlotCounts, useCreateAppointment } from '../../hooks/useAppointments'
 import { bookingClientSchema } from '../../lib/validators'
 import { supabase } from '../../lib/supabase'
@@ -183,13 +183,14 @@ export default function BookingPage() {
     }
     try {
       if (!waitlistMode) {
-        const { count } = await supabase
-          .from('appointments')
-          .select('id', { count: 'exact', head: true })
-          .eq('business_id', business.id)
-          .eq('client_phone', client_phone)
-          .in('status', ['confirmed', 'waitlist'])
-          .gte('appointment_date', toISODateString(new Date()))
+        // anon has no SELECT policy on appointments (by design — it would
+        // leak every other client's bookings), so this goes through a
+        // SECURITY DEFINER RPC that returns only a count, never rows.
+        const { data: count, error: countError } = await supabase.rpc('count_active_bookings', {
+          p_business_id: business.id,
+          p_phone: client_phone,
+        })
+        if (countError) throw countError
         if ((count || 0) >= 2) {
           setLimitError('عندك بالفعل أقصى عدد حجوزات مسموح (2). لازم تنهي أو تلغي حجز قبل ما تحجز تاني')
           return
@@ -211,7 +212,14 @@ export default function BookingPage() {
       if (waitlistMode) setWaitlistSubmitted(true)
       else setSubmitted({ client_name, service: selectedService.name, date: selectedDate, time: selectedTime, branch: selectedBranch?.name })
     } catch (e) {
-      alert('حدث خطأ أثناء الحجز: ' + e.message)
+      if (e.message?.includes('CAPACITY_EXCEEDED')) {
+        setSelectedTime(null)
+        qc.invalidateQueries({ queryKey: ['booked-slots', business.id] })
+        setStep(STEP_DATETIME)
+        alert('عذراً، تم حجز هذا الموعد للتو من شخص آخر. اختر وقتاً آخر')
+      } else {
+        alert('حدث خطأ أثناء الحجز: ' + e.message)
+      }
     }
   }
 
@@ -237,6 +245,20 @@ export default function BookingPage() {
           </div>
           <h1 className="text-xl font-bold text-gray-900 mb-2">صفحة الحجز غير موجودة</h1>
           <p className="text-gray-500 text-sm">تحقق من الرابط وحاول مرة أخرى</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (isBusinessLocked(business)) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4" dir="rtl">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <HiOutlineLockClosed className="w-8 h-8 text-gray-300" />
+          </div>
+          <h1 className="text-xl font-bold text-gray-900 mb-2">الحجز غير متاح حالياً</h1>
+          <p className="text-gray-500 text-sm">تواصل مع {business.name} مباشرة لحجز موعد</p>
         </div>
       </div>
     )
