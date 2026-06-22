@@ -19,6 +19,8 @@ import {
 import { FaWhatsapp } from 'react-icons/fa'
 import Modal from '../ui/Modal'
 import Button from '../ui/Button'
+import Dropdown from '../ui/Dropdown'
+import DatePicker from '../ui/DatePicker'
 import { getAppointmentSchema } from '../../lib/validators'
 import { useCreateAppointment, useUpdateAppointment, useDeleteAppointment } from '../../hooks/useAppointments'
 import { useServices, useBusiness } from '../../hooks/useBusiness'
@@ -252,14 +254,21 @@ export default function AppointmentModal({ open, onClose, businessId, initialDat
           <label className="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1">
             <HiOutlineWrenchScrewdriver className="w-3.5 h-3.5" /> الخدمة
           </label>
-          <select {...register('service_id')} className={fieldCls(errors.service_id)}>
-            <option value="">اختر الخدمة...</option>
-            {services.map(s => (
-              <option key={s.id} value={s.id}>
-                {s.name}{s.duration_minutes ? ` — ${s.duration_minutes} د` : ''}{s.price ? ` (${s.price} ج.م)` : ''}
-              </option>
-            ))}
-          </select>
+          <Controller
+            control={control}
+            name="service_id"
+            render={({ field }) => (
+              <Dropdown
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="اختر الخدمة..."
+                options={services.map(s => ({
+                  value: s.id,
+                  label: `${s.name}${s.duration_minutes ? ` — ${s.duration_minutes} د` : ''}${s.price ? ` (${s.price} ج.م)` : ''}`,
+                }))}
+              />
+            )}
+          />
           {errors.service_id && <p className="text-xs text-red-500 mt-0.5">{errors.service_id.message}</p>}
           {selectedService && (
             <p className="text-xs text-accent-600 mt-0.5">
@@ -274,7 +283,13 @@ export default function AppointmentModal({ open, onClose, businessId, initialDat
             <label className="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1">
               <HiOutlineCalendarDays className="w-3.5 h-3.5" /> التاريخ
             </label>
-            <input type="date" {...register('appointment_date')} className={fieldCls(errors.appointment_date)} />
+            <Controller
+              control={control}
+              name="appointment_date"
+              render={({ field }) => (
+                <DatePicker value={field.value} onChange={field.onChange} allowClear={false} />
+              )}
+            />
           </div>
           <div className="w-full sm:w-1/2">
             <label className="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1">

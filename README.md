@@ -1,4 +1,4 @@
-# مواعيد — Mawid
+# بسهولة — Beshola
 
 نظام حجز مواعيد ذكي للمشاريع الصغيرة والمتوسطة، مع CRM مدمج وتذكيرات واتساب تلقائية.
 
@@ -29,7 +29,7 @@ A smart appointment booking system for small/medium businesses — with built-in
 ```bash
 # 1. Clone the repo
 git clone <repo-url>
-cd mawid
+cd beshola
 
 # 2. Install dependencies
 npm install

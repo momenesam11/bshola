@@ -76,24 +76,26 @@ const SUPPORT_WHATSAPP = '201021179969'
 const SUPPORT_EMAIL = 'moment.esam15@gmail.com'
 
 function TrialSection({ business }) {
-  if (business.subscription_type !== 'trial' || !business.trial_ends_at) return null
+  if (!business.trial_ends_at) return null
+  const isPaid = business.subscription_type === 'paid'
   const daysLeft = Math.ceil((new Date(business.trial_ends_at) - new Date()) / (1000 * 60 * 60 * 24))
   const color = daysLeft < 3 ? 'bg-red-50 border-red-200 text-red-700' : daysLeft <= 7 ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-slate-50 border-slate-200 text-slate-700'
+  const periodLabel = isPaid ? 'اشتراكك' : 'تجربتك المجانية'
 
   return (
     <div className={`mx-4 mt-4 p-3.5 rounded-2xl border ${color}`}>
       <div className="flex items-center gap-2 text-sm font-semibold">
         <HiOutlineClock className="w-4 h-4 flex-shrink-0" />
-        باقي {daysLeft > 0 ? daysLeft : 0} يوم في تجربتك المجانية
+        باقي {daysLeft > 0 ? daysLeft : 0} يوم في {periodLabel}
       </div>
       <div className="flex flex-col gap-2 mt-3">
         <a
-          href={`https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent('أهلاً، عايز أعرف تفاصيل الاشتراك في بسهولة')}`}
+          href={`https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent(isPaid ? 'أهلاً، عايز أجدد اشتراكي في بسهولة' : 'أهلاً، عايز أعرف تفاصيل الاشتراك في بسهولة')}`}
           target="_blank" rel="noopener noreferrer"
           className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold rounded-xl transition-colors whitespace-nowrap"
         >
           <FaWhatsapp className="w-4 h-4 flex-shrink-0" />
-          تواصل للاشتراك
+          {isPaid ? 'تجديد الاشتراك' : 'تواصل للاشتراك'}
         </a>
         <a
           href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('استفسار اشتراك - بسهولة')}`}

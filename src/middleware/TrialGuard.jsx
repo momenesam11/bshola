@@ -16,7 +16,9 @@ export default function TrialGuard({ children }) {
 
   return (
     <>
-      {showWarning && <TrialWarningBanner daysLeft={left} onDismiss={() => setDismissed(true)} />}
+      {showWarning && (
+        <TrialWarningBanner daysLeft={left} isPaid={business.subscription_type === 'paid'} onDismiss={() => setDismissed(true)} />
+      )}
       {children}
       {isExpired && <TrialExpiredScreen />}
     </>

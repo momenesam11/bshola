@@ -2,6 +2,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
+import { Helmet } from 'react-helmet-async'
 import { supabase } from '../../lib/supabase'
 import { registerSchema, getPasswordStrength } from '../../lib/validators'
 import Button from '../../components/ui/Button'
@@ -21,7 +22,7 @@ export default function Register() {
 
   async function onSubmit({ email, password, ownerPhone }) {
     setServerError('')
-    sessionStorage.setItem('mawid_pending_owner_phone', ownerPhone)
+    sessionStorage.setItem('beshola_pending_owner_phone', ownerPhone)
     const { data, error } = await supabase.auth.signUp({ email, password })
     if (error) {
       const msg = error.message || ''
@@ -48,6 +49,10 @@ export default function Register() {
         title="خطوة كده وخلصنا!"
         subtitle="بعد تأكيد بريدك هتقدر تبدأ في تنظيم مواعيدك وعملاءك في دقايق."
       >
+        <Helmet>
+          <title>تأكيد البريد الإلكتروني — بسهولة</title>
+          <meta name="robots" content="noindex" />
+        </Helmet>
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">تحقق من بريدك</h2>
           <p className="text-gray-500 text-sm">أرسلنا لك رابط تأكيد — افتح بريدك وانقر على الرابط ثم سجّل دخولك</p>
@@ -64,6 +69,10 @@ export default function Register() {
       title="ابدأ مع بسهولة"
       subtitle="سيب التنظيم والمتابعة اليدوية وركز في عملك — زود إنتاجيتك وفر وقتك مع بسهولة."
     >
+      <Helmet>
+        <title>إنشاء حساب — بسهولة</title>
+        <meta name="robots" content="noindex" />
+      </Helmet>
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-gray-900">إنشاء حساب جديد</h2>
         <p className="text-gray-500 text-sm mt-1">

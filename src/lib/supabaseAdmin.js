@@ -12,6 +12,6 @@ export const supabaseAdmin = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: false,
     autoRefreshToken: false,
     detectSessionInUrl: false,
-    storageKey: 'sb-mawid-admin-auth-token',
+    storageKey: 'sb-beshola-admin-auth-token',
   },
 })

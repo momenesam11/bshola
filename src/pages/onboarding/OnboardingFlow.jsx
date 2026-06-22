@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
@@ -28,7 +29,8 @@ import { phoneSchema } from '../../lib/validators'
 import { DEFAULT_REMINDER_TEMPLATE, MEDICAL_TYPES } from '../../utils/constants'
 import { useCreateBusiness, useUpsertService, uploadBusinessAsset } from '../../hooks/useBusiness'
 import Button from '../../components/ui/Button'
-import Input, { Select } from '../../components/ui/Input'
+import Input from '../../components/ui/Input'
+import Dropdown from '../../components/ui/Dropdown'
 import ScheduleBlockEditor from '../../components/ui/ScheduleBlockEditor'
 import BookingLinkActions from '../../components/booking/BookingLinkActions'
 const STEPS = ['نوع النشاط', 'معلوماتك', 'الفروع', 'ساعات العمل', 'الخدمات', 'هويتك']
@@ -351,13 +353,18 @@ function StepWorkingHours({ onNext, onBack }) {
         <p className="text-gray-500 text-sm mt-1">حدد الأيام والفترات التي تستقبل فيها العملاء — يمكنك إضافة أكتر من فترة لليوم الواحد</p>
       </div>
       <ScheduleBlockEditor value={blocks} onChange={setBlocks} onValidityChange={setIsValid} />
-      <Select label="مدة الموعد الواحد" value={slotDuration} onChange={e => setSlotDuration(Number(e.target.value))}>
-        <option value={15}>15 دقيقة</option>
-        <option value={30}>30 دقيقة</option>
-        <option value={45}>45 دقيقة</option>
-        <option value={60}>ساعة كاملة</option>
-        <option value={90}>ساعة ونصف</option>
-      </Select>
+      <Dropdown
+        label="مدة الموعد الواحد"
+        value={slotDuration}
+        onChange={v => setSlotDuration(Number(v))}
+        options={[
+          { value: 15, label: '15 دقيقة' },
+          { value: 30, label: '30 دقيقة' },
+          { value: 45, label: '45 دقيقة' },
+          { value: 60, label: 'ساعة كاملة' },
+          { value: 90, label: 'ساعة ونصف' },
+        ]}
+      />
       <div className="flex gap-3 mt-2 sticky bottom-0 bg-white pt-3 pb-1 -mx-4 px-4 md:static md:bg-transparent md:mx-0 md:px-0 md:pt-0 md:pb-0">
         <Button variant="secondary" onClick={onBack} className="flex-1">السابق</Button>
         <Button onClick={() => onNext({ schedule_blocks: blocks, slot_duration: slotDuration })} disabled={!isValid} className="flex-1">التالي</Button>
@@ -618,7 +625,7 @@ function StepIdentity({ onNext, onBack, businessName, vertical }) {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">رابط الحجز الخاص بيك</label>
               <div className="flex items-center border border-slate-200 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-accent-400">
-                <span className="px-3 py-3 bg-slate-50 text-slate-400 text-xs border-l border-slate-200 flex-shrink-0">mawid.app/book/</span>
+                <span className="px-3 py-3 bg-slate-50 text-slate-400 text-xs border-l border-slate-200 flex-shrink-0">beshola.app/book/</span>
                 <input value={slug} onChange={e => handleSlugChange(e.target.value)} placeholder="slug-الخاص-بيك" dir="ltr"
                   className="flex-1 px-3 py-3 text-sm focus:outline-none bg-white" />
               </div>
@@ -674,10 +681,11 @@ function StepIdentity({ onNext, onBack, businessName, vertical }) {
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">سياسة الإلغاء</label>
-              <select value={cancelPolicy} onChange={e => setCancelPolicy(e.target.value)}
-                className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent-400 bg-white">
-                {CANCELLATION_OPTIONS.map(o => <option key={o}>{o}</option>)}
-              </select>
+              <Dropdown
+                value={cancelPolicy}
+                onChange={setCancelPolicy}
+                options={CANCELLATION_OPTIONS.map(o => ({ value: o, label: o }))}
+              />
             </div>
           </div>
         </div>
@@ -693,7 +701,11 @@ function StepIdentity({ onNext, onBack, businessName, vertical }) {
 
       <div className="flex gap-3 pt-2 sticky bottom-0 bg-white pt-3 pb-1 -mx-4 px-4 md:static md:bg-transparent md:mx-0 md:px-0 md:pb-0">
         <Button variant="secondary" onClick={onBack} className="flex-1">السابق</Button>
-        <Button onClick={() => onNext({ logoFile, coverFile, brandColor, booking_slug: slug || null, bio, years_experience: Number(years) || null, specialty, instagram_url: instagram || null, facebook_url: facebook || null, google_reviews_url: googleReviews || null, welcome_message: welcomeMsg, cancellation_policy: cancelPolicy })} className="flex-1">
+        <Button
+          disabled={slugStatus === 'taken' || slugStatus === 'checking'}
+          onClick={() => onNext({ logoFile, coverFile, brandColor, booking_slug: slug || null, bio, years_experience: Number(years) || null, specialty, instagram_url: instagram || null, facebook_url: facebook || null, google_reviews_url: googleReviews || null, welcome_message: welcomeMsg, cancellation_policy: cancelPolicy })}
+          className="flex-1"
+        >
           إنهاء الإعداد
         </Button>
       </div>
@@ -743,7 +755,7 @@ export default function OnboardingFlow() {
   const [shareKit, setShareKit] = useState(null)
   const createBusiness = useCreateBusiness()
   const upsertService = useUpsertService()
-  const requireOwnerPhone = !sessionStorage.getItem('mawid_pending_owner_phone')
+  const requireOwnerPhone = !sessionStorage.getItem('beshola_pending_owner_phone')
 
   function next(updates) {
     setData(prev => ({ ...prev, ...updates }))
@@ -760,7 +772,7 @@ export default function OnboardingFlow() {
     setLoading(true)
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      const ownerPhone = sessionStorage.getItem('mawid_pending_owner_phone') || data.ownerPhone
+      const ownerPhone = sessionStorage.getItem('beshola_pending_owner_phone') || data.ownerPhone
 
       const identityFields = {
         ...(ownerPhone ? { owner_phone: ownerPhone } : {}),
@@ -841,7 +853,7 @@ export default function OnboardingFlow() {
         }
       }
 
-      sessionStorage.removeItem('mawid_pending_owner_phone')
+      sessionStorage.removeItem('beshola_pending_owner_phone')
 
       setShareKit({ name: business.name, slug: business.booking_slug })
       setStep(6)
@@ -860,6 +872,7 @@ export default function OnboardingFlow() {
   if (step === 6 && shareKit) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-accent-50 to-white flex items-center justify-center p-4" dir="rtl">
+        <Helmet><meta name="robots" content="noindex, nofollow" /></Helmet>
         <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-slate-100 p-6">
           <ShareKitScreen businessName={shareKit.name} slug={shareKit.slug} />
         </div>
@@ -869,6 +882,10 @@ export default function OnboardingFlow() {
 
   return (
     <div className="h-screen md:min-h-screen md:h-auto bg-gray-50 flex flex-col md:items-center md:justify-center md:p-4" dir="rtl">
+      <Helmet>
+        <title>إعداد حسابك — بسهولة</title>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       <div className="w-full md:max-w-2xl flex flex-col h-full md:h-auto min-h-0">
 
         {/* Header — fixed, doesn't scroll */}

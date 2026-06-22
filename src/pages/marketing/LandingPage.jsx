@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
 import {
   HiOutlineArrowLeft,
   HiOutlineCalendar,
@@ -75,23 +76,6 @@ export default function LandingPage() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [openFaq, setOpenFaq] = useState(null)
 
-  // Configure SEO headers
-  useEffect(() => {
-    document.title = 'بسهولة — نظام حجز ومتابعة عملاء للبيزنس الخدمي'
-    
-    // Check if meta description exists, update or create it
-    let metaDesc = document.querySelector('meta[name="description"]')
-    if (!metaDesc) {
-      metaDesc = document.createElement('meta')
-      metaDesc.setAttribute('name', 'description')
-      document.head.appendChild(metaDesc)
-    }
-    metaDesc.setAttribute(
-      'content',
-      'نظّم حجوزاتك وتابع عملاءك بسهولة. نظام عربي بالكامل للعيادات والصالونات ومراكز اللياقة، بتذكير واتساب أوتوماتيك. جرّب 14 يوم مجاناً.'
-    )
-  }, [])
-
   // Detect scroll to style the sticky header
   useEffect(() => {
     const handleScroll = () => {
@@ -155,7 +139,13 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-white text-[#0F2C4E] font-sans antialiased selection:bg-accent-50 selection:text-accent-800" dir="rtl">
-      
+      <Helmet>
+        <title>بسهولة — نظام حجز ومتابعة عملاء للعيادات والصالونات</title>
+        <meta name="description" content="نظّم حجوزاتك وتابع عملاءك بسهولة. نظام عربي بالكامل للعيادات والصالونات ومراكز اللياقة، بتذكير واتساب أوتوماتيك يقلل الغياب. جرّب 14 يوم مجاناً بدون بطاقة بنكية." />
+        <link rel="canonical" href="https://beshola.co/" />
+        <meta name="robots" content="index, follow" />
+      </Helmet>
+
       {/* 1. NAVBAR */}
       <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled ? 'bg-white shadow-md py-3 border-b border-slate-100' : 'bg-transparent py-5'
@@ -166,7 +156,7 @@ export default function LandingPage() {
             {/* Logo on Right in RTL */}
             <div className="flex-shrink-0 flex items-center gap-2">
               <Link to="/" className="flex items-center gap-2">
-                <svg className="w-9 h-9 text-[#16B89A]" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg className="w-9 h-9 text-[#16B89A]" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                   <path d="M75 50C75 63.8071 63.8071 75 50 75C36.1929 75 25 63.8071 25 50C25 36.1929 36.1929 25 50 25C52.5 25 54.8 25.4 57 26.1" stroke="currentColor" strokeWidth="10" strokeLinecap="round" />
                   <path d="M50 75C53.866 75 57.618 73.953 60.875 72" stroke="currentColor" strokeWidth="10" strokeLinecap="round" />
                   <circle cx="42" cy="45" r="7" fill={isScrolled ? '#0F2C4E' : '#fff'} />
@@ -195,7 +185,7 @@ export default function LandingPage() {
 
             {/* Mobile Menu Button */}
             <div className="md:hidden flex items-center">
-              <button onClick={() => setIsMenuOpen(!isMenuOpen)} className={`p-2 transition-colors hover:text-accent ${isScrolled ? 'text-[#0F2C4E]' : 'text-white'}`} aria-label="Toggle menu">
+              <button onClick={() => setIsMenuOpen(!isMenuOpen)} className={`p-2 transition-colors hover:text-accent ${isScrolled ? 'text-[#0F2C4E]' : 'text-white'}`} aria-label="فتح أو إغلاق القائمة">
                 {isMenuOpen ? <HiXMark className="w-6 h-6" /> : <HiBars3 className="w-6 h-6" />}
               </button>
             </div>
@@ -220,12 +210,13 @@ export default function LandingPage() {
         )}
       </nav>
 
+      <main>
       {/* 2. HERO SECTION — dark navy with glowing orbs + dashboard mockup */}
       <section className="relative pt-32 pb-20 md:pt-40 md:pb-28 overflow-hidden bg-gradient-to-br from-[#081A30] via-[#0F2C4E] to-[#0a2240]">
         {/* Decorative glow orbs — slow pulse + drift for a living background */}
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-accent/20 rounded-full blur-3xl pointer-events-none animate-glow-pulse" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl pointer-events-none animate-drift" style={{ animationDelay: '1.5s' }} />
-        <div className="absolute top-1/3 right-10 w-40 h-40 bg-white/5 rounded-full blur-2xl pointer-events-none animate-float-slow" />
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-accent/20 rounded-full blur-3xl pointer-events-none animate-glow-pulse" aria-hidden="true" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl pointer-events-none animate-drift" style={{ animationDelay: '1.5s' }} aria-hidden="true" />
+        <div className="absolute top-1/3 right-10 w-40 h-40 bg-white/5 rounded-full blur-2xl pointer-events-none animate-float-slow" aria-hidden="true" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
@@ -260,8 +251,9 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Left Column: Dashboard mockup with floating widgets */}
-            <div className="lg:col-span-6 relative flex justify-center items-center mt-8 lg:mt-0">
+            {/* Left Column: Dashboard mockup with floating widgets — purely
+                illustrative (fake data), hidden from assistive tech */}
+            <div className="lg:col-span-6 relative flex justify-center items-center mt-8 lg:mt-0" aria-hidden="true">
 
               {/* Floating stat card: total bookings */}
               <div className="absolute -top-6 right-4 sm:right-12 z-20 bg-[#0F2C4E]/90 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl p-4 flex items-center gap-3 animate-bounce-slow">
@@ -819,8 +811,8 @@ export default function LandingPage() {
       {/* 10. FINAL CTA SECTION */}
       <section className="py-24 bg-[#0F2C4E] text-white text-center relative overflow-hidden">
         {/* Background glow effects */}
-        <div className="absolute -top-24 -right-24 w-80 h-80 bg-accent/20 rounded-full blur-3xl animate-glow-pulse" />
-        <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl animate-drift" style={{ animationDelay: '2s' }} />
+        <div className="absolute -top-24 -right-24 w-80 h-80 bg-accent/20 rounded-full blur-3xl animate-glow-pulse" aria-hidden="true" />
+        <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl animate-drift" style={{ animationDelay: '2s' }} aria-hidden="true" />
 
         <FadeIn>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 relative z-10">
@@ -843,6 +835,7 @@ export default function LandingPage() {
         </div>
         </FadeIn>
       </section>
+      </main>
 
       {/* 11. FOOTER */}
       <footer className="bg-slate-900 text-slate-400 py-16 border-t border-slate-800">
@@ -853,7 +846,7 @@ export default function LandingPage() {
             {/* Col 1: Logo & Brand Info */}
             <div className="md:col-span-4 flex flex-col items-start text-right">
               <div className="flex items-center gap-2 mb-4">
-                <svg className="w-8 h-8 text-[#16B89A]" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg className="w-8 h-8 text-[#16B89A]" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                   <path d="M75 50C75 63.8071 63.8071 75 50 75C36.1929 75 25 63.8071 25 50C25 36.1929 36.1929 25 50 25C52.5 25 54.8 25.4 57 26.1" stroke="currentColor" strokeWidth="10" strokeLinecap="round" />
                   <path d="M50 75C53.866 75 57.618 73.953 60.875 72" stroke="currentColor" strokeWidth="10" strokeLinecap="round" />
                   <circle cx="42" cy="45" r="7" fill="#fff" />

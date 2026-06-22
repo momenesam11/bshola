@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
 import { supabase } from '../../lib/supabase'
 
 export default function AuthCallback() {
@@ -29,6 +30,7 @@ export default function AuthCallback() {
 
   return (
     <div className="min-h-screen flex items-center justify-center">
+      <Helmet><meta name="robots" content="noindex" /></Helmet>
       <div className="w-8 h-8 border-4 border-accent-500 border-t-transparent rounded-full animate-spin" />
     </div>
   )

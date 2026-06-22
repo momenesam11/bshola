@@ -14,7 +14,7 @@ test.describe('Admin dashboard (/admin)', () => {
     await page.getByRole('button', { name: 'دخول' }).click()
 
     await expect(page.getByText('كلمة السر غلط')).toBeVisible({ timeout: 10_000 })
-    await expect(page.getByText('لوحة تحكم Mawid')).not.toBeVisible()
+    await expect(page.getByText('لوحة تحكم بسهولة')).not.toBeVisible()
   })
 
   test('correct password → dashboard loads', async ({ page }) => {
@@ -22,7 +22,7 @@ test.describe('Admin dashboard (/admin)', () => {
     await page.getByPlaceholder('كلمة السر').fill(ADMIN_PASSWORD!)
     await page.getByRole('button', { name: 'دخول' }).click()
 
-    await expect(page.getByText('لوحة تحكم Mawid')).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText('لوحة تحكم بسهولة')).toBeVisible({ timeout: 10_000 })
   })
 
   test('activating a business sets subscription_type to paid in the database', async ({ page }) => {
@@ -31,7 +31,7 @@ test.describe('Admin dashboard (/admin)', () => {
       await page.goto('/admin')
       await page.getByPlaceholder('كلمة السر').fill(ADMIN_PASSWORD!)
       await page.getByRole('button', { name: 'دخول' }).click()
-      await expect(page.getByText('لوحة تحكم Mawid')).toBeVisible({ timeout: 10_000 })
+      await expect(page.getByText('لوحة تحكم بسهولة')).toBeVisible({ timeout: 10_000 })
 
       // Narrow the table to just our fixture via the search box, then open
       // its activate modal (the row icon and the modal's submit button both

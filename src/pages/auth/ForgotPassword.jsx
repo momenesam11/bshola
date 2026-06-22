@@ -2,6 +2,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link } from 'react-router-dom'
 import { useState } from 'react'
+import { Helmet } from 'react-helmet-async'
 import { z } from 'zod'
 import { supabase } from '../../lib/supabase'
 import Button from '../../components/ui/Button'
@@ -38,6 +39,7 @@ export default function ForgotPassword() {
         title="على وشك ترجع لحسابك"
         subtitle="تابع بريدك الإلكتروني للحصول على رابط إعادة تعيين كلمة المرور."
       >
+        <Helmet><meta name="robots" content="noindex" /></Helmet>
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">تحقق من بريدك</h2>
           <p className="text-gray-500 text-sm">أرسلنا لك رابط لإعادة تعيين كلمة المرور — افتح بريدك وانقر على الرابط</p>
@@ -54,6 +56,10 @@ export default function ForgotPassword() {
       title="حصل لك حاجة؟"
       subtitle="لا تقلق، هنساعدك ترجع لحسابك في خطوتين بس."
     >
+      <Helmet>
+        <title>نسيت كلمة المرور — بسهولة</title>
+        <meta name="robots" content="noindex" />
+      </Helmet>
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-gray-900">نسيت كلمة المرور؟</h2>
         <p className="text-gray-500 text-sm mt-1">اكتب بريدك الإلكتروني وهنبعتلك رابط لإعادة تعيين كلمة المرور</p>

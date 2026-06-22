@@ -16,7 +16,7 @@ SET trial_ends_at = created_at + interval '14 days'
 WHERE trial_ends_at IS NULL;
 
 -- ============================================================
--- ADMIN DASHBOARD ACCESS (/mawid-super-admin-2025)
+-- ADMIN DASHBOARD ACCESS (/admin)
 -- The admin dashboard is gated by a hardcoded password check in the
 -- component, not Supabase auth — it always talks to Supabase as the
 -- "anon" role (via a dedicated client with no session attached, see

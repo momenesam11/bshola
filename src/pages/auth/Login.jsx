@@ -2,6 +2,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
+import { Helmet } from 'react-helmet-async'
 import { supabase } from '../../lib/supabase'
 import { loginSchema } from '../../lib/validators'
 import Button from '../../components/ui/Button'
@@ -36,6 +37,10 @@ export default function Login() {
       title="أهلاً بيك في بسهولة!"
       subtitle="سيب التنظيم والمتابعة اليدوية وركز في عملك — زود إنتاجيتك وفر وقتك مع بسهولة."
     >
+      <Helmet>
+        <title>تسجيل الدخول — بسهولة</title>
+        <meta name="robots" content="noindex" />
+      </Helmet>
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-gray-900">أهلاً بيك تاني!</h2>
         <p className="text-gray-500 text-sm mt-1">

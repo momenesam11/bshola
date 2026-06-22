@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
 import { format, differenceInYears, parseISO } from 'date-fns'
 import { ar } from 'date-fns/locale'
 import toast from 'react-hot-toast'
@@ -39,6 +40,8 @@ import {
   usePatientVisits,
 } from '../../hooks/usePatientRecord'
 import PageWrapper from '../../components/layout/PageWrapper'
+import DatePicker from '../../components/ui/DatePicker'
+import Dropdown from '../../components/ui/Dropdown'
 
 // ─── Constants ────────────────────────────────────────────────────
 const STATUS_COLORS = {
@@ -186,7 +189,7 @@ function TabBasicInfo({ businessId, clientPhone, clientName }) {
       <Section title="المعلومات الشخصية">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="تاريخ الميلاد">
-            <input type="date" defaultValue={record?.date_of_birth || ''} onBlur={e => autoSave('date_of_birth', e.target.value || null)} className="field-input" dir="ltr" />
+            <DatePicker value={record?.date_of_birth || ''} onChange={v => autoSave('date_of_birth', v || null)} />
           </Field>
           <Field label="الجنس">
             <div className="flex gap-2">
@@ -279,7 +282,7 @@ function TabBasicInfoSimple({ businessId, clientPhone, clientName, visits = [] }
             <input type="text" value={clientPhone} disabled dir="ltr" className="field-input bg-slate-50 text-slate-400" />
           </Field>
           <Field label="تاريخ الميلاد">
-            <input type="date" defaultValue={record?.date_of_birth || ''} onBlur={e => autoSave('date_of_birth', e.target.value || null)} className="field-input" dir="ltr" />
+            <DatePicker value={record?.date_of_birth || ''} onChange={v => autoSave('date_of_birth', v || null)} />
             {age != null && <p className="text-xs text-slate-400 mt-1">{age} سنة</p>}
           </Field>
         </div>
@@ -336,7 +339,7 @@ function DiagnosisForm({ appointmentId, businessId, clientPhone, existing, onDon
         </Field>
       ))}
       <Field label="موعد المتابعة">
-        <input type="date" value={followUp} onChange={e => setFollowUp(e.target.value)} className="field-input" dir="ltr" />
+        <DatePicker value={followUp} onChange={setFollowUp} />
       </Field>
       <div className="flex gap-2 pt-1">
         <button type="button" onClick={onDone} className="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-100 transition-colors">إلغاء</button>
@@ -484,9 +487,11 @@ function PrescriptionModal({ onClose, businessId, clientPhone }) {
               <input value={row.drug} onChange={e => updateRow(i, 'drug', e.target.value)} placeholder="اسم الدواء" className="field-input" />
               <div className="grid grid-cols-2 gap-2">
                 <input value={row.dose} onChange={e => updateRow(i, 'dose', e.target.value)} placeholder="الجرعة" className="field-input" />
-                <select value={row.freq} onChange={e => updateRow(i, 'freq', e.target.value)} className="field-input">
-                  {FREQ_OPTIONS.map(f => <option key={f}>{f}</option>)}
-                </select>
+                <Dropdown
+                  value={row.freq}
+                  onChange={v => updateRow(i, 'freq', v)}
+                  options={FREQ_OPTIONS.map(f => ({ value: f, label: f }))}
+                />
                 <input value={row.duration} onChange={e => updateRow(i, 'duration', e.target.value)} placeholder="المدة" className="field-input" />
                 <input value={row.notes} onChange={e => updateRow(i, 'notes', e.target.value)} placeholder="ملاحظات" className="field-input" />
               </div>
@@ -761,6 +766,10 @@ export default function PatientRecord() {
 
   return (
     <PageWrapper title={isMedical ? 'الملف الطبي' : 'ملف العميل'}>
+      <Helmet>
+        <title>{isMedical ? 'الملف الطبي' : 'ملف العميل'} — بسهولة</title>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       <div className="max-w-3xl" dir="rtl">
         {/* Back button */}
         <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600 mb-3 transition-colors no-print">

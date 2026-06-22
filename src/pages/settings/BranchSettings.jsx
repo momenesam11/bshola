@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Helmet } from 'react-helmet-async'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   HiOutlinePlus,
@@ -210,6 +211,10 @@ export default function BranchSettings() {
 
   return (
     <PageWrapper title="إدارة الفروع">
+      <Helmet>
+        <title>إدارة الفروع — بسهولة</title>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       <div className="max-w-2xl space-y-4" dir="rtl">
         <div className="flex items-center justify-between">
           <div>

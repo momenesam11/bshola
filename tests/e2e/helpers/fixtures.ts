@@ -50,7 +50,7 @@ export interface TestFixture {
 // used by the capacity-race test).
 export async function seedBusiness({ capacity = 1 }: { capacity?: number } = {}): Promise<TestFixture> {
   const stamp = Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
-  const ownerEmail = `e2e-${stamp}@mawid-test.local`
+  const ownerEmail = `e2e-${stamp}@beshola-test.local`
   const ownerPassword = 'E2eTestPass123'
 
   const { data: userRes, error: userErr } = await supabaseAdmin.auth.admin.createUser({

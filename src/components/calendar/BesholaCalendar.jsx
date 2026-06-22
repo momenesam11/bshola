@@ -35,6 +35,7 @@ import {
 import { useBranch } from '../../context/BranchContext'
 import { getBranchColor } from '../../utils/constants'
 import { useNavigate } from 'react-router-dom'
+import DatePicker from '../ui/DatePicker'
 
 // Groups appointments by exact start time so simultaneous bookings (capacity
 // > 1 branches, e.g. a salon with multiple chairs) render side-by-side
@@ -547,7 +548,7 @@ function MonthView({ businessId, branchId, date, onApptClick, onDayClick, showBr
 }
 
 // ─── Main Component ─────────────────────────────────────────────────
-export default function MawidCalendar({ businessId, onApptClick, onNewAppt }) {
+export default function BesholaCalendar({ businessId, onApptClick, onNewAppt }) {
   const [view, setView] = useState('day')
   const [date, setDate] = useState(new Date())
   const dateInputRef = useRef(null)
@@ -655,27 +656,16 @@ export default function MawidCalendar({ businessId, onApptClick, onNewAppt }) {
           اليوم
         </button>
 
-        <div className="relative">
-          <input
-            ref={dateInputRef}
-            type="date"
-            value={format(date, 'yyyy-MM-dd')}
-            onChange={e => {
-              if (!e.target.value) return
-              const d = new Date(e.target.value + 'T00:00:00')
-              setDate(d)
-              setView('day')
-            }}
-            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-          />
-          <button
-            onClick={() => dateInputRef.current?.showPicker?.()}
-            className="px-3 py-2 text-sm border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors text-slate-600 min-h-[44px] flex items-center gap-1.5"
-          >
-            <HiOutlineCalendarDays className="w-4 h-4" />
-            انتقل
-          </button>
-        </div>
+        <DatePicker
+          value={format(date, 'yyyy-MM-dd')}
+          onChange={v => {
+            if (!v) return
+            setDate(new Date(v + 'T00:00:00'))
+            setView('day')
+          }}
+          allowClear={false}
+          className="w-40"
+        />
 
         <div className="flex-1" />
         <ViewSwitcher view={view} onChange={setView} />

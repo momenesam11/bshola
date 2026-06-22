@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Helmet } from 'react-helmet-async'
 import toast from 'react-hot-toast'
 import {
   HiOutlineMagnifyingGlass,
@@ -69,6 +70,7 @@ function PasswordGate({ onAuthenticated }) {
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4" dir="rtl">
+      <Helmet><meta name="robots" content="noindex, nofollow" /></Helmet>
       <form
         onSubmit={handleSubmit}
         className={`w-full max-w-sm bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center ${error ? 'animate-shake' : ''}`}
@@ -115,7 +117,7 @@ function StatCard({ label, value }) {
 function whatsappLink(business) {
   const phone = (business.owner_phone || business.phone || '').replace(/[^0-9]/g, '')
   const message = `أهلاً يا دكتور/أستاذ! 👋
-تجربتك المجانية لـ Mawid انتهت.
+تجربتك المجانية لـ بسهولة انتهت.
 لتجديد اشتراكك وإعادة تفعيل حسابك، تواصل معنا.
 باقات الاشتراك تبدأ من 99 جنيه/شهر 🗓️`
   return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
@@ -161,9 +163,10 @@ function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6" dir="rtl">
+      <Helmet><meta name="robots" content="noindex, nofollow" /></Helmet>
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">لوحة تحكم Mawid</h1>
+          <h1 className="text-2xl font-bold text-gray-900">لوحة تحكم بسهولة</h1>
           <button
             onClick={handleLogout}
             className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-red-600 transition-colors"

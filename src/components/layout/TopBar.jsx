@@ -70,9 +70,11 @@ function TrialWidget({ business }) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  if (business.subscription_type !== 'trial' || !business.trial_ends_at) return null
+  if (!business.trial_ends_at) return null
+  const isPaid = business.subscription_type === 'paid'
   const daysLeft = Math.ceil((new Date(business.trial_ends_at) - new Date()) / (1000 * 60 * 60 * 24))
   const color = daysLeft < 3 ? 'text-red-600 bg-red-50 border-red-200' : daysLeft <= 7 ? 'text-amber-600 bg-amber-50 border-amber-200' : 'text-slate-600 bg-slate-50 border-slate-200'
+  const periodLabel = isPaid ? 'اشتراكك' : 'تجربتك المجانية'
 
   return (
     <div className="relative" ref={ref}>
@@ -81,23 +83,23 @@ function TrialWidget({ business }) {
         className={`flex items-center gap-1 px-2 md:px-3 py-1.5 rounded-xl md:border text-xs font-medium transition-colors min-h-[36px] ${color}`}
       >
         <HiOutlineClock className="w-3.5 h-3.5 flex-shrink-0" />
-        <span className="hidden sm:block leading-none">باقي {daysLeft > 0 ? daysLeft : 0} يوم في تجربتك المجانية</span>
+        <span className="hidden sm:block leading-none">باقي {daysLeft > 0 ? daysLeft : 0} يوم في {periodLabel}</span>
         <span className="sm:hidden leading-none">{daysLeft > 0 ? daysLeft : 0} يوم</span>
       </button>
 
       {open && (
         <div className="absolute top-full mt-1 left-0 bg-white border border-slate-100 rounded-xl shadow-lg p-4 z-50 min-w-[240px] space-y-3" dir="rtl">
           <p className="text-sm text-slate-700">
-            تجربتك تنتهي في <strong>{new Date(business.trial_ends_at).toLocaleDateString('ar-EG')}</strong>
+            {periodLabel} تنتهي في <strong>{new Date(business.trial_ends_at).toLocaleDateString('ar-EG')}</strong>
           </p>
-          <p className="text-xs text-slate-400">تواصل معنا للاشتراك وعدم فقدان بياناتك</p>
+          <p className="text-xs text-slate-400">{isPaid ? 'تواصل معنا لتجديد اشتراكك وعدم فقدان بياناتك' : 'تواصل معنا للاشتراك وعدم فقدان بياناتك'}</p>
           <a
-            href={`https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent('أهلاً، عايز أعرف تفاصيل الاشتراك في بسهولة')}`}
+            href={`https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent(isPaid ? 'أهلاً، عايز أجدد اشتراكي في بسهولة' : 'أهلاً، عايز أعرف تفاصيل الاشتراك في بسهولة')}`}
             target="_blank" rel="noopener noreferrer"
             className="w-full flex items-center justify-center gap-2 py-2 bg-green-500 hover:bg-green-600 text-white text-xs font-medium rounded-lg transition-colors"
           >
             <FaWhatsapp className="w-3.5 h-3.5" />
-            تواصل معنا للاشتراك
+            {isPaid ? 'تواصل معنا لتجديد الاشتراك' : 'تواصل معنا للاشتراك'}
           </a>
           <a
             href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('استفسار اشتراك - بسهولة')}`}

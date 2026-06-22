@@ -18,9 +18,9 @@ export default function TrialExpiredScreen() {
         </div>
         <HiOutlineClock className="w-16 h-16 text-amber-400 mx-auto mb-3" />
         <h1 className="text-xl font-bold text-gray-900">انتهت فترة التجربة المجانية</h1>
-        <p className="text-gray-500 text-sm mt-2">لمتابعة استخدام Mawid وعدم فقدان بياناتك، تواصل معنا للاشتراك</p>
+        <p className="text-gray-500 text-sm mt-2">لمتابعة استخدام بسهولة وعدم فقدان بياناتك، تواصل معنا للاشتراك</p>
         <a
-          href={`https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent('أهلاً، حسابي انتهت تجربته وعايز أشترك في Mawid')}`}
+          href={`https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent('أهلاً، حسابي انتهت تجربته وعايز أشترك في بسهولة')}`}
           target="_blank"
           rel="noopener noreferrer"
           className="mt-5 w-full inline-flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white font-medium rounded-xl py-3 transition-colors"

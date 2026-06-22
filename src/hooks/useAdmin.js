@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabaseAdmin } from '../lib/supabaseAdmin'
 
-const TOKEN_KEY = 'mawid_admin_token'
+const TOKEN_KEY = 'beshola_admin_token'
 
 function getToken() {
   return sessionStorage.getItem(TOKEN_KEY)

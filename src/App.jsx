@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { HelmetProvider } from 'react-helmet-async'
 import { Toaster } from 'react-hot-toast'
 import { supabase } from './lib/supabase'
 import { BranchProvider } from './context/BranchContext'
@@ -79,6 +80,7 @@ function PublicRoute({ children }) {
 
 export default function App() {
   return (
+    <HelmetProvider>
     <BrowserRouter>
         <Toaster
           position="bottom-left"
@@ -124,5 +126,6 @@ export default function App() {
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </BrowserRouter>
+    </HelmetProvider>
   )
 }

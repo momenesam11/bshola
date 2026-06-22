@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Helmet } from 'react-helmet-async'
 import {
   HiOutlineUsers,
   HiOutlineMagnifyingGlass,
@@ -173,6 +174,10 @@ export default function ClientsPage() {
 
   return (
     <PageWrapper title="العملاء">
+      <Helmet>
+        <title>العملاء — بسهولة</title>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       <div className="space-y-6" dir="rtl">
         {/* Header */}
         <div>

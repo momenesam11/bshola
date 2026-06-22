@@ -1,8 +1,9 @@
 import { useState } from 'react'
+import { Helmet } from 'react-helmet-async'
 import { HiOutlinePlus } from 'react-icons/hi2'
 import PageWrapper from '../../components/layout/PageWrapper'
 import AppointmentModal from '../../components/appointments/AppointmentModal'
-import MawidCalendar from '../../components/calendar/MawidCalendar'
+import BesholaCalendar from '../../components/calendar/BesholaCalendar'
 import TomorrowReminders from './TomorrowReminders'
 import { useBusiness } from '../../hooks/useBusiness'
 import { toISODateString } from '../../utils/dateHelpers'
@@ -32,12 +33,16 @@ export default function Dashboard() {
 
   return (
     <PageWrapper title="الرئيسية">
+      <Helmet>
+        <title>الرئيسية — بسهولة</title>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       {business && (
         <TomorrowReminders businessId={business.id} business={business} />
       )}
 
       {business && (
-        <MawidCalendar
+        <BesholaCalendar
           businessId={business.id}
           onApptClick={handleApptClick}
           onNewAppt={handleNewAppt}

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   HiOutlinePlus,
@@ -13,7 +14,8 @@ import {
 import { FaInstagram, FaFacebook } from 'react-icons/fa'
 import PageWrapper from '../../components/layout/PageWrapper'
 import Button from '../../components/ui/Button'
-import Input, { Select, Textarea } from '../../components/ui/Input'
+import Input, { Textarea } from '../../components/ui/Input'
+import Dropdown from '../../components/ui/Dropdown'
 import {
   useBusiness,
   useUpdateBusiness,
@@ -139,13 +141,18 @@ function WorkingHoursSection({ business }) {
         </div>
       )}
       <ScheduleBlockEditor value={scheduleBlocks} onChange={setScheduleBlocks} onValidityChange={setIsValid} />
-      <Select label="مدة الموعد الواحد" value={slotDuration} onChange={e => setSlotDuration(Number(e.target.value))}>
-        <option value={15}>15 دقيقة</option>
-        <option value={30}>30 دقيقة</option>
-        <option value={45}>45 دقيقة</option>
-        <option value={60}>ساعة كاملة</option>
-        <option value={90}>ساعة ونصف</option>
-      </Select>
+      <Dropdown
+        label="مدة الموعد الواحد"
+        value={slotDuration}
+        onChange={v => setSlotDuration(Number(v))}
+        options={[
+          { value: 15, label: '15 دقيقة' },
+          { value: 30, label: '30 دقيقة' },
+          { value: 45, label: '45 دقيقة' },
+          { value: 60, label: 'ساعة كاملة' },
+          { value: 90, label: 'ساعة ونصف' },
+        ]}
+      />
       <div className="flex items-center gap-3">
         <Button onClick={handleSave} loading={saveStatus === 'loading'} disabled={!isValid} size="sm">حفظ</Button>
         <SaveFeedback status={saveStatus} msg={saveMsg} />
@@ -432,10 +439,11 @@ function IdentitySection({ business, onSaved }) {
       {/* Cancellation policy */}
       <div>
         <label className="block text-xs font-medium text-slate-600 mb-1.5">سياسة الإلغاء</label>
-        <select value={cancelPolicy} onChange={e => setCancelPolicy(e.target.value)}
-          className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent-400 bg-white">
-          {CANCELLATION_OPTIONS.map(o => <option key={o}>{o}</option>)}
-        </select>
+        <Dropdown
+          value={cancelPolicy}
+          onChange={setCancelPolicy}
+          options={CANCELLATION_OPTIONS.map(o => ({ value: o, label: o }))}
+        />
       </div>
 
       {/* Save */}
@@ -495,12 +503,17 @@ export default function Settings() {
 
   if (isLoading) return (
     <PageWrapper title="الإعدادات">
+      <Helmet><meta name="robots" content="noindex, nofollow" /></Helmet>
       <div className="space-y-4">{[1, 2, 3].map(i => <div key={i} className="h-40 bg-slate-100 rounded-2xl animate-pulse" />)}</div>
     </PageWrapper>
   )
 
   return (
     <PageWrapper title="الإعدادات">
+      <Helmet>
+        <title>الإعدادات — بسهولة</title>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       <div className="max-w-2xl space-y-6">
 
         {/* ── Business Info (name + phone only, type is read-only) ── */}
@@ -535,9 +548,12 @@ export default function Settings() {
 
         {/* ── Reminders ─────────────────────────────────────────── */}
         <Section title="إعدادات التذكيرات">
-          <Select label="وقت إرسال التذكير" value={reminderHours} onChange={e => setReminderHours(Number(e.target.value))}>
-            {REMINDER_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </Select>
+          <Dropdown
+            label="وقت إرسال التذكير"
+            value={reminderHours}
+            onChange={v => setReminderHours(Number(v))}
+            options={REMINDER_OPTIONS}
+          />
           <Textarea label="نص رسالة التذكير" value={reminderTemplate} onChange={e => setReminderTemplate(e.target.value)} rows={4} />
           <p className="text-xs text-slate-400">
             المتغيرات:{' '}

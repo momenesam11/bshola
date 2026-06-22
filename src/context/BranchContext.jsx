@@ -34,7 +34,7 @@ export function BranchProvider({ children }) {
 
   useEffect(() => {
     if (!branches.length) return
-    const stored = localStorage.getItem('mawid_branch_id')
+    const stored = localStorage.getItem('beshola_branch_id')
     if (stored === 'all') { setCurrentBranchState(ALL_BRANCHES); return }
     const found = stored ? branches.find(b => b.id === stored) : null
     setCurrentBranchState(found || branches.find(b => b.is_main) || branches[0])
@@ -42,7 +42,7 @@ export function BranchProvider({ children }) {
 
   function setCurrentBranch(branch) {
     setCurrentBranchState(branch)
-    localStorage.setItem('mawid_branch_id', branch.id || 'all')
+    localStorage.setItem('beshola_branch_id', branch.id || 'all')
   }
 
   const isMultiBranch = branches.length > 1

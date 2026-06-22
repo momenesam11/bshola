@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- /register is deliberately excluded: it's noindex (see Register.jsx's
+     Helmet) and disallowed in robots.txt — listing it here would contradict
+     both and confuse crawlers (Search Console would flag it as "blocked by
+     robots.txt"). Only routes that are actually indexable belong here. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://beshola.co/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>

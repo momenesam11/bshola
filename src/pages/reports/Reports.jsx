@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { Helmet } from 'react-helmet-async'
 import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, format } from 'date-fns'
 import {
   HiOutlineCalendarDays,
@@ -12,6 +13,7 @@ import { ar } from 'date-fns/locale'
 import PageWrapper from '../../components/layout/PageWrapper'
 import StatusBadge from '../../components/appointments/StatusBadge'
 import { StatCard } from '../../components/ui/Card'
+import DatePicker from '../../components/ui/DatePicker'
 import { SkeletonStat, SkeletonList } from '../../components/ui/Skeleton'
 import { useBusiness } from '../../hooks/useBusiness'
 import { useAllAppointments } from '../../hooks/useAppointments'
@@ -85,6 +87,10 @@ export default function Reports() {
 
   return (
     <PageWrapper title="التقارير">
+      <Helmet>
+        <title>التقارير — بسهولة</title>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
 {/* Date Range */}
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 mb-6" dir="rtl">
         <div className="space-y-3 sm:space-y-0 sm:flex sm:flex-wrap sm:gap-3 sm:items-center">
@@ -98,11 +104,9 @@ export default function Reports() {
           </div>
           {preset === 'custom' && (
             <div className="flex gap-2 items-center flex-wrap">
-              <input type="date" value={from} onChange={e => setFrom(e.target.value)}
-                className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-400" />
+              <DatePicker value={from} onChange={setFrom} allowClear={false} className="w-40" />
               <span className="text-gray-400 text-sm">إلى</span>
-              <input type="date" value={to} onChange={e => setTo(e.target.value)}
-                className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-400" />
+              <DatePicker value={to} onChange={setTo} allowClear={false} className="w-40" />
             </div>
           )}
           <button onClick={() => downloadCSV(appointments)} disabled={appointments.length === 0}

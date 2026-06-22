@@ -2,6 +2,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
+import { Helmet } from 'react-helmet-async'
 import { z } from 'zod'
 import { supabase } from '../../lib/supabase'
 import Button from '../../components/ui/Button'
@@ -52,6 +53,10 @@ export default function ResetPassword() {
       title="كلمة مرور جديدة"
       subtitle="اختار كلمة مرور قوية وآمنة لحسابك."
     >
+      <Helmet>
+        <title>إعادة تعيين كلمة المرور — بسهولة</title>
+        <meta name="robots" content="noindex" />
+      </Helmet>
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-gray-900">إعادة تعيين كلمة المرور</h2>
         <p className="text-gray-500 text-sm mt-1">اكتب كلمة المرور الجديدة لحسابك</p>

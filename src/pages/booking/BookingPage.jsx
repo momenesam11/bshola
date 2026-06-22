@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQueryClient } from '@tanstack/react-query'
@@ -239,6 +240,7 @@ export default function BookingPage() {
   if (!business) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4" dir="rtl">
+        <Helmet><meta name="robots" content="noindex" /></Helmet>
         <div className="text-center">
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <HiOutlineWrenchScrewdriver className="w-8 h-8 text-gray-300" />
@@ -253,6 +255,7 @@ export default function BookingPage() {
   if (isBusinessLocked(business)) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4" dir="rtl">
+        <Helmet><meta name="robots" content="noindex" /></Helmet>
         <div className="text-center">
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <HiOutlineLockClosed className="w-8 h-8 text-gray-300" />
@@ -268,6 +271,7 @@ export default function BookingPage() {
   if (waitlistSubmitted) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4" dir="rtl">
+        <Helmet><meta name="robots" content="noindex" /></Helmet>
         <div className="w-full max-w-sm bg-white rounded-3xl shadow-xl border border-gray-100 p-8 text-center">
           <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: `${brandColor}1a` }}>
             <HiOutlineClock className="w-8 h-8" style={{ color: brandColor }} />
@@ -284,6 +288,7 @@ export default function BookingPage() {
   if (submitted) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4" dir="rtl">
+        <Helmet><meta name="robots" content="noindex" /></Helmet>
         <div className="w-full max-w-sm">
           {/* Receipt card */}
           <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
@@ -334,6 +339,12 @@ export default function BookingPage() {
   // Main booking flow
   return (
     <div className="min-h-screen bg-gray-50" dir="rtl">
+      <Helmet>
+        <title>{business?.name ? `احجز موعدك عند ${business.name} — بسهولة` : 'احجز موعدك — بسهولة'}</title>
+        <meta name="description" content={business?.bio || `احجز موعدك بسهولة عند ${business?.name || ''}`} />
+        <link rel="canonical" href={`https://beshola.co/book/${businessSlug}`} />
+        <meta name="robots" content="index, follow" />
+      </Helmet>
       {/* Hero */}
       <div className="relative">
         <div className="h-[200px] w-full relative" style={{

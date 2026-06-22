@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 import { createConfirmedUser, deleteUserByEmail } from './helpers/fixtures'
 
 function uniqueEmail() {
-  return `e2e-auth-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}@mawid-test.local`
+  return `e2e-auth-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}@beshola-test.local`
 }
 
 test.describe('Auth', () => {
