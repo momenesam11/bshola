@@ -17,6 +17,7 @@ import {
   HiOutlinePhone,
   HiOutlineLockClosed,
   HiOutlineSparkles,
+  HiOutlineExclamationCircle,
 } from 'react-icons/hi2'
 import { FaInstagram, FaFacebook } from 'react-icons/fa'
 import { usePublicBusiness, usePublicServices, usePublicBranches, isBusinessLocked } from '../../hooks/useBusiness'
@@ -327,6 +328,14 @@ export default function BookingPage() {
                 {business.name}
               </div>
             </div>
+          </div>
+
+          {/* Keep-this-receipt notice */}
+          <div className="mt-4 bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-2.5 text-right">
+            <HiOutlineExclamationCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-amber-800 leading-relaxed">
+              احتفظ بهذه الصفحة أو قم بحفظ صورة لها على جهازك — قد تحتاج لإظهارها عند الطلب لتأكيد حجزك.
+            </p>
           </div>
         </div>
       </div>
