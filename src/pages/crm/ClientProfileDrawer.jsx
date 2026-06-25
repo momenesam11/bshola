@@ -15,6 +15,8 @@ import { useBranch } from '../../context/BranchContext'
 import { formatDateAr, formatTime12 } from '../../utils/dateHelpers'
 import { MEDICAL_TYPES } from '../../utils/constants'
 import RetargetModal from './RetargetModal'
+import ClientPlanTab from './ClientPlanTab'
+import ClientLedgerTab from './ClientLedgerTab'
 
 function Avatar({ name }) {
   return (
@@ -41,6 +43,7 @@ export default function ClientProfileDrawer({ client, businessId, business, onCl
   const [notesLoaded, setNotesLoaded] = useState(false)
   const [copied, setCopied] = useState(false)
   const [retargetOpen, setRetargetOpen] = useState(false)
+  const [tab, setTab] = useState('overview')
   const isMedical = MEDICAL_TYPES.includes(business?.type)
   const isMultiBranch = !!useBranch()?.isMultiBranch
   const recordLabel = isMedical ? 'ملف المريض الطبي' : 'ملف العميل'
@@ -133,9 +136,23 @@ export default function ClientProfileDrawer({ client, businessId, business, onCl
           </div>
         </div>
 
+        {/* Tabs */}
+        <div className="flex-shrink-0 flex border-b border-slate-100 px-2">
+          {[{ id: 'overview', label: 'نظرة عامة' }, { id: 'plan', label: 'خطة الزيارات' }, { id: 'ledger', label: 'كشف الحساب' }].map(t => (
+            <button key={t.id} onClick={() => setTab(t.id)}
+              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${tab === t.id ? 'border-accent-500 text-accent-700' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto p-5 space-y-6">
-          {isLoading ? (
+          {tab === 'plan' ? (
+            <ClientPlanTab businessId={businessId} clientPhone={client.phone} clientName={profile?.name || client.name} />
+          ) : tab === 'ledger' ? (
+            <ClientLedgerTab businessId={businessId} clientPhone={client.phone} />
+          ) : isLoading ? (
             <div className="space-y-3">
               {[1, 2, 3].map(i => (
                 <div key={i} className="h-16 bg-slate-100 rounded-xl animate-pulse" />
@@ -150,6 +167,20 @@ export default function ClientProfileDrawer({ client, businessId, business, onCl
                 <StatMini label="الحضور %" value={`${stats.attendanceRate ?? 0}%`} />
                 <StatMini label="آخر زيارة" value={stats.lastVisit ? formatDateAr(stats.lastVisit, 'd/M') : '—'} />
               </div>
+
+              {/* Payment summary */}
+              {stats.totalSpent > 0 && (
+                <div className="flex gap-2">
+                  <div className="flex-1 bg-accent-50 rounded-xl p-3 text-center">
+                    <p className="text-lg font-bold text-accent-700 leading-tight">{stats.totalPaid ?? 0} ج.م</p>
+                    <p className="text-xs text-accent-600 mt-0.5">المدفوع</p>
+                  </div>
+                  <div className={`flex-1 rounded-xl p-3 text-center ${stats.totalOwed > 0 ? 'bg-amber-50' : 'bg-slate-50'}`}>
+                    <p className={`text-lg font-bold leading-tight ${stats.totalOwed > 0 ? 'text-amber-700' : 'text-slate-900'}`}>{stats.totalOwed ?? 0} ج.م</p>
+                    <p className={`text-xs mt-0.5 ${stats.totalOwed > 0 ? 'text-amber-600' : 'text-slate-500'}`}>المتبقي</p>
+                  </div>
+                </div>
+              )}
 
               {/* Appointment timeline */}
               <div>
@@ -172,14 +203,19 @@ export default function ClientProfileDrawer({ client, businessId, business, onCl
                               </span>
                               <StatusBadge status={appt.status} />
                             </div>
-                            <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
+                            <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 flex-wrap">
                               <span>{formatDateAr(appt.appointment_date, 'd MMM yyyy')}</span>
                               <span dir="ltr">{formatTime12(appt.appointment_time?.slice(0, 5))}</span>
                               {isMultiBranch && appt.branches?.name && (
                                 <span className="text-slate-400">{appt.branches.name}</span>
                               )}
-                              {appt.services?.price && (
-                                <span className="font-medium text-slate-700">{appt.services.price} ج.م</span>
+                              {(appt.price ?? appt.services?.price) != null && (
+                                <span className="font-medium text-slate-700">{appt.price ?? appt.services.price} ج.م</span>
+                              )}
+                              {appt.payment_status && appt.payment_status !== 'unpaid' && (
+                                <span className={`px-1.5 py-0.5 rounded-full font-medium ${appt.payment_status === 'paid' ? 'bg-accent-100 text-accent-700' : 'bg-amber-100 text-amber-700'}`}>
+                                  {appt.payment_status === 'paid' ? 'مدفوع' : 'دفعة جزئية'}
+                                </span>
                               )}
                             </div>
                           </div>

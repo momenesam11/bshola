@@ -11,6 +11,11 @@ function invalidateAll(qc) {
   qc.invalidateQueries({ queryKey: ['calendar-month'] })
   qc.invalidateQueries({ queryKey: ['appointments-tomorrow'] })
   qc.invalidateQueries({ queryKey: ['booked-slots'] })
+  // A create/update/delete here can change a linked client plan visit's
+  // status (via the DB sync trigger) or trigger a ledger charge on
+  // completion — both need to reflect the change without a manual refresh.
+  qc.invalidateQueries({ queryKey: ['client-plan'] })
+  qc.invalidateQueries({ queryKey: ['client-ledger'] })
 }
 
 export function useAppointments(businessId, date) {

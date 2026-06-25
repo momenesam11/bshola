@@ -10,6 +10,12 @@ import {
   HiOutlinePhoto,
   HiOutlineGlobeAlt,
   HiOutlineTrash,
+  HiOutlineBuildingOffice2,
+  HiOutlineSwatch,
+  HiOutlineWrenchScrewdriver,
+  HiOutlineClock,
+  HiOutlineBellAlert,
+  HiOutlineShieldCheck,
 } from 'react-icons/hi2'
 import { FaInstagram, FaFacebook } from 'react-icons/fa'
 import PageWrapper from '../../components/layout/PageWrapper'
@@ -30,6 +36,27 @@ import { supabase } from '../../lib/supabase'
 import { useBranch } from '../../context/BranchContext'
 import ScheduleBlockEditor from '../../components/ui/ScheduleBlockEditor'
 import BookingLinkActions from '../../components/booking/BookingLinkActions'
+import ConfirmDialog from '../../components/ui/ConfirmDialog'
+function ServiceRow({ service, onUpdateField, onDelete }) {
+  return (
+    <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100 flex-wrap">
+      <input defaultValue={service.name} onBlur={e => onUpdateField(service, 'name', e.target.value)} placeholder="اسم الخدمة"
+        className="flex-1 min-w-[120px] border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-400" />
+      <div className="flex items-center gap-1.5">
+        <input type="number" min={5} max={480} step={5} defaultValue={service.duration_minutes}
+          onBlur={e => onUpdateField(service, 'duration_minutes', Number(e.target.value) || 30)}
+          className="w-16 border border-slate-200 rounded-lg px-2 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-accent-400" dir="ltr" />
+        <span className="text-xs text-slate-400">دقيقة</span>
+      </div>
+      <input type="number" min={0} defaultValue={service.price || ''} placeholder="السعر"
+        onBlur={e => onUpdateField(service, 'price', e.target.value ? Number(e.target.value) : null)}
+        className="w-20 border border-slate-200 rounded-lg px-2 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-accent-400" dir="ltr" />
+      <button onClick={() => onDelete(service.id)} className="text-red-400 hover:text-red-600 p-1.5">
+        <HiOutlineTrash className="w-4 h-4" />
+      </button>
+    </div>
+  )
+}
 
 const BRAND_COLORS = [
   { hex: '#10B981', label: 'أخضر' },
@@ -47,6 +74,15 @@ const CANCELLATION_OPTIONS = [
   'الإلغاء مجاني قبل 24 ساعة',
   'الإلغاء مجاني قبل 48 ساعة',
   'لا يوجد إلغاء بعد الحجز',
+]
+
+const SETTINGS_TABS = [
+  { id: 'business', label: 'معلومات النشاط', Icon: HiOutlineBuildingOffice2 },
+  { id: 'identity', label: 'الهوية البصرية', Icon: HiOutlineSwatch },
+  { id: 'services', label: 'الخدمات', Icon: HiOutlineWrenchScrewdriver },
+  { id: 'hours', label: 'ساعات العمل', Icon: HiOutlineClock },
+  { id: 'reminders', label: 'التذكيرات', Icon: HiOutlineBellAlert },
+  { id: 'account', label: 'الحساب والأمان', Icon: HiOutlineShieldCheck },
 ]
 
 function Section({ title, subtitle, children }) {
@@ -70,6 +106,51 @@ function SaveFeedback({ status, msg }) {
   )
   if (status === 'error') return <span className="text-xs text-red-500 break-all max-w-xs">خطأ: {msg}</span>
   return null
+}
+
+// ── Security Section — change password via Supabase Auth ───────────
+function SecuritySection() {
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [status, setStatus] = useState('')
+  const [error, setError] = useState('')
+
+  async function handleChangePassword() {
+    setError('')
+    if (newPassword.length < 8) {
+      setError('كلمة المرور يجب أن تكون 8 أحرف على الأقل')
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      setError('كلمتا المرور غير متطابقتين')
+      return
+    }
+    setStatus('loading')
+    const { error: updateError } = await supabase.auth.updateUser({ password: newPassword })
+    if (updateError) {
+      setStatus('error')
+      setError(updateError.message)
+      return
+    }
+    setStatus('ok')
+    setNewPassword('')
+    setConfirmPassword('')
+    setTimeout(() => setStatus(''), 2500)
+  }
+
+  return (
+    <div className="space-y-3 max-w-sm">
+      <Input label="كلمة المرور الجديدة" type="password" placeholder="••••••••" dir="ltr"
+        value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+      <Input label="تأكيد كلمة المرور الجديدة" type="password" placeholder="••••••••" dir="ltr"
+        value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
+      {error && <p className="text-xs text-red-500">{error}</p>}
+      <div className="flex items-center gap-3">
+        <Button onClick={handleChangePassword} loading={status === 'loading'} size="sm">تغيير كلمة المرور</Button>
+        <SaveFeedback status={status} msg={error} />
+      </div>
+    </div>
+  )
 }
 
 // ── Working Hours Section — edits the currently selected branch's schedule ──
@@ -166,6 +247,7 @@ function ServicesSection({ businessId }) {
   const { data: services = [], isLoading } = useServices(businessId)
   const upsertService = useUpsertService()
   const deleteService = useDeleteService()
+  const [pendingDeleteId, setPendingDeleteId] = useState(null)
 
   function addService() {
     upsertService.mutate({ businessId, services: [{ name: 'خدمة جديدة', duration_minutes: 30, price: null }] })
@@ -175,8 +257,10 @@ function ServicesSection({ businessId }) {
     upsertService.mutate({ businessId, services: [{ id: service.id, name: service.name, duration_minutes: service.duration_minutes, price: service.price, [field]: value }] })
   }
 
-  async function handleDelete(id) {
-    if (!window.confirm('حذف هذه الخدمة؟')) return
+  async function confirmDelete() {
+    const id = pendingDeleteId
+    setPendingDeleteId(null)
+    if (!id) return
     await deleteService.mutateAsync(id)
   }
 
@@ -185,27 +269,23 @@ function ServicesSection({ businessId }) {
   return (
     <div className="space-y-3">
       {services.map(s => (
-        <div key={s.id} className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100 flex-wrap">
-          <input defaultValue={s.name} onBlur={e => updateField(s, 'name', e.target.value)} placeholder="اسم الخدمة"
-            className="flex-1 min-w-[120px] border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-400" />
-          <div className="flex items-center gap-1.5">
-            <input type="number" min={5} max={480} step={5} defaultValue={s.duration_minutes}
-              onBlur={e => updateField(s, 'duration_minutes', Number(e.target.value) || 30)}
-              className="w-16 border border-slate-200 rounded-lg px-2 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-accent-400" dir="ltr" />
-            <span className="text-xs text-slate-400">دقيقة</span>
-          </div>
-          <input type="number" min={0} defaultValue={s.price || ''} placeholder="السعر"
-            onBlur={e => updateField(s, 'price', e.target.value ? Number(e.target.value) : null)}
-            className="w-20 border border-slate-200 rounded-lg px-2 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-accent-400" dir="ltr" />
-          <button onClick={() => handleDelete(s.id)} className="text-red-400 hover:text-red-600 p-1.5">
-            <HiOutlineTrash className="w-4 h-4" />
-          </button>
-        </div>
+        <ServiceRow key={s.id} service={s} onUpdateField={updateField} onDelete={setPendingDeleteId} />
       ))}
       <button onClick={addService}
         className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-slate-200 rounded-xl text-sm text-slate-500 hover:border-accent-300 hover:text-accent-600 transition-colors min-h-[44px]">
         <HiOutlinePlus className="w-4 h-4" />إضافة خدمة
       </button>
+
+      <ConfirmDialog
+        open={!!pendingDeleteId}
+        onClose={() => setPendingDeleteId(null)}
+        onConfirm={confirmDelete}
+        variant="danger"
+        loading={deleteService.isPending}
+        title="حذف الخدمة"
+        message="حذف هذه الخدمة؟"
+        confirmLabel="حذف"
+      />
     </div>
   )
 }
@@ -464,6 +544,8 @@ export default function Settings() {
   const [reminderHours, setReminderHours] = useState(24)
   const [reminderTemplate, setReminderTemplate] = useState(DEFAULT_REMINDER_TEMPLATE)
   const [saveStatus, setSaveStatus] = useState({})
+  const [confirmDeleteAccount, setConfirmDeleteAccount] = useState(false)
+  const [tab, setTab] = useState('business')
 
   useEffect(() => {
     if (business) {
@@ -491,7 +573,7 @@ export default function Settings() {
   }
 
   async function handleDeleteAccount() {
-    if (!window.confirm('هل أنت متأكد من حذف الحساب؟ لا يمكن التراجع.')) return
+    setConfirmDeleteAccount(false)
     await supabase.auth.signOut()
     navigate('/login')
   }
@@ -514,73 +596,120 @@ export default function Settings() {
         <title>الإعدادات — بسهولة</title>
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
-      <div className="max-w-2xl space-y-6">
-
-        {/* ── Business Info (name + phone only, type is read-only) ── */}
-        <Section title="معلومات النشاط" subtitle="الاسم ورقم الهاتف يمكن تعديلهم هنا">
-          <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
-            <span className="text-xs text-slate-500">نوع النشاط:</span>
-            <span className="text-sm font-semibold text-slate-700">{business?.type || '—'}</span>
-            <span className="text-xs text-slate-400 mr-auto">يُحدَّد من الإعداد الأولي</span>
-          </div>
-          <Input label="اسم النشاط" value={bizForm.name} onChange={e => setBizForm(p => ({ ...p, name: e.target.value }))} placeholder="مثال: عيادة دكتور أحمد" />
-          <Input label="رقم الهاتف" value={bizForm.phone} onChange={e => setBizForm(p => ({ ...p, phone: e.target.value }))} dir="ltr" placeholder="01XXXXXXXXX" />
-          <div className="flex items-center gap-3">
-            <Button onClick={saveBizInfo} loading={saveStatus.biz === 'loading'} size="sm">حفظ</Button>
-            <SaveFeedback status={saveStatus.biz} msg={saveStatus.bizMsg} />
-          </div>
-        </Section>
-
-        {/* ── Identity ─────────────────────────────────────────── */}
-        <Section title="هوية البيزنس" subtitle="الصورة، الألوان، الرابط، والمعلومات التي تظهر في صفحة الحجز">
-          {business && <IdentitySection business={business} />}
-        </Section>
-
-        {/* ── Services ─────────────────────────────────────────── */}
-        <Section title="الخدمات" subtitle="حدد مدة وسعر كل خدمة">
-          {business && <ServicesSection businessId={business.id} />}
-        </Section>
-
-        {/* ── Working Hours ─────────────────────────────────────── */}
-        <Section title="ساعات العمل" subtitle="يمكنك إضافة أكتر من فترة لليوم الواحد، بدون تقاطع بينها">
-          {business && <WorkingHoursSection business={business} />}
-        </Section>
-
-        {/* ── Reminders ─────────────────────────────────────────── */}
-        <Section title="إعدادات التذكيرات">
-          <Dropdown
-            label="وقت إرسال التذكير"
-            value={reminderHours}
-            onChange={v => setReminderHours(Number(v))}
-            options={REMINDER_OPTIONS}
-          />
-          <Textarea label="نص رسالة التذكير" value={reminderTemplate} onChange={e => setReminderTemplate(e.target.value)} rows={4} />
-          <p className="text-xs text-slate-400">
-            المتغيرات:{' '}
-            {['{client_name}', '{service}', '{time}', '{business_name}', '{branch}'].map(v => (
-              <code key={v} className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 mx-0.5 text-[11px]">{v}</code>
-            ))}
-          </p>
-          <div className="flex items-center gap-3">
-            <Button onClick={saveReminder} loading={saveStatus.reminder === 'loading'} size="sm">حفظ</Button>
-            <SaveFeedback status={saveStatus.reminder} msg={saveStatus.reminderMsg} />
-          </div>
-        </Section>
-
-{/* ── Logout (mobile only — desktop/tablet sidebar already has it) ── */}
-        <div className="md:hidden">
-          <Button variant="secondary" onClick={handleLogout} className="w-full">
-            تسجيل الخروج
-          </Button>
+      <div>
+        {/* Tabs — full available width so 6 short labels fit without a
+            scrollbar on desktop; on narrow mobile screens they still wrap
+            into horizontal scroll naturally via overflow-x-auto. */}
+        <div className="flex overflow-x-auto bg-white rounded-2xl border border-slate-100 shadow-sm mb-4 no-print max-w-3xl">
+          {SETTINGS_TABS.map(t => {
+            const Icon = t.Icon
+            const active = tab === t.id
+            return (
+              <button key={t.id} onClick={() => setTab(t.id)}
+                className={`flex items-center gap-1.5 px-3 sm:px-3.5 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${active ? 'border-accent-500 text-accent-700 bg-accent-50/30' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
+                <Icon className={`w-4 h-4 flex-shrink-0 ${active ? 'text-accent-500' : ''}`} />
+                <span>{t.label}</span>
+              </button>
+            )
+          })}
         </div>
 
-{/* ── Danger Zone ──────────────────────────────────────── */}
-        <Section title="منطقة الخطر">
-          <p className="text-sm text-slate-500">سيتم حذف جميع بياناتك بشكل دائم ولا يمكن التراجع.</p>
-          <Button variant="danger" onClick={handleDeleteAccount} size="sm">حذف الحساب نهائياً</Button>
-        </Section>
+        <div className="max-w-2xl space-y-6">
 
+        {/* ── Business Info (name + phone only, type is read-only) ── */}
+        {tab === 'business' && (
+          <Section title="معلومات النشاط" subtitle="الاسم ورقم الهاتف يمكن تعديلهم هنا">
+            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+              <span className="text-xs text-slate-500">نوع النشاط:</span>
+              <span className="text-sm font-semibold text-slate-700">{business?.type || '—'}</span>
+              <span className="text-xs text-slate-400 mr-auto">يُحدَّد من الإعداد الأولي</span>
+            </div>
+            <Input label="اسم النشاط" value={bizForm.name} onChange={e => setBizForm(p => ({ ...p, name: e.target.value }))} placeholder="مثال: عيادة دكتور أحمد" />
+            <Input label="رقم الهاتف" value={bizForm.phone} onChange={e => setBizForm(p => ({ ...p, phone: e.target.value }))} dir="ltr" placeholder="01XXXXXXXXX" />
+            <div className="flex items-center gap-3">
+              <Button onClick={saveBizInfo} loading={saveStatus.biz === 'loading'} size="sm">حفظ</Button>
+              <SaveFeedback status={saveStatus.biz} msg={saveStatus.bizMsg} />
+            </div>
+          </Section>
+        )}
+
+        {/* ── Identity ─────────────────────────────────────────── */}
+        {tab === 'identity' && (
+          <Section title="هوية البيزنس" subtitle="الصورة، الألوان، الرابط، والمعلومات التي تظهر في صفحة الحجز">
+            {business && <IdentitySection business={business} />}
+          </Section>
+        )}
+
+        {/* ── Services ─────────────────────────────────────────── */}
+        {tab === 'services' && (
+          <Section title="الخدمات" subtitle="حدد مدة وسعر كل خدمة">
+            {business && <ServicesSection businessId={business.id} />}
+          </Section>
+        )}
+
+        {/* ── Working Hours ─────────────────────────────────────── */}
+        {tab === 'hours' && (
+          <Section title="ساعات العمل" subtitle="يمكنك إضافة أكتر من فترة لليوم الواحد، بدون تقاطع بينها">
+            {business && <WorkingHoursSection business={business} />}
+          </Section>
+        )}
+
+        {/* ── Reminders ─────────────────────────────────────────── */}
+        {tab === 'reminders' && (
+          <Section title="إعدادات التذكيرات">
+            <Dropdown
+              label="وقت إرسال التذكير"
+              value={reminderHours}
+              onChange={v => setReminderHours(Number(v))}
+              options={REMINDER_OPTIONS}
+            />
+            <Textarea label="نص رسالة التذكير" value={reminderTemplate} onChange={e => setReminderTemplate(e.target.value)} rows={4} />
+            <p className="text-xs text-slate-400">
+              المتغيرات:{' '}
+              {['{client_name}', '{service}', '{time}', '{business_name}', '{branch}'].map(v => (
+                <code key={v} className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 mx-0.5 text-[11px]">{v}</code>
+              ))}
+            </p>
+            <div className="flex items-center gap-3">
+              <Button onClick={saveReminder} loading={saveStatus.reminder === 'loading'} size="sm">حفظ</Button>
+              <SaveFeedback status={saveStatus.reminder} msg={saveStatus.reminderMsg} />
+            </div>
+          </Section>
+        )}
+
+        {/* ── Account: security + logout + danger zone ──────────── */}
+        {tab === 'account' && (
+          <>
+            <Section title="الأمان" subtitle="تغيير كلمة المرور الخاصة بحسابك">
+              <SecuritySection />
+            </Section>
+
+            {/* Logout (mobile only — desktop/tablet sidebar already has it) */}
+            <div className="md:hidden">
+              <Button variant="secondary" onClick={handleLogout} className="w-full">
+                تسجيل الخروج
+              </Button>
+            </div>
+
+            <Section title="منطقة الخطر">
+              <p className="text-sm text-slate-500">سيتم حذف جميع بياناتك بشكل دائم ولا يمكن التراجع.</p>
+              <Button variant="danger" onClick={() => setConfirmDeleteAccount(true)} size="sm">حذف الحساب نهائياً</Button>
+            </Section>
+          </>
+        )}
+
+        </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmDeleteAccount}
+        onClose={() => setConfirmDeleteAccount(false)}
+        onConfirm={handleDeleteAccount}
+        variant="danger"
+        title="حذف الحساب"
+        message="هل أنت متأكد من حذف الحساب؟ لا يمكن التراجع."
+        confirmLabel="حذف نهائياً"
+      />
     </PageWrapper>
   )
 }

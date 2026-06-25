@@ -18,6 +18,7 @@ import {
 } from 'react-icons/hi2'
 import { FaWhatsapp } from 'react-icons/fa'
 import Modal from '../ui/Modal'
+import ConfirmDialog from '../ui/ConfirmDialog'
 import Button from '../ui/Button'
 import Dropdown from '../ui/Dropdown'
 import DatePicker from '../ui/DatePicker'
@@ -98,11 +99,12 @@ function WaitlistAlert({ appointment, businessId }) {
   )
 }
 
-export default function AppointmentModal({ open, onClose, businessId, initialDate, initialTime, appointment }) {
+export default function AppointmentModal({ open, onClose, businessId, initialDate, initialTime, appointment, prefill }) {
   const navigate = useNavigate()
   const isEdit = !!appointment
   const [submitError, setSubmitError] = useState('')
   const [showWaitlist, setShowWaitlist] = useState(false)
+  const [confirmDialog, setConfirmDialog] = useState(null)
   const { data: services = [] } = useServices(businessId)
   const { data: business } = useBusiness()
   const branchCtx = useBranch()
@@ -119,6 +121,7 @@ export default function AppointmentModal({ open, onClose, businessId, initialDat
       appointment_date: initialDate || todayISO(),
       appointment_time: initialTime || '09:00',
       status: 'confirmed', notes: '',
+      price: null, payment_status: 'unpaid', payment_type: '', amount_paid: 0,
     },
   })
 
@@ -139,19 +142,27 @@ export default function AppointmentModal({ open, onClose, businessId, initialDat
           appointment_time: appointment.appointment_time?.slice(0, 5),
           status: appointment.status,
           notes: appointment.notes || '',
+          price: appointment.price ?? null,
+          payment_status: appointment.payment_status || 'unpaid',
+          payment_type: appointment.payment_type || '',
+          amount_paid: appointment.amount_paid || 0,
         })
       } else {
         reset({
-          client_name: '', client_phone: '',
-          service_id: services[0]?.id || '',
-          appointment_date: initialDate || todayISO(),
+          client_name: prefill?.client_name || '', client_phone: prefill?.client_phone || '',
+          service_id: prefill?.service_id || services[0]?.id || '',
+          appointment_date: prefill?.appointment_date || initialDate || todayISO(),
           appointment_time: initialTime || '09:00',
           status: 'confirmed', notes: '',
+          price: prefill?.price ?? null,
+          payment_status: 'unpaid',
+          payment_type: prefill?.payment_type || '',
+          amount_paid: 0,
         })
       }
     }
     prevOpenRef.current = open
-  }, [open, appointment, initialDate, initialTime, services, reset])
+  }, [open, appointment, initialDate, initialTime, prefill, services, reset])
 
   useEffect(() => {
     if (open && !isEdit && services.length > 0) {
@@ -168,64 +179,103 @@ export default function AppointmentModal({ open, onClose, businessId, initialDat
     }
   }, [watchedStatus, isEdit, appointment?.status])
 
-  async function onSubmit(values) {
+  async function saveAppointment(values) {
     setSubmitError('')
+    // payment_type has a CHECK constraint allowing only specific strings or
+    // NULL — an empty string from the "— اختر —" placeholder option violates it.
+    const payload = { ...values, payment_type: values.payment_type || null }
     try {
       if (isEdit) {
-        await updateAppt.mutateAsync({ id: appointment.id, ...values })
+        await updateAppt.mutateAsync({ id: appointment.id, ...payload })
+        toast.success('تم حفظ الموعد')
       } else {
-        if (!currentBranch?.id) {
-          setSubmitError('تعذر تحديد الفرع — جرّب تحديث الصفحة')
-          return
-        }
-        const activeCount = await countActiveBookings(businessId, values.client_phone)
-        if (activeCount >= 2) {
-          const proceed = window.confirm(
-            `العميل عنده بالفعل ${activeCount} حجز نشط. متأكد إنك عايز تضيف حجز جديد؟`
-          )
-          if (!proceed) return
-        }
-        // branch_id is NOT NULL in the DB — never omit it.
-        await createAppt.mutateAsync({ ...values, business_id: businessId, branch_id: currentBranch.id })
+        // branch_id is NOT NULL in the DB — never omit it. plan_visit_id is
+        // metadata from a client-plan prefill, not a form field.
+        await createAppt.mutateAsync({
+          ...payload, business_id: businessId, branch_id: currentBranch.id,
+          plan_visit_id: prefill?.plan_visit_id || null,
+        })
+        toast.success('تم الحجز بنجاح')
       }
       onClose()
     } catch (e) {
       if (e?.message?.includes('CAPACITY_EXCEEDED')) {
         setSubmitError('هذا الموعد ممتلئ بالفعل — اختر وقتاً آخر')
+        toast.error('هذا الموعد ممتلئ بالفعل — اختر وقتاً آخر')
       } else {
         setSubmitError(e?.message || 'حدث خطأ أثناء الحفظ')
+        toast.error('حدث خطأ أثناء الحفظ')
       }
     }
   }
 
-  async function handleDelete() {
-    if (!window.confirm('هل تريد حذف هذا الموعد؟')) return
-    try {
-      await deleteAppt.mutateAsync(appointment.id)
-      onClose()
-    } catch (e) {
-      setSubmitError(e?.message || 'حدث خطأ أثناء الحذف')
+  async function onSubmit(values) {
+    setSubmitError('')
+    if (isEdit) {
+      await saveAppointment(values)
+      return
     }
+    if (!currentBranch?.id) {
+      setSubmitError('تعذر تحديد الفرع — جرّب تحديث الصفحة')
+      return
+    }
+    const activeCount = await countActiveBookings(businessId, values.client_phone)
+    if (activeCount >= 2) {
+      setConfirmDialog({ type: 'overbook', values, activeCount })
+      return
+    }
+    await saveAppointment(values)
+  }
+
+  async function handleDelete() {
+    setConfirmDialog({ type: 'delete' })
   }
 
   async function handleCancel() {
-    if (!window.confirm(`متأكد إنك عايز تلغي موعد ${appointment.client_name}؟`)) return
-    try {
-      await updateAppt.mutateAsync({ id: appointment.id, status: 'cancelled' })
-      toast.success('تم إلغاء الموعد')
-      onClose()
-    } catch (e) {
-      toast.error(e?.message || 'حدث خطأ أثناء الإلغاء')
+    setConfirmDialog({ type: 'cancel' })
+  }
+
+  async function runConfirmedAction() {
+    const action = confirmDialog
+    setConfirmDialog(null)
+    if (!action) return
+    if (action.type === 'overbook') {
+      await saveAppointment(action.values)
+    } else if (action.type === 'delete') {
+      try {
+        await deleteAppt.mutateAsync(appointment.id)
+        onClose()
+      } catch (e) {
+        setSubmitError(e?.message || 'حدث خطأ أثناء الحذف')
+      }
+    } else if (action.type === 'cancel') {
+      try {
+        await updateAppt.mutateAsync({ id: appointment.id, status: 'cancelled' })
+        toast.success('تم إلغاء الموعد')
+        onClose()
+      } catch (e) {
+        toast.error(e?.message || 'حدث خطأ أثناء الإلغاء')
+      }
     }
   }
 
   const selectedService = services.find(s => s.id === watchedServiceId)
   const showPatientRecord = isEdit && !!appointment?.client_phone
 
+  // Pre-fill price from the service default when creating a new appointment
+  // — never overwrite a price the owner already typed or one loaded from an
+  // existing appointment being edited.
+  useEffect(() => {
+    if (!isEdit && selectedService?.price != null && getValues('price') == null) {
+      setValue('price', selectedService.price)
+    }
+  }, [selectedService, isEdit, setValue, getValues])
+
   const fieldCls = (err) =>
     `w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent-400 bg-white transition-colors ${err ? 'border-red-300 bg-red-50' : 'border-slate-200'}`
 
   return (
+    <>
     <Modal open={open} onClose={onClose} title={isEdit ? 'تعديل الموعد' : 'موعد جديد'} size="md">
       <form onSubmit={handleSubmit(onSubmit)} dir="rtl" className="space-y-3">
 
@@ -388,6 +438,28 @@ export default function AppointmentModal({ open, onClose, businessId, initialDat
         )}
 
       </form>
+
+      <ConfirmDialog
+        open={!!confirmDialog}
+        onClose={() => setConfirmDialog(null)}
+        onConfirm={runConfirmedAction}
+        variant={confirmDialog?.type === 'delete' || confirmDialog?.type === 'cancel' ? 'danger' : 'default'}
+        loading={createAppt.isPending || updateAppt.isPending || deleteAppt.isPending}
+        title={
+          confirmDialog?.type === 'overbook' ? 'حجز نشط بالفعل'
+            : confirmDialog?.type === 'delete' ? 'حذف الموعد'
+            : confirmDialog?.type === 'cancel' ? 'إلغاء الموعد'
+            : ''
+        }
+        message={
+          confirmDialog?.type === 'overbook' ? `العميل عنده بالفعل ${confirmDialog.activeCount} حجز نشط. متأكد إنك عايز تضيف حجز جديد؟`
+            : confirmDialog?.type === 'delete' ? 'هل تريد حذف هذا الموعد؟'
+            : confirmDialog?.type === 'cancel' ? `متأكد إنك عايز تلغي موعد ${appointment?.client_name}؟`
+            : ''
+        }
+        confirmLabel={confirmDialog?.type === 'delete' ? 'حذف' : confirmDialog?.type === 'cancel' ? 'إلغاء الموعد' : 'تأكيد'}
+      />
     </Modal>
+    </>
   )
 }

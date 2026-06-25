@@ -68,6 +68,10 @@ export function getAppointmentSchema(isEdit = false) {
     appointment_time: z.string().min(1, 'الوقت مطلوب'),
     status: z.enum(['confirmed', 'cancelled', 'no_show', 'completed']).default('confirmed'),
     notes: z.string().optional(),
+    price: z.union([z.coerce.number(), z.null()]).optional(),
+    payment_status: z.enum(['paid', 'unpaid', 'partial']).optional(),
+    payment_type: z.union([z.enum(['cash', 'card', 'installment', 'other']), z.literal('')]).optional(),
+    amount_paid: z.coerce.number().optional(),
   })
   if (isEdit) return base
   return base.refine(d => d.appointment_date >= todayISO(), {

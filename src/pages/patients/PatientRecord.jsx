@@ -22,6 +22,7 @@ import {
   HiOutlineSparkles,
   HiOutlineHeart,
   HiOutlineCalendarDays,
+  HiOutlineBanknotes,
 } from 'react-icons/hi2'
 import { FaWhatsapp } from 'react-icons/fa'
 import { useBusiness } from '../../hooks/useBusiness'
@@ -42,6 +43,9 @@ import {
 import PageWrapper from '../../components/layout/PageWrapper'
 import DatePicker from '../../components/ui/DatePicker'
 import Dropdown from '../../components/ui/Dropdown'
+import ConfirmDialog from '../../components/ui/ConfirmDialog'
+import ClientPlanTab from '../crm/ClientPlanTab'
+import ClientLedgerTab from '../crm/ClientLedgerTab'
 
 // ─── Constants ────────────────────────────────────────────────────
 const STATUS_COLORS = {
@@ -271,6 +275,11 @@ function TabBasicInfoSimple({ businessId, clientPhone, clientName, visits = [] }
   const lastVisit = visits[0]?.appointment_date
   const age = calcAge(record?.date_of_birth)
 
+  const billableVisits = visits.filter(v => v.status !== 'cancelled')
+  const totalSpent = billableVisits.reduce((s, v) => s + (v.price ?? v.services?.price ?? 0), 0)
+  const totalPaid = billableVisits.reduce((s, v) => s + (v.amount_paid || (v.payment_status === 'paid' ? (v.price ?? v.services?.price ?? 0) : 0)), 0)
+  const totalOwed = Math.max(0, totalSpent - totalPaid)
+
   return (
     <div className="space-y-6 p-4 sm:p-6">
       <Section title="بيانات العميل">
@@ -299,6 +308,18 @@ function TabBasicInfoSimple({ businessId, clientPhone, clientName, visits = [] }
             <p className="text-xs text-slate-500 mt-0.5">تاريخ آخر زيارة</p>
           </div>
         </div>
+        {totalSpent > 0 && (
+          <div className="grid grid-cols-2 gap-3 mt-3">
+            <div className="bg-accent-50 rounded-xl p-3 text-center">
+              <p className="text-lg font-bold text-accent-700">{totalPaid} ج.م</p>
+              <p className="text-xs text-accent-600 mt-0.5">إجمالي المدفوع</p>
+            </div>
+            <div className={`rounded-xl p-3 text-center ${totalOwed > 0 ? 'bg-amber-50' : 'bg-slate-50'}`}>
+              <p className={`text-lg font-bold ${totalOwed > 0 ? 'text-amber-700' : 'text-slate-900'}`}>{totalOwed} ج.م</p>
+              <p className={`text-xs mt-0.5 ${totalOwed > 0 ? 'text-amber-600' : 'text-slate-500'}`}>المتبقي</p>
+            </div>
+          </div>
+        )}
       </Section>
 
       <Section title="ملاحظات">
@@ -597,6 +618,7 @@ function TabAttachments({ businessId, clientPhone, isMedical }) {
   const [pending, setPending] = useState(null)
   const [lightbox, setLightbox] = useState(null)
   const [dragOver, setDragOver] = useState(false)
+  const [pendingDelete, setPendingDelete] = useState(null)
 
   async function uploadDirect(file) {
     try { await upload.mutateAsync({ file, fileType: 'other', notes: '' }); toast.success('تم الرفع بنجاح') }
@@ -625,8 +647,14 @@ function TabAttachments({ businessId, clientPhone, isMedical }) {
     catch (e) { toast.error(e.message) }
   }
 
-  async function handleDelete(att) {
-    if (!window.confirm(`حذف "${att.file_name}"؟`)) return
+  function handleDelete(att) {
+    setPendingDelete(att)
+  }
+
+  async function confirmDeleteAttachment() {
+    const att = pendingDelete
+    setPendingDelete(null)
+    if (!att) return
     try { await del.mutateAsync({ id: att.id, filePath: att.file_path }); toast.success('تم الحذف') }
     catch (e) { toast.error(e.message) }
   }
@@ -735,6 +763,17 @@ function TabAttachments({ businessId, clientPhone, isMedical }) {
           <img src={lightbox.signed_url} alt={lightbox.file_name} className="max-w-full max-h-[85vh] rounded-xl object-contain shadow-2xl" onClick={e => e.stopPropagation()} />
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!pendingDelete}
+        onClose={() => setPendingDelete(null)}
+        onConfirm={confirmDeleteAttachment}
+        variant="danger"
+        loading={del.isPending}
+        title="حذف الملف"
+        message={pendingDelete ? `حذف "${pendingDelete.file_name}"؟` : ''}
+        confirmLabel="حذف"
+      />
     </div>
   )
 }
@@ -743,11 +782,15 @@ function TabAttachments({ businessId, clientPhone, isMedical }) {
 const MEDICAL_TABS = [
   { id: 'info', label: 'البيانات', Icon: HiOutlineUserCircle },
   { id: 'visits', label: 'الزيارات', Icon: HiOutlineClipboard },
+  { id: 'plan', label: 'خطة الزيارات', Icon: HiOutlineCalendarDays },
+  { id: 'ledger', label: 'كشف الحساب', Icon: HiOutlineBanknotes },
   { id: 'prescriptions', label: 'الروشتات', Icon: HiOutlineDocument },
   { id: 'attachments', label: 'الملفات', Icon: HiOutlinePhoto },
 ]
 const SIMPLE_TABS = [
   { id: 'info', label: 'البيانات', Icon: HiOutlineUserCircle },
+  { id: 'plan', label: 'خطة الزيارات', Icon: HiOutlineCalendarDays },
+  { id: 'ledger', label: 'كشف الحساب', Icon: HiOutlineBanknotes },
   { id: 'attachments', label: 'الملفات', Icon: HiOutlinePhoto },
 ]
 
@@ -800,6 +843,16 @@ export default function PatientRecord() {
             {tab === 'info' && business && isMedical && <TabBasicInfo businessId={business.id} clientPhone={clientPhone} clientName={clientName} />}
             {tab === 'info' && business && !isMedical && <TabBasicInfoSimple businessId={business.id} clientPhone={clientPhone} clientName={clientName} visits={visits} />}
             {tab === 'visits' && business && isMedical && <TabVisits businessId={business.id} clientPhone={clientPhone} clientName={clientName} />}
+            {tab === 'plan' && business && (
+              <div className="p-4 sm:p-6">
+                <ClientPlanTab businessId={business.id} clientPhone={clientPhone} clientName={clientName} />
+              </div>
+            )}
+            {tab === 'ledger' && business && (
+              <div className="p-4 sm:p-6">
+                <ClientLedgerTab businessId={business.id} clientPhone={clientPhone} />
+              </div>
+            )}
             {tab === 'prescriptions' && business && isMedical && <TabPrescriptions businessId={business.id} clientPhone={clientPhone} />}
             {tab === 'attachments' && business && <TabAttachments businessId={business.id} clientPhone={clientPhone} isMedical={isMedical} />}
           </div>

@@ -8,6 +8,7 @@ import {
   HiOutlineChartBarSquare,
   HiOutlineArrowDownTray,
   HiOutlineTableCells,
+  HiOutlinePrinter,
 } from 'react-icons/hi2'
 import { ar } from 'date-fns/locale'
 import PageWrapper from '../../components/layout/PageWrapper'
@@ -17,7 +18,9 @@ import DatePicker from '../../components/ui/DatePicker'
 import { SkeletonStat, SkeletonList } from '../../components/ui/Skeleton'
 import { useBusiness } from '../../hooks/useBusiness'
 import { useAllAppointments } from '../../hooks/useAppointments'
+import { useClients } from '../../hooks/useClients'
 import { toISODateString, formatDateAr, formatTime12 } from '../../utils/dateHelpers'
+import PrintableReport from './PrintableReport'
 
 const PRESETS = [
   { label: 'هذا الأسبوع', key: 'week' },
@@ -62,6 +65,13 @@ export default function Reports() {
 
   const { data: business } = useBusiness()
   const { data: appointments = [], isLoading } = useAllAppointments(business?.id, { from, to })
+  const { data: allClients = [] } = useClients(business?.id)
+  const bookingUrl = business ? `${window.location.origin}/book/${business.booking_slug || business.id}` : ''
+  const visitCountByPhone = useMemo(() => {
+    const map = {}
+    for (const c of allClients) map[c.phone] = c.visits
+    return map
+  }, [allClients])
 
   function applyPreset(key) {
     setPreset(key)
@@ -91,8 +101,12 @@ export default function Reports() {
         <title>التقارير — بسهولة</title>
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
+
+      {/* Hidden on screen, shown only when printing — see index.css .print-only */}
+      <PrintableReport business={business} bookingUrl={bookingUrl} from={from} to={to} stats={stats} appointments={filtered} visitCountByPhone={visitCountByPhone} />
+
 {/* Date Range */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 mb-6" dir="rtl">
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 mb-6 no-print" dir="rtl">
         <div className="space-y-3 sm:space-y-0 sm:flex sm:flex-wrap sm:gap-3 sm:items-center">
           <div className="flex gap-2 overflow-x-auto pb-0.5 -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible scrollbar-none">
             {PRESETS.map(p => (
@@ -109,16 +123,23 @@ export default function Reports() {
               <DatePicker value={to} onChange={setTo} allowClear={false} className="w-40" />
             </div>
           )}
-          <button onClick={() => downloadCSV(appointments)} disabled={appointments.length === 0}
-            className="w-full sm:w-auto sm:mr-auto flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-40 transition-colors min-h-[44px] sm:min-h-0">
-            <HiOutlineArrowDownTray className="w-4 h-4" />
-            تصدير CSV
-          </button>
+          <div className="flex gap-2 w-full sm:w-auto sm:mr-auto">
+            <button onClick={() => downloadCSV(appointments)} disabled={appointments.length === 0}
+              className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-40 transition-colors min-h-[44px] sm:min-h-0">
+              <HiOutlineArrowDownTray className="w-4 h-4" />
+              تصدير CSV
+            </button>
+            <button onClick={() => window.print()} disabled={appointments.length === 0}
+              className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium bg-accent-500 text-white hover:bg-accent-600 disabled:opacity-40 transition-colors min-h-[44px] sm:min-h-0">
+              <HiOutlinePrinter className="w-4 h-4" />
+              تصدير PDF
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6 no-print">
         {isLoading ? (
           <><SkeletonStat /><SkeletonStat /><SkeletonStat /><SkeletonStat /></>
         ) : (
@@ -132,9 +153,9 @@ export default function Reports() {
       </div>
 
       {/* Filter + Table */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden" dir="rtl">
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden no-print" dir="rtl">
         <div className="flex items-center gap-2 p-4 border-b border-gray-50">
-          <div className="flex gap-2 overflow-x-auto scrollbar-none">
+          <div className="flex gap-2 overflow-x-auto scrollbar-none no-print">
             {STATUS_FILTERS.map(s => (
               <button key={s.value} onClick={() => setStatusFilter(s.value)}
                 className={`flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors min-h-[36px] sm:min-h-[32px] ${statusFilter === s.value ? 'bg-accent-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
@@ -159,11 +180,12 @@ export default function Reports() {
               <table className="w-full table-fixed">
                 <thead className="bg-slate-50 border-b border-slate-100">
                   <tr>
-                    <th className="px-4 py-3 text-right text-sm font-semibold text-slate-500 w-[28%]">العميل</th>
-                    <th className="px-4 py-3 text-right text-sm font-semibold text-slate-500 w-[20%]">الخدمة</th>
-                    <th className="px-4 py-3 text-right text-sm font-semibold text-slate-500 w-[20%]">التاريخ</th>
-                    <th className="px-4 py-3 text-right text-sm font-semibold text-slate-500 w-[16%]">الوقت</th>
-                    <th className="px-4 py-3 text-right text-sm font-semibold text-slate-500 w-[16%]">الحالة</th>
+                    <th className="px-4 py-3 text-right text-sm font-semibold text-slate-500 w-[24%]">العميل</th>
+                    <th className="px-4 py-3 text-right text-sm font-semibold text-slate-500 w-[18%]">الخدمة</th>
+                    <th className="px-4 py-3 text-right text-sm font-semibold text-slate-500 w-[18%]">التاريخ</th>
+                    <th className="px-4 py-3 text-right text-sm font-semibold text-slate-500 w-[14%]">الوقت</th>
+                    <th className="px-4 py-3 text-right text-sm font-semibold text-slate-500 w-[14%]">الحالة</th>
+                    <th className="px-4 py-3 text-right text-sm font-semibold text-slate-500 w-[12%]">إجمالي الزيارات</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -177,6 +199,7 @@ export default function Reports() {
                       <td className="px-4 py-3.5 align-middle text-sm text-slate-600 truncate">{formatDateAr(appt.appointment_date, 'd MMM yyyy')}</td>
                       <td className="px-4 py-3.5 align-middle text-sm text-slate-600 font-mono text-right" dir="ltr">{formatTime12(appt.appointment_time?.slice(0, 5))}</td>
                       <td className="px-4 py-3.5 align-middle"><StatusBadge status={appt.status} /></td>
+                      <td className="px-4 py-3.5 align-middle text-sm text-slate-600 text-center">{visitCountByPhone[appt.client_phone] || 1}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -198,6 +221,8 @@ export default function Reports() {
                     <span className="text-slate-700 text-right">{formatDateAr(appt.appointment_date, 'd MMM yyyy')}</span>
                     <span className="text-slate-400">الوقت</span>
                     <span className="text-slate-700 text-right font-mono" dir="ltr">{formatTime12(appt.appointment_time?.slice(0, 5))}</span>
+                    <span className="text-slate-400">إجمالي الزيارات</span>
+                    <span className="text-slate-700 text-right">{visitCountByPhone[appt.client_phone] || 1}</span>
                   </div>
                   <p className="text-xs text-slate-400 font-mono text-right" dir="ltr">{appt.client_phone}</p>
                 </div>

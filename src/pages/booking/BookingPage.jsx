@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQueryClient } from '@tanstack/react-query'
+import toast from 'react-hot-toast'
 import { format, addDays } from 'date-fns'
 import { ar } from 'date-fns/locale'
 import {
@@ -123,6 +124,9 @@ export default function BookingPage() {
   const [waitlistMode, setWaitlistMode] = useState(false)
   const [waitlistSubmitted, setWaitlistSubmitted] = useState(false)
   const [limitError, setLimitError] = useState('')
+  const [justBookedSlots, setJustBookedSlots] = useState(new Set())
+  const selectedDateRef = useRef(selectedDate)
+  const justBookedTimers = useRef({})
 
   const { data: business, isLoading: bizLoading } = usePublicBusiness(businessSlug)
   const { data: branches = [] } = usePublicBranches(business?.id)
@@ -141,6 +145,14 @@ export default function BookingPage() {
     return () => document.documentElement.style.removeProperty('--brand-color')
   }, [brandColor])
 
+  // Slots that were already booked when the page first loaded never enter
+  // justBookedSlots — only a Realtime INSERT received after mount adds a key,
+  // so the "تم حجزه للتو" treatment never applies to pre-existing bookings.
+  useEffect(() => {
+    selectedDateRef.current = selectedDate
+    setJustBookedSlots(new Set())
+  }, [selectedDate])
+
   // Live updates: if someone else books a slot while this page is open,
   // reflect it immediately without requiring a refresh.
   useEffect(() => {
@@ -150,10 +162,33 @@ export default function BookingPage() {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'appointments', filter: `business_id=eq.${business.id}` },
-        () => qc.invalidateQueries({ queryKey: ['booked-slots', business.id] })
+        (payload) => {
+          if (
+            payload.eventType === 'INSERT' &&
+            payload.new?.status === 'confirmed' &&
+            payload.new?.appointment_date === selectedDateRef.current
+          ) {
+            const key = payload.new.appointment_time?.slice(0, 5)
+            if (key) {
+              setJustBookedSlots(prev => new Set(prev).add(key))
+              clearTimeout(justBookedTimers.current[key])
+              justBookedTimers.current[key] = setTimeout(() => {
+                setJustBookedSlots(prev => {
+                  const next = new Set(prev)
+                  next.delete(key)
+                  return next
+                })
+              }, 4500)
+            }
+          }
+          qc.invalidateQueries({ queryKey: ['booked-slots', business.id] })
+        }
       )
       .subscribe()
-    return () => { supabase.removeChannel(channel) }
+    return () => {
+      supabase.removeChannel(channel)
+      Object.values(justBookedTimers.current).forEach(clearTimeout)
+    }
   }, [business?.id, qc])
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
@@ -218,9 +253,9 @@ export default function BookingPage() {
         setSelectedTime(null)
         qc.invalidateQueries({ queryKey: ['booked-slots', business.id] })
         setStep(STEP_DATETIME)
-        alert('عذراً، تم حجز هذا الموعد للتو من شخص آخر. اختر وقتاً آخر')
+        toast.error('عذراً، تم حجز هذا الموعد للتو من شخص آخر. اختر وقتاً آخر')
       } else {
-        alert('حدث خطأ أثناء الحجز: ' + e.message)
+        toast.error('حدث خطأ أثناء الحجز: ' + e.message)
       }
     }
   }
@@ -366,19 +401,19 @@ export default function BookingPage() {
 
         {/* Floating info card */}
         <div className="absolute -bottom-12 inset-x-0 px-4">
-          <div className="max-w-sm mx-auto bg-white/95 backdrop-blur-sm rounded-3xl shadow-xl border border-white p-4 flex items-center gap-3.5">
+          <div className="max-w-sm mx-auto bg-white/95 backdrop-blur-sm rounded-3xl shadow-xl border border-white p-4 flex items-start gap-3.5">
             <div className="w-16 h-16 rounded-2xl border-2 border-white shadow-md overflow-hidden flex items-center justify-center flex-shrink-0"
               style={{ backgroundColor: brandColor }}>
               {business.logo_url
                 ? <img src={business.logo_url} alt={business.name} className="w-full h-full object-cover" />
                 : <span className="text-white text-2xl font-bold leading-none">{business.name.charAt(0)}</span>}
             </div>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-lg font-bold text-gray-900 truncate">{business.name}</h1>
+            <div className="flex-1 min-w-0 pt-1">
+              <h1 className="text-lg font-bold text-gray-900 leading-snug line-clamp-2">{business.name}</h1>
               {business.specialty && <p className="text-sm text-gray-500 truncate">{business.specialty}</p>}
             </div>
             {business.years_experience > 0 && (
-              <span className="hidden sm:inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full font-bold flex-shrink-0"
+              <span className="hidden sm:inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full font-bold flex-shrink-0 mt-1"
                 style={{ backgroundColor: `${brandColor}15`, color: brandColor }}>
                 <HiOutlineStar className="w-3 h-3" /> {business.years_experience} سنة
               </span>
@@ -388,7 +423,7 @@ export default function BookingPage() {
       </div>
 
       {/* Business info */}
-      <div className="max-w-sm mx-auto px-4 pt-16 pb-2 text-center">
+      <div className="max-w-sm mx-auto px-4 pt-20 pb-2 text-center">
         {business.bio && (
           <p className="text-sm text-gray-500 mt-1 leading-relaxed">{business.bio}</p>
         )}
@@ -457,10 +492,6 @@ export default function BookingPage() {
                     {services.map(svc => (
                       <button key={svc.id} onClick={() => { setSelectedService(svc); setStep(STEP_DATETIME) }}
                         className="w-full text-right p-3.5 rounded-2xl border-2 border-gray-100 hover:border-[var(--brand-color)] hover:shadow-md transition-all active:scale-[0.98] flex items-center gap-3">
-                        <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
-                          style={{ backgroundColor: `${brandColor}15`, color: brandColor }}>
-                          <HiOutlineWrenchScrewdriver className="w-5 h-5" />
-                        </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-bold text-gray-900 truncate">{svc.name}</p>
                           <p className="text-xs text-gray-400 mt-0.5">{svc.duration_minutes} دقيقة</p>
@@ -532,26 +563,31 @@ export default function BookingPage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-3 gap-2">
-                  {slots.map(slot => (
-                    <button key={slot.time} type="button" disabled={!slot.isAvailable}
-                      onClick={() => { if (slot.isAvailable) { setSelectedTime(slot.time); setStep(STEP_CLIENT) } }}
-                      className={
-                        slot.isAvailable
-                          ? `py-3 px-2 rounded-xl border-2 transition-all text-sm font-medium active:scale-95 min-h-[48px] ${
-                              slot.time === selectedTime ? 'text-white shadow-sm' : 'border-gray-200 text-gray-700 hover:bg-[var(--brand-color)] hover:border-[var(--brand-color)] hover:text-white'
-                            }`
-                          : 'py-3 px-2 rounded-xl border-2 border-slate-200 bg-slate-100 text-slate-400 text-sm font-medium min-h-[48px] cursor-not-allowed flex flex-col items-center justify-center gap-0.5'
-                      }
-                      dir="ltr"
-                      style={slot.isAvailable && slot.time === selectedTime ? { backgroundColor: brandColor, borderColor: brandColor } : undefined}>
-                      {slot.isAvailable ? formatTime12(slot.time) : (
-                        <>
-                          <HiOutlineLockClosed className="w-3.5 h-3.5" />
-                          <span className="text-[10px]">محجوز</span>
-                        </>
-                      )}
-                    </button>
-                  ))}
+                  {slots.map(slot => {
+                    const isJustBooked = !slot.isAvailable && justBookedSlots.has(slot.time)
+                    return (
+                      <button key={slot.time} type="button" disabled={!slot.isAvailable}
+                        onClick={() => { if (slot.isAvailable) { setSelectedTime(slot.time); setStep(STEP_CLIENT) } }}
+                        className={
+                          slot.isAvailable
+                            ? `py-3 px-2 rounded-xl border-2 transition-all text-sm font-medium active:scale-95 min-h-[48px] ${
+                                slot.time === selectedTime ? 'text-white shadow-sm' : 'border-gray-200 text-gray-700 hover:bg-[var(--brand-color)] hover:border-[var(--brand-color)] hover:text-white'
+                              }`
+                            : `py-3 px-2 rounded-xl border-2 text-sm font-medium min-h-[48px] cursor-not-allowed flex flex-col items-center justify-center gap-0.5 transition-colors duration-700 ${
+                                isJustBooked ? 'border-amber-300 bg-amber-50 text-amber-600 animate-pulse' : 'border-slate-200 bg-slate-100 text-slate-400'
+                              }`
+                        }
+                        dir="ltr"
+                        style={slot.isAvailable && slot.time === selectedTime ? { backgroundColor: brandColor, borderColor: brandColor } : undefined}>
+                        {slot.isAvailable ? formatTime12(slot.time) : (
+                          <>
+                            <HiOutlineLockClosed className="w-3.5 h-3.5" />
+                            <span className="text-[10px]">{isJustBooked ? 'تم حجزه للتو' : 'محجوز'}</span>
+                          </>
+                        )}
+                      </button>
+                    )
+                  })}
                 </div>
               )}
             </div>

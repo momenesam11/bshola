@@ -54,7 +54,7 @@ function ReminderCard({ appt, business, onSent }) {
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <p className="font-bold text-[15px] sm:text-sm sm:font-semibold text-slate-900 truncate">{appt.client_name}</p>
+        <p className="font-bold text-[15px] sm:text-sm sm:font-semibold text-slate-900 break-words">{appt.client_name}</p>
         <div className="flex items-center flex-wrap gap-2 mt-1 sm:mt-0.5">
           {appt.services?.name && (
             <span className="text-sm sm:text-xs text-slate-500 truncate">{appt.services.name}</span>

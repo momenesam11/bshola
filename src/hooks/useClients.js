@@ -88,7 +88,10 @@ export function useClientProfile(phone, businessId) {
       if (error) throw error
 
       const totalVisits = appts.length
-      const totalSpent = appts.reduce((s, a) => s + (a.services?.price || 0), 0)
+      const billable = appts.filter(a => a.status !== 'cancelled')
+      const totalSpent = billable.reduce((s, a) => s + (a.price ?? a.services?.price ?? 0), 0)
+      const totalPaid = billable.reduce((s, a) => s + (a.amount_paid || (a.payment_status === 'paid' ? (a.price ?? a.services?.price ?? 0) : 0)), 0)
+      const totalOwed = Math.max(0, totalSpent - totalPaid)
       const attended = appts.filter(a => a.status === 'completed').length
       const attendanceRate = totalVisits > 0 ? Math.round((attended / totalVisits) * 100) : 0
       const lastVisit = appts[0]?.appointment_date || null
@@ -106,7 +109,7 @@ export function useClientProfile(phone, businessId) {
         phone,
         notes: clientRow?.notes || '',
         appointments: appts,
-        stats: { totalVisits, totalSpent, attendanceRate, lastVisit },
+        stats: { totalVisits, totalSpent, totalPaid, totalOwed, attendanceRate, lastVisit },
         status: classifyStatus(lastVisit),
       }
     },

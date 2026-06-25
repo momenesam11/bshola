@@ -15,6 +15,7 @@ import { useBusiness } from '../../hooks/useBusiness'
 import { MEDICAL_TYPES } from '../../utils/constants'
 import PageWrapper from '../../components/layout/PageWrapper'
 import Button from '../../components/ui/Button'
+import ConfirmDialog from '../../components/ui/ConfirmDialog'
 import ScheduleBlockEditor from '../../components/ui/ScheduleBlockEditor'
 
 function useBranches(businessId) {
@@ -171,6 +172,7 @@ export default function BranchSettings() {
   const { data: branches = [], isLoading } = useBranches(business?.id)
   const [editingBranch, setEditingBranch] = useState(null)
   const [addingNew, setAddingNew] = useState(false)
+  const [pendingDelete, setPendingDelete] = useState(null)
   const isClinic = MEDICAL_TYPES.includes(business?.type)
 
   const upsert = useMutation({
@@ -205,8 +207,13 @@ export default function BranchSettings() {
   })
 
   function handleDelete(branch) {
-    if (!window.confirm(`هل تريد حذف "${branch.name}"؟`)) return
-    remove.mutate(branch.id)
+    setPendingDelete(branch)
+  }
+
+  function confirmDelete() {
+    if (!pendingDelete) return
+    remove.mutate(pendingDelete.id)
+    setPendingDelete(null)
   }
 
   return (
@@ -274,6 +281,17 @@ export default function BranchSettings() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={!!pendingDelete}
+        onClose={() => setPendingDelete(null)}
+        onConfirm={confirmDelete}
+        variant="danger"
+        loading={remove.isPending}
+        title="حذف الفرع"
+        message={pendingDelete ? `هل تريد حذف "${pendingDelete.name}"؟` : ''}
+        confirmLabel="حذف"
+      />
     </PageWrapper>
   )
 }

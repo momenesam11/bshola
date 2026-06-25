@@ -82,14 +82,25 @@ export function getBusinessStatus(business) {
 }
 
 export function getAdminStats(businesses) {
-  const stats = { total: businesses.length, activeTrials: 0, expiredTrials: 0, paid: 0, suspended: 0 }
+  const stats = { total: businesses.length, activeTrials: 0, expiredTrials: 0, paid: 0, suspended: 0, signupsThisWeek: 0, expiringSoon: [] }
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
   for (const b of businesses) {
     const status = getBusinessStatus(b)
     if (status === 'trial') stats.activeTrials++
     else if (status === 'expired') stats.expiredTrials++
     else if (status === 'paid') stats.paid++
     else if (status === 'suspended') stats.suspended++
+
+    if (b.created_at && new Date(b.created_at) >= weekAgo) stats.signupsThisWeek++
+
+    if (status === 'trial' && b.trial_ends_at) {
+      const daysLeft = Math.ceil((new Date(b.trial_ends_at) - new Date()) / (1000 * 60 * 60 * 24))
+      if (daysLeft <= 3) stats.expiringSoon.push({ ...b, daysLeft })
+    }
   }
+  const decided = stats.paid + stats.expiredTrials
+  stats.conversionRate = decided > 0 ? Math.round((stats.paid / decided) * 100) : 0
+  stats.expiringSoon.sort((a, b) => a.daysLeft - b.daysLeft)
   return stats
 }
 

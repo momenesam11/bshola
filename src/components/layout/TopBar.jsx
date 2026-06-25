@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
+import { formatDistanceToNow } from 'date-fns'
+import { ar } from 'date-fns/locale'
 import {
   HiOutlineBuildingOffice2,
   HiOutlineSquares2X2,
@@ -6,21 +8,32 @@ import {
   HiOutlineCheck,
   HiOutlineClock,
   HiOutlineEnvelope,
-  HiOutlineLink,
   HiOutlineBars3,
+  HiOutlineBell,
+  HiOutlineCalendarDays,
+  HiOutlineXCircle,
 } from 'react-icons/hi2'
 import { FaWhatsapp } from 'react-icons/fa'
 import { useBusiness } from '../../hooks/useBusiness'
 import { useBranch, ALL_BRANCHES } from '../../context/BranchContext'
 import { getBranchColor } from '../../utils/constants'
-import BookingLinkActions from '../booking/BookingLinkActions'
+import { useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead } from '../../hooks/useNotifications'
+import NotificationDetailModal from './NotificationDetailModal'
 
-const SUPPORT_WHATSAPP = '201021179969'
-const SUPPORT_EMAIL = 'moment.esam15@gmail.com'
+const NOTIFICATION_ICONS = {
+  new_booking: { Icon: HiOutlineCalendarDays, color: 'text-accent-600 bg-accent-50' },
+  cancellation: { Icon: HiOutlineXCircle, color: 'text-red-500 bg-red-50' },
+  waitlist_joined: { Icon: HiOutlineClock, color: 'text-amber-500 bg-amber-50' },
+}
 
-function BookingLinkWidget({ business }) {
+function NotificationBell({ business }) {
   const [open, setOpen] = useState(false)
+  const [detailNotification, setDetailNotification] = useState(null)
   const ref = useRef(null)
+  const { data: notifications = [] } = useNotifications(business.id)
+  const markRead = useMarkNotificationRead()
+  const markAllRead = useMarkAllNotificationsRead()
+  const unreadCount = notifications.filter(n => !n.is_read).length
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -30,33 +43,83 @@ function BookingLinkWidget({ business }) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const bookingUrl = `${window.location.origin}/book/${business.booking_slug || business.id}`
+  function handleNotificationClick(n) {
+    if (!n.is_read) markRead.mutate(n.id)
+    setOpen(false)
+    if (n.related_appointment_id) setDetailNotification(n)
+  }
 
   return (
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(o => !o)}
-        className="flex items-center justify-center gap-1.5 w-9 h-9 md:w-auto md:h-auto md:px-3 md:py-1.5 rounded-xl md:bg-slate-50 md:border md:border-slate-200 text-sm text-slate-700 hover:bg-slate-100 transition-colors min-h-[36px]"
+        className="relative flex items-center justify-center w-9 h-9 rounded-xl text-slate-500 hover:bg-slate-100 transition-colors min-h-[36px]"
+        aria-label="الإشعارات"
       >
-        <HiOutlineLink className="w-[18px] h-[18px] md:w-4 md:h-4 text-slate-500 flex-shrink-0" />
-        <span className="hidden sm:block">رابط حجزك</span>
+        <HiOutlineBell className="w-[18px] h-[18px]" />
+        {unreadCount > 0 && (
+          <span className="absolute top-1 left-1 min-w-[16px] h-4 px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </span>
+        )}
       </button>
 
       {open && (
-        <div className="absolute top-full mt-1 left-0 bg-white border border-slate-100 rounded-xl shadow-lg p-4 z-50 min-w-[280px] space-y-3" dir="rtl">
-          <p className="text-xs font-medium text-slate-500 leading-snug">رابط صفحة الحجز الخاصة بيك</p>
-          <div className="bg-slate-50 rounded-xl px-3 py-2.5 border border-slate-200">
-            <span className="block text-xs text-accent-700 font-mono truncate" dir="ltr">{bookingUrl}</span>
+        <div className="absolute top-full mt-1 left-0 bg-white border border-slate-100 rounded-xl shadow-lg z-50 min-w-[320px] max-w-[90vw]" dir="rtl">
+          <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-100">
+            <span className="text-sm font-semibold text-slate-900">الإشعارات</span>
+            {unreadCount > 0 && (
+              <button
+                onClick={() => markAllRead.mutate(business.id)}
+                className="text-xs text-accent-600 hover:underline"
+              >
+                تحديد الكل كمقروء
+              </button>
+            )}
           </div>
-          <BookingLinkActions
-            url={bookingUrl}
-            shareMessage={`احجز موعدك مع ${business.name} بسهولة من الرابط ده 👇\n${bookingUrl}`}
-          />
+          <div className="max-h-80 overflow-y-auto">
+            {notifications.length === 0 ? (
+              <p className="text-sm text-slate-400 text-center py-8">لا توجد إشعارات</p>
+            ) : (
+              notifications.map(n => {
+                const cfg = NOTIFICATION_ICONS[n.type] || NOTIFICATION_ICONS.new_booking
+                return (
+                  <button
+                    key={n.id}
+                    onClick={() => handleNotificationClick(n)}
+                    className={`w-full flex items-start gap-2.5 px-4 py-3 text-right hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0 ${!n.is_read ? 'bg-accent-50/40' : ''}`}
+                  >
+                    <span className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${cfg.color}`}>
+                      <cfg.Icon className="w-4 h-4" />
+                    </span>
+                    <span className="flex-1 min-w-0">
+                      <span className={`block text-sm truncate ${!n.is_read ? 'font-bold text-slate-900' : 'font-medium text-slate-700'}`}>{n.title}</span>
+                      {n.body && <span className="block text-xs text-slate-500 truncate mt-0.5">{n.body}</span>}
+                      <span className="block text-[11px] text-slate-400 mt-1">
+                        {formatDistanceToNow(new Date(n.created_at), { addSuffix: true, locale: ar })}
+                      </span>
+                    </span>
+                    {!n.is_read && <span className="w-1.5 h-1.5 rounded-full bg-accent-500 flex-shrink-0 mt-1.5" />}
+                  </button>
+                )
+              })
+            )}
+          </div>
         </div>
       )}
+
+      <NotificationDetailModal
+        open={!!detailNotification}
+        onClose={() => setDetailNotification(null)}
+        notification={detailNotification}
+        business={business}
+      />
     </div>
   )
 }
+
+const SUPPORT_WHATSAPP = '201021179969'
+const SUPPORT_EMAIL = 'moment.esam15@gmail.com'
 
 function TrialWidget({ business }) {
   const [open, setOpen] = useState(false)
@@ -138,13 +201,16 @@ export default function TopBar({ title, onMenuClick }) {
       <div className="md:hidden h-14 flex items-center justify-between gap-2">
         <img src="/logo.png" alt="بسهولة" className="w-[65px] rounded-xl object-contain flex-shrink-0" />
         <h1 className="flex-1 text-center text-base font-bold text-gray-900 truncate px-1">{title}</h1>
-        <button
-          onClick={onMenuClick}
-          className="w-9 h-9 flex-shrink-0 rounded-xl flex items-center justify-center text-slate-600 hover:bg-slate-50 active:bg-slate-100 transition-colors"
-          aria-label="القائمة"
-        >
-          <HiOutlineBars3 className="w-6 h-6" />
-        </button>
+        <div className="flex items-center gap-0.5 flex-shrink-0">
+          {business && <NotificationBell business={business} />}
+          <button
+            onClick={onMenuClick}
+            className="w-9 h-9 flex-shrink-0 rounded-xl flex items-center justify-center text-slate-600 hover:bg-slate-50 active:bg-slate-100 transition-colors"
+            aria-label="القائمة"
+          >
+            <HiOutlineBars3 className="w-6 h-6" />
+          </button>
+        </div>
       </div>
 
       {/* Desktop/tablet: original layout, unchanged */}
@@ -152,8 +218,8 @@ export default function TopBar({ title, onMenuClick }) {
       <h1 className="text-base font-semibold text-gray-900 flex-1">{title}</h1>
 
       <div className="flex items-center gap-0.5 md:gap-2">
+        {business && <NotificationBell business={business} />}
         {business && <TrialWidget business={business} />}
-        {business && <BookingLinkWidget business={business} />}
         {/* Branch switcher — only if multi-branch */}
         {isMultiBranch && currentBranch && (
           <div className="relative" ref={dropRef}>

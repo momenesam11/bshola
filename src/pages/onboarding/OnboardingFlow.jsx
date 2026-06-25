@@ -24,6 +24,7 @@ import {
 import { FaInstagram, FaFacebook } from 'react-icons/fa'
 import { z } from 'zod'
 import confetti from 'canvas-confetti'
+import toast from 'react-hot-toast'
 import { supabase } from '../../lib/supabase'
 import { phoneSchema } from '../../lib/validators'
 import { DEFAULT_REMINDER_TEMPLATE, MEDICAL_TYPES } from '../../utils/constants'
@@ -41,6 +42,7 @@ const TYPE_CONFIG = {
     businessNameLabel: 'اسم العيادة',
     businessNamePlaceholder: 'مثال: عيادة د. أحمد للأسنان',
     phoneLabel: 'رقم استقبال العيادة',
+    publicPhoneLabel: 'رقم التواصل مع العيادة (يظهر للعملاء)',
     branchName: 'العيادة الرئيسية',
     specialtyPlaceholder: 'مثال: أسنان، جلدية، عيون...',
     bioPlaceholder: 'نبذة عن عيادتك وخبرتك وما يميزك...',
@@ -49,6 +51,7 @@ const TYPE_CONFIG = {
     businessNameLabel: 'اسم الصالون',
     businessNamePlaceholder: 'مثال: صالون نور',
     phoneLabel: 'رقم الصالون',
+    publicPhoneLabel: 'رقم التواصل مع الصالون (يظهر للعملاء)',
     branchName: 'الصالون الرئيسي',
     specialtyPlaceholder: 'مثال: حلاقة رجالية، تجميل نسائي...',
     bioPlaceholder: 'نبذة عن صالونك وما يميزه عن غيره...',
@@ -57,6 +60,7 @@ const TYPE_CONFIG = {
     businessNameLabel: 'اسم الجيم أو المركز',
     businessNamePlaceholder: 'مثال: Power Gym',
     phoneLabel: 'رقم المركز',
+    publicPhoneLabel: 'رقم التواصل مع المركز (يظهر للعملاء)',
     branchName: 'الفرع الرئيسي',
     specialtyPlaceholder: 'مثال: كروسفيت، يوجا، تدريب شخصي...',
     bioPlaceholder: 'نبذة عن مركزك وما يقدمه من خدمات...',
@@ -65,6 +69,7 @@ const TYPE_CONFIG = {
     businessNameLabel: 'اسم المركز أو المدرس',
     businessNamePlaceholder: 'مثال: مركز أ. محمد للرياضيات',
     phoneLabel: 'رقم التواصل',
+    publicPhoneLabel: 'رقم التواصل (يظهر للطلاب)',
     branchName: 'المركز الرئيسي',
     specialtyPlaceholder: 'مثال: رياضيات، إنجليزي، فيزياء...',
     bioPlaceholder: 'نبذة عن خبرتك وأسلوبك في التدريس...',
@@ -73,6 +78,7 @@ const TYPE_CONFIG = {
     businessNameLabel: 'اسم المكان أو الملعب',
     businessNamePlaceholder: 'مثال: ملعب النجوم',
     phoneLabel: 'رقم الاستقبال',
+    publicPhoneLabel: 'رقم التواصل مع المنشأة (يظهر للعملاء)',
     branchName: 'الموقع الرئيسي',
     specialtyPlaceholder: 'مثال: كرة قدم، تنس، كرة سلة...',
     bioPlaceholder: 'نبذة عن مرفقك وما يقدمه...',
@@ -81,6 +87,7 @@ const TYPE_CONFIG = {
     businessNameLabel: 'اسم النشاط التجاري',
     businessNamePlaceholder: 'مثال: خدمات أ. علي',
     phoneLabel: 'رقم التواصل',
+    publicPhoneLabel: 'رقم التواصل (يظهر للعملاء)',
     branchName: 'الفرع الرئيسي',
     specialtyPlaceholder: 'مجال عملك...',
     bioPlaceholder: 'نبذة عن نشاطك وما تقدمه من خدمات...',
@@ -220,7 +227,7 @@ function StepBusinessInfo({ onNext, onBack, vertical, requireOwnerPhone }) {
         />
       )}
       <Input
-        label="رقم التواصل مع العيادة (يظهر للعملاء)"
+        label={cfg.publicPhoneLabel}
         type="tel"
         placeholder="01XXXXXXXXX"
         dir="ltr"
@@ -518,7 +525,7 @@ function ImageUploadBanner({ preview, onChange, label }) {
   )
 }
 
-function StepIdentity({ onNext, onBack, businessName, vertical }) {
+function StepIdentity({ onNext, onBack, businessName, vertical, loading }) {
   const cfg = TYPE_CONFIG[vertical?.key] || TYPE_CONFIG.other
   const [logoFile, setLogoFile] = useState(null)
   const [logoPreview, setLogoPreview] = useState(null)
@@ -703,6 +710,7 @@ function StepIdentity({ onNext, onBack, businessName, vertical }) {
         <Button variant="secondary" onClick={onBack} className="flex-1">السابق</Button>
         <Button
           disabled={slugStatus === 'taken' || slugStatus === 'checking'}
+          loading={loading}
           onClick={() => onNext({ logoFile, coverFile, brandColor, booking_slug: slug || null, bio, years_experience: Number(years) || null, specialty, instagram_url: instagram || null, facebook_url: facebook || null, google_reviews_url: googleReviews || null, welcome_message: welcomeMsg, cancellation_policy: cancelPolicy })}
           className="flex-1"
         >
@@ -860,9 +868,9 @@ export default function OnboardingFlow() {
     } catch (e) {
       const msg = e.message || ''
       if (msg.includes('booking_slug')) {
-        alert('هذا الرابط مأخوذ من حساب آخر، اختر رابطاً مختلفاً')
+        toast.error('هذا الرابط مأخوذ من حساب آخر، اختر رابطاً مختلفاً')
       } else {
-        alert('حدث خطأ أثناء الحفظ: ' + msg)
+        toast.error('حدث خطأ أثناء الحفظ: ' + msg)
       }
     } finally {
       setLoading(false)
@@ -907,7 +915,7 @@ export default function OnboardingFlow() {
             {step === 2 && <StepBranches onNext={handleStep2} onBack={() => setStep(1)} vertical={data.vertical} />}
             {step === 3 && <StepWorkingHours onNext={handleStep3} onBack={() => setStep(2)} />}
             {step === 4 && <StepServices onNext={handleStep4} onBack={() => setStep(3)} businessVertical={data.vertical} />}
-            {step === 5 && <StepIdentity onNext={handleStep5} onBack={() => setStep(4)} businessName={data.name} vertical={data.vertical} />}
+            {step === 5 && <StepIdentity onNext={handleStep5} onBack={() => setStep(4)} businessName={data.name} vertical={data.vertical} loading={loading} />}
           </div>
         </div>
       </div>

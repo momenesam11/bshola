@@ -20,6 +20,7 @@ import {
   hasAdminToken,
 } from '../../hooks/useAdmin'
 import ActivateModal from '../../components/admin/ActivateModal'
+import ConfirmDialog from '../../components/ui/ConfirmDialog'
 
 const STATUS_CONFIG = {
   trial: { label: 'تجربة نشطة 🟢', color: 'text-accent-600 bg-accent-50' },
@@ -129,6 +130,7 @@ function Dashboard() {
   const [query, setQuery] = useState('')
   const [tab, setTab] = useState('all')
   const [activateTarget, setActivateTarget] = useState(null)
+  const [deactivateTarget, setDeactivateTarget] = useState(null)
 
   const stats = useMemo(() => getAdminStats(businesses), [businesses])
 
@@ -146,8 +148,14 @@ function Dashboard() {
     suspended: stats.suspended,
   }), [businesses, stats])
 
-  async function handleDeactivate(business) {
-    if (!window.confirm(`هل أنت متأكد من إيقاف ${business.name}؟`)) return
+  function handleDeactivate(business) {
+    setDeactivateTarget(business)
+  }
+
+  async function confirmDeactivate() {
+    const business = deactivateTarget
+    setDeactivateTarget(null)
+    if (!business) return
     try {
       await deactivate.mutateAsync(business.id)
       toast.success(`تم إيقاف ${business.name}`)
@@ -176,12 +184,43 @@ function Dashboard() {
           </button>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           <StatCard label="إجمالي الحسابات" value={stats.total} />
           <StatCard label="تجارب نشطة" value={stats.activeTrials} />
           <StatCard label="منتهية التجربة" value={stats.expiredTrials} />
           <StatCard label="مشتركين" value={stats.paid} />
+          <StatCard label="تسجيلات هذا الأسبوع" value={stats.signupsThisWeek} />
+          <StatCard label="معدل التحويل لمدفوع" value={`${stats.conversionRate}%`} />
         </div>
+
+        {stats.expiringSoon.length > 0 && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-2.5">
+            <h2 className="text-sm font-bold text-amber-800 flex items-center gap-1.5">
+              ⏰ تجارب قاربت على الانتهاء ({stats.expiringSoon.length})
+            </h2>
+            <div className="space-y-1.5">
+              {stats.expiringSoon.map(b => (
+                <div key={b.id} className="flex items-center justify-between gap-3 bg-white rounded-lg px-3 py-2 border border-amber-100">
+                  <div className="min-w-0">
+                    <span className="font-medium text-gray-900 text-sm">{b.name}</span>
+                    <span className={`text-xs mr-2 ${b.daysLeft <= 0 ? 'text-red-500' : 'text-amber-600'}`}>
+                      {b.daysLeft <= 0 ? 'انتهت اليوم' : `باقي ${b.daysLeft} يوم`}
+                    </span>
+                  </div>
+                  <a
+                    href={whatsappLink(b)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 bg-green-50 text-green-700 hover:bg-green-100 rounded-lg text-xs font-medium transition-colors"
+                  >
+                    <FaWhatsapp className="w-3.5 h-3.5" />
+                    تواصل
+                  </a>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="relative">
           <HiOutlineMagnifyingGlass className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -287,6 +326,17 @@ function Dashboard() {
       </div>
 
       <ActivateModal open={!!activateTarget} onClose={() => setActivateTarget(null)} business={activateTarget} />
+
+      <ConfirmDialog
+        open={!!deactivateTarget}
+        onClose={() => setDeactivateTarget(null)}
+        onConfirm={confirmDeactivate}
+        variant="danger"
+        loading={deactivate.isPending}
+        title="إيقاف النشاط"
+        message={deactivateTarget ? `هل أنت متأكد من إيقاف ${deactivateTarget.name}؟` : ''}
+        confirmLabel="إيقاف"
+      />
     </div>
   )
 }

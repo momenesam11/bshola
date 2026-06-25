@@ -105,7 +105,7 @@ export default function AppointmentList() {
 
         {/* Status tabs + advanced filters toggle */}
         <div className="flex items-center gap-2">
-          <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 flex-1 scrollbar-none">
+          <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 flex-1 min-w-0 scrollbar-none">
             {STATUSES.map(s => (
               <button
                 key={s.value}
