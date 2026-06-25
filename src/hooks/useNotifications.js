@@ -2,6 +2,31 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useId } from 'react'
 import { supabase } from '../lib/supabase'
 
+// NotificationBell mounts twice at once (desktop + mobile TopBar), so both
+// instances receive the same INSERT event — dedupe by id so the sound only
+// plays once per actual notification.
+let lastPlayedNotificationId = null
+function playNotificationSound(id) {
+  if (!id || id === lastPlayedNotificationId) return
+  lastPlayedNotificationId = id
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)()
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.type = 'sine'
+    osc.frequency.setValueAtTime(880, ctx.currentTime)
+    osc.frequency.setValueAtTime(1320, ctx.currentTime + 0.1)
+    gain.gain.setValueAtTime(0.2, ctx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3)
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+    osc.start()
+    osc.stop(ctx.currentTime + 0.3)
+  } catch {
+    // Audio API unavailable or blocked — ignore, sound is non-critical.
+  }
+}
+
 export function useNotifications(businessId) {
   const qc = useQueryClient()
   // NotificationBell is mounted twice at once (desktop + mobile TopBar,
@@ -32,7 +57,10 @@ export function useNotifications(businessId) {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'notifications', filter: `business_id=eq.${businessId}` },
-        () => qc.invalidateQueries({ queryKey: ['notifications', businessId] })
+        (payload) => {
+          qc.invalidateQueries({ queryKey: ['notifications', businessId] })
+          playNotificationSound(payload.new?.id)
+        }
       )
       .subscribe()
     return () => { supabase.removeChannel(channel) }

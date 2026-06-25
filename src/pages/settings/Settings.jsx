@@ -110,6 +110,7 @@ function SaveFeedback({ status, msg }) {
 
 // ── Security Section — change password via Supabase Auth ───────────
 function SecuritySection() {
+  const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [status, setStatus] = useState('')
@@ -117,6 +118,10 @@ function SecuritySection() {
 
   async function handleChangePassword() {
     setError('')
+    if (!currentPassword) {
+      setError('من فضلك ادخل كلمة المرور الحالية')
+      return
+    }
     if (newPassword.length < 8) {
       setError('كلمة المرور يجب أن تكون 8 أحرف على الأقل')
       return
@@ -126,6 +131,16 @@ function SecuritySection() {
       return
     }
     setStatus('loading')
+    const { data: { user } } = await supabase.auth.getUser()
+    const { error: verifyError } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: currentPassword,
+    })
+    if (verifyError) {
+      setStatus('error')
+      setError('كلمة المرور الحالية غير صحيحة')
+      return
+    }
     const { error: updateError } = await supabase.auth.updateUser({ password: newPassword })
     if (updateError) {
       setStatus('error')
@@ -133,6 +148,7 @@ function SecuritySection() {
       return
     }
     setStatus('ok')
+    setCurrentPassword('')
     setNewPassword('')
     setConfirmPassword('')
     setTimeout(() => setStatus(''), 2500)
@@ -140,6 +156,8 @@ function SecuritySection() {
 
   return (
     <div className="space-y-3 max-w-sm">
+      <Input label="كلمة المرور الحالية" type="password" placeholder="••••••••" dir="ltr"
+        value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} />
       <Input label="كلمة المرور الجديدة" type="password" placeholder="••••••••" dir="ltr"
         value={newPassword} onChange={e => setNewPassword(e.target.value)} />
       <Input label="تأكيد كلمة المرور الجديدة" type="password" placeholder="••••••••" dir="ltr"
@@ -214,13 +232,17 @@ function WorkingHoursSection({ business }) {
 
   return (
     <div className="space-y-4">
-      {isMultiBranch && (
-        <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100 text-sm">
-          <span className="text-slate-500">بتعدل ساعات فرع:</span>
-          <span className="font-semibold text-slate-700">{currentBranch.name}</span>
-          <Link to="/settings/branches" className="text-accent-600 hover:underline text-xs mr-auto">إدارة كل الفروع</Link>
-        </div>
-      )}
+      <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100 text-sm">
+        {isMultiBranch ? (
+          <>
+            <span className="text-slate-500">بتعدل ساعات فرع:</span>
+            <span className="font-semibold text-slate-700">{currentBranch.name}</span>
+          </>
+        ) : (
+          <span className="text-slate-500">عدد الكراسي وبيانات الفرع</span>
+        )}
+        <Link to="/settings/branches" className="text-accent-600 hover:underline text-xs mr-auto">إدارة الفروع</Link>
+      </div>
       <ScheduleBlockEditor value={scheduleBlocks} onChange={setScheduleBlocks} onValidityChange={setIsValid} />
       <Dropdown
         label="مدة الموعد الواحد"
