@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { HelmetProvider } from 'react-helmet-async'
 import { Toaster } from 'react-hot-toast'
+import { Analytics } from '@vercel/analytics/react'
 import { supabase } from './lib/supabase'
 import { BranchProvider } from './context/BranchContext'
 import TrialGuard from './middleware/TrialGuard'
@@ -125,6 +126,7 @@ export default function App() {
           <Route path="/" element={<PublicRoute><LandingPage /></PublicRoute>} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
+        <Analytics />
       </BrowserRouter>
     </HelmetProvider>
   )
