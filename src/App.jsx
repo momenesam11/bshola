@@ -83,6 +83,7 @@ export default function App() {
   return (
     <HelmetProvider>
     <BrowserRouter>
+        <Analytics />
         <Toaster
           position="bottom-left"
           toastOptions={{
