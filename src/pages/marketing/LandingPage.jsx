@@ -21,6 +21,7 @@ import {
   HiStar
 } from 'react-icons/hi2'
 import { FaWhatsapp, FaInstagramSquare, FaTwitter, FaFacebook } from 'react-icons/fa'
+import { SUPPORT_WHATSAPP, SUPPORT_PHONE_DISPLAY, SUPPORT_EMAIL } from '../../lib/support'
 
 // Reusable scroll-triggered animation wrapper
 function FadeIn({ children, delay = 0 }) {
@@ -761,7 +762,7 @@ export default function LandingPage() {
 
           <div className="mt-12 text-center text-sm font-semibold text-slate-500">
             <span>محتاج باقة مخصصة؟ </span>
-            <a href="https://wa.me/201026046187" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline flex inline-flex items-center gap-1 font-bold">
+            <a href={`https://wa.me/${SUPPORT_WHATSAPP}`} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline flex inline-flex items-center gap-1 font-bold">
               تواصل معنا عبر واتساب <FaWhatsapp className="w-4 h-4" />
             </a>
           </div>
@@ -887,14 +888,14 @@ export default function LandingPage() {
               <h4 className="text-white text-sm font-bold uppercase tracking-wider mb-4">تواصل معنا</h4>
               <ul className="space-y-3 text-sm">
                 <li className="flex items-center gap-2 justify-end">
-                  <a href="https://wa.me/201026046187" target="_blank" rel="noopener noreferrer" className="hover:text-white flex items-center gap-1.5 transition-colors">
-                    <span>01026046187</span>
+                  <a href={`https://wa.me/${SUPPORT_WHATSAPP}`} target="_blank" rel="noopener noreferrer" className="hover:text-white flex items-center gap-1.5 transition-colors">
+                    <span>{SUPPORT_PHONE_DISPLAY}</span>
                     <FaWhatsapp className="w-4 h-4 text-emerald-500" />
                   </a>
                 </li>
                 <li className="flex items-center gap-2 justify-end">
-                  <a href="mailto:moment.esam15@gmail.com" className="hover:text-white transition-colors">
-                    moment.esam15@gmail.com
+                  <a href={`mailto:${SUPPORT_EMAIL}`} className="hover:text-white transition-colors">
+                    {SUPPORT_EMAIL}
                   </a>
                 </li>
               </ul>

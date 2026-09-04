@@ -16,6 +16,7 @@ import { supabase } from '../../lib/supabase'
 import { useBusiness } from '../../hooks/useBusiness'
 import { useBranch, ALL_BRANCHES } from '../../context/BranchContext'
 import { getBranchColor } from '../../utils/constants'
+import { SUPPORT_WHATSAPP, SUPPORT_EMAIL } from '../../lib/support'
 import { NAV_ITEMS } from './navItems'
 import BookingLinkActions from '../booking/BookingLinkActions'
 
@@ -71,9 +72,6 @@ function BranchSwitcherSection({ branchCtx }) {
     </div>
   )
 }
-
-const SUPPORT_WHATSAPP = '201021179969'
-const SUPPORT_EMAIL = 'moment.esam15@gmail.com'
 
 function TrialSection({ business }) {
   if (!business.trial_ends_at) return null

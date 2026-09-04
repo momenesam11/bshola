@@ -1,8 +1,7 @@
 import { HiOutlineClock } from 'react-icons/hi2'
 import { FaWhatsapp } from 'react-icons/fa'
 import { supabase } from '../../lib/supabase'
-
-const SUPPORT_WHATSAPP = '201021179969'
+import { SUPPORT_WHATSAPP } from '../../lib/support'
 
 export default function TrialExpiredScreen() {
   async function handleLogout() {

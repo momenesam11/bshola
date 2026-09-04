@@ -17,6 +17,7 @@ import { FaWhatsapp } from 'react-icons/fa'
 import { useBusiness } from '../../hooks/useBusiness'
 import { useBranch, ALL_BRANCHES } from '../../context/BranchContext'
 import { getBranchColor } from '../../utils/constants'
+import { SUPPORT_WHATSAPP, SUPPORT_EMAIL } from '../../lib/support'
 import { useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead } from '../../hooks/useNotifications'
 import NotificationDetailModal from './NotificationDetailModal'
 
@@ -117,9 +118,6 @@ function NotificationBell({ business }) {
     </div>
   )
 }
-
-const SUPPORT_WHATSAPP = '201021179969'
-const SUPPORT_EMAIL = 'moment.esam15@gmail.com'
 
 function TrialWidget({ business }) {
   const [open, setOpen] = useState(false)

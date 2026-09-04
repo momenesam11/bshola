@@ -1,9 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { HiOutlineQuestionMarkCircle, HiOutlineEnvelope, HiOutlineXMark } from 'react-icons/hi2'
 import { FaWhatsapp } from 'react-icons/fa'
-
-const SUPPORT_WHATSAPP = '201021179969'
-const SUPPORT_EMAIL = 'moment.esam15@gmail.com'
+import { SUPPORT_WHATSAPP, SUPPORT_EMAIL } from '../../lib/support'
 
 export default function SupportButton() {
   const [open, setOpen] = useState(false)
