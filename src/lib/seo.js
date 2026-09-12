@@ -125,3 +125,26 @@ export function breadcrumbSchema(items = []) {
     })),
   }
 }
+
+/**
+ * VideoObject for an explainer video on the landing page.
+ *
+ * Only emit this for a video that actually exists and is reachable at
+ * `contentUrl` — structured data describing a missing file is invalid and can
+ * cost the whole page its rich results.
+ */
+export function videoObjectSchema({ name, description, thumbnailUrl, contentUrl, uploadDate, duration }) {
+  if (!contentUrl) return null
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'VideoObject',
+    name,
+    description,
+    thumbnailUrl: absoluteUrl(thumbnailUrl),
+    contentUrl: absoluteUrl(contentUrl),
+    ...(uploadDate ? { uploadDate } : {}),
+    ...(duration ? { duration } : {}),
+    inLanguage: 'ar',
+    publisher: { '@id': `${SITE_URL}/#organization` },
+  }
+}

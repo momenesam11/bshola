@@ -32,7 +32,9 @@ const BranchSettings = lazy(() => import('./pages/settings/BranchSettings'))
 import LandingPage from './pages/marketing/LandingPage'
 import SolutionPage from './pages/marketing/SolutionPage'
 import NotFound from './pages/marketing/NotFound'
+import LegalPage from './pages/marketing/LegalPage'
 import { ALL_MARKETING_PAGES } from './content/marketingPages'
+import { LEGAL_PAGES } from './content/legalPages'
 
 function AuthGuard({ children }) {
   const [session, setSession] = useState(undefined)
@@ -145,6 +147,12 @@ export default function App() {
               readable for crawlers and for already-logged-in visitors. */}
           {ALL_MARKETING_PAGES.map((page) => (
             <Route key={page.slug} path={`/${page.slug}`} element={<SolutionPage slug={page.slug} />} />
+          ))}
+
+          {/* Privacy / terms — linked from every public footer, so they have to
+              be real routes and not the dead text they used to be. */}
+          {LEGAL_PAGES.map((page) => (
+            <Route key={page.slug} path={`/${page.slug}`} element={<LegalPage slug={page.slug} />} />
           ))}
 
           {/* Default */}

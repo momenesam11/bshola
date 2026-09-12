@@ -42,6 +42,19 @@ export default {
         drift: 'drift 12s ease-in-out infinite',
       },
       colors: {
+        // ── Marketing surface tokens (landing page) ──────────────────
+        // The landing page is built on a 'clinic register' palette: a
+        // green-biased paper ground, hairline rules instead of card
+        // shadows, and navy as the only heading colour. Named here so the
+        // page stops repeating hex literals like text-[#0F2C4E].
+        paper: '#F6F8F7',
+        rule: '#DCE6E3',
+        ink: {
+          DEFAULT: '#0F2C4E',
+          soft: '#45606F',
+          deep: '#0A1F38',
+        },
+
         // Purple — primary brand color
         primary: {
           DEFAULT: '#3B0764',

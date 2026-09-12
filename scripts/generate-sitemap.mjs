@@ -8,6 +8,7 @@ import { writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { ALL_MARKETING_PAGES } from '../src/content/marketingPages.js'
+import { LEGAL_PAGES } from '../src/content/legalPages.js'
 import { SITE_URL } from '../src/lib/seo.js'
 
 const outFile = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'sitemap.xml')
@@ -21,6 +22,14 @@ const entries = [
     loc: `/${page.slug}`,
     priority: page.group === 'pricing' ? '0.9' : '0.8',
     changefreq: 'monthly',
+  })),
+  // Legal pages are indexable on purpose: a product that stores customer
+  // records is expected to have them, and Google reads their presence as a
+  // trust signal. Low priority — they are not what we want ranked.
+  ...LEGAL_PAGES.map((page) => ({
+    loc: `/${page.slug}`,
+    priority: '0.3',
+    changefreq: 'yearly',
   })),
 ]
 
