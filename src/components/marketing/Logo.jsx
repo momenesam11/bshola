@@ -10,7 +10,15 @@ import { Link } from 'react-router-dom'
 export default function Logo({ className = '' }) {
   return (
     <Link to="/" className={`flex items-center ${className}`}>
-      <img src="/logo-dark.png" alt="بسهولة" className="h-8 sm:h-9 w-auto" />
+      <img
+        src="/logo-dark.png"
+        alt="بسهولة"
+        width={500}
+        height={179}
+        className="h-8 sm:h-9 w-auto"
+        style={{ aspectRatio: '500 / 179' }}
+        fetchPriority="high"
+      />
     </Link>
   )
 }
