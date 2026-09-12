@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { Helmet } from 'react-helmet-async'
 import {
   HiOutlineArrowLeft,
   HiOutlineCalendar,
@@ -22,6 +21,14 @@ import {
 } from 'react-icons/hi2'
 import { FaWhatsapp, FaInstagramSquare, FaTwitter, FaFacebook } from 'react-icons/fa'
 import { SUPPORT_WHATSAPP, SUPPORT_PHONE_DISPLAY, SUPPORT_EMAIL } from '../../lib/support'
+import Seo from '../../components/seo/Seo'
+import SiteLinks from '../../components/seo/SiteLinks'
+import {
+  faqSchema,
+  organizationSchema,
+  softwareApplicationSchema,
+  websiteSchema,
+} from '../../lib/seo'
 
 // Reusable scroll-triggered animation wrapper
 function FadeIn({ children, delay = 0 }) {
@@ -130,22 +137,30 @@ export default function LandingPage() {
 
   // Vertical market cards
   const verticals = [
-    { icon: <HiOutlineHeart className="w-8 h-8 text-rose-500" />, title: 'عيادات طبية' },
-    { icon: <HiOutlineScissors className="w-8 h-8 text-purple-500" />, title: 'صالونات وباربر' },
-    { icon: <HiOutlineBolt className="w-8 h-8 text-amber-500" />, title: 'مراكز لياقة' },
-    { icon: <HiOutlineAcademicCap className="w-8 h-8 text-blue-500" />, title: 'تعليم وتدريس' },
-    { icon: <HiOutlineRectangleGroup className="w-8 h-8 text-emerald-500" />, title: 'ملاعب ومرافق' },
-    { icon: <HiOutlineWrenchScrewdriver className="w-8 h-8 text-indigo-500" />, title: 'خدمات أخرى' }
+    { icon: <HiOutlineHeart className="w-8 h-8 text-rose-500" />, title: 'عيادات طبية', to: '/solutions/clinics' },
+    { icon: <HiOutlineScissors className="w-8 h-8 text-purple-500" />, title: 'صالونات وباربر', to: '/solutions/salons' },
+    { icon: <HiOutlineBolt className="w-8 h-8 text-amber-500" />, title: 'مراكز لياقة', to: '/solutions/gyms' },
+    { icon: <HiOutlineAcademicCap className="w-8 h-8 text-blue-500" />, title: 'تعليم وتدريس', to: '/solutions/education' },
+    { icon: <HiOutlineRectangleGroup className="w-8 h-8 text-emerald-500" />, title: 'ملاعب ومرافق', to: '/solutions/courts' },
+    { icon: <HiOutlineScissors className="w-8 h-8 text-indigo-500" />, title: 'عيادات جلدية وتجميل', to: '/solutions/beauty-clinics' }
   ]
 
   return (
     <div className="min-h-screen bg-white text-[#0F2C4E] font-sans antialiased selection:bg-accent-50 selection:text-accent-800" dir="rtl">
-      <Helmet>
-        <title>بسهولة — نظام حجز ومتابعة عملاء للعيادات والصالونات</title>
-        <meta name="description" content="نظّم حجوزاتك وتابع عملاءك بسهولة. نظام عربي بالكامل للعيادات والصالونات ومراكز اللياقة، بتذكير واتساب أوتوماتيك يقلل الغياب. جرّب 14 يوم مجاناً بدون بطاقة بنكية." />
-        <link rel="canonical" href="https://beshola.co/" />
-        <meta name="robots" content="index, follow" />
-      </Helmet>
+      {/* Head tags + structured data. The schema graph is what makes the listing
+          eligible for rich results (price, FAQ dropdowns, sitelinks) instead of
+          a plain blue link. */}
+      <Seo
+        title="بسهولة — نظام حجز مواعيد وإدارة عملاء للعيادات والصالونات"
+        description="نظّم حجوزاتك وتابع عملاءك بسهولة. نظام حجز مواعيد عربي بالكامل للعيادات والصالونات ومراكز اللياقة، بتذكير واتساب يقلل الغياب. جرّب 14 يوم مجاناً بدون بطاقة بنكية."
+        path="/"
+        schemas={[
+          organizationSchema(),
+          websiteSchema(),
+          softwareApplicationSchema(),
+          faqSchema(faqs),
+        ]}
+      />
 
       {/* 1. NAVBAR */}
       <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -225,9 +240,12 @@ export default function LandingPage() {
             {/* Right Column: Title & CTA */}
             <div className="lg:col-span-6 flex flex-col items-start text-right">
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white leading-tight mb-6">
-                أوقف خسارة المواعيد
+                {/* The head keyword ("نظام حجز مواعيد") now opens the H1: it is
+                    the strongest on-page relevance signal after the title, and
+                    the old hook alone contained none of the target terms. */}
+                نظام حجز مواعيد يوقف خسارة الحجوزات
                 <br />
-                واجعل الحجز يتم <span className="text-[#16B89A]">تلقائياً</span>
+                ويجعل الحجز يتم <span className="text-[#16B89A]">تلقائياً</span>
               </h1>
 
               <p className="text-lg text-slate-300 mb-8 leading-relaxed max-w-xl">
@@ -570,14 +588,21 @@ export default function LandingPage() {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
             {verticals.map((v, i) => (
               <FadeIn key={i} delay={(i % 3) * 100}>
-                <div className="bg-white border border-slate-100 hover:border-accent/40 rounded-2xl p-6 sm:p-8 flex flex-col items-center justify-center text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-lg cursor-pointer">
+                {/* Each card links to its own keyword page — the cards used to be
+                    dead divs with a pointer cursor, so this both fixes the UX
+                    and gives every vertical page a link from the home page. */}
+                <Link
+                  to={v.to}
+                  className="bg-white border border-slate-100 hover:border-accent/40 rounded-2xl p-6 sm:p-8 flex flex-col h-full items-center justify-center text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+                >
                   <div className="mb-4">
                     {v.icon}
                   </div>
                   <h3 className="text-base sm:text-lg font-bold text-[#0F2C4E]">
                     {v.title}
                   </h3>
-                </div>
+                  <span className="mt-2 text-xs text-accent font-semibold">اعرف المزيد</span>
+                </Link>
               </FadeIn>
             ))}
           </div>
@@ -910,6 +935,12 @@ export default function LandingPage() {
               </ul>
             </div>
 
+          </div>
+
+          {/* Keyword-page link hub: the crawl path from the home page to every
+              solution/feature cluster. Without it those pages are orphans. */}
+          <div className="border-t border-slate-800 pt-10 pb-10">
+            <SiteLinks />
           </div>
 
           <div className="border-t border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-slate-600 gap-4">

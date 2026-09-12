@@ -1,6 +1,9 @@
 User-agent: *
 Allow: /
 Allow: /book/
+Allow: /solutions/
+Allow: /features/
+Allow: /pricing
 
 Disallow: /dashboard
 Disallow: /appointments

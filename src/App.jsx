@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Suspense, lazy, useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { HelmetProvider } from 'react-helmet-async'
 import { Toaster } from 'react-hot-toast'
@@ -6,23 +6,33 @@ import { Analytics } from '@vercel/analytics/react'
 import { supabase } from './lib/supabase'
 import { BranchProvider } from './context/BranchContext'
 import TrialGuard from './middleware/TrialGuard'
-import AdminDashboard from './pages/admin/AdminDashboard'
 
-import Login from './pages/auth/Login'
-import Register from './pages/auth/Register'
-import ForgotPassword from './pages/auth/ForgotPassword'
-import ResetPassword from './pages/auth/ResetPassword'
-import AuthCallback from './pages/auth/AuthCallback'
-import OnboardingFlow from './pages/onboarding/OnboardingFlow'
-import Dashboard from './pages/dashboard/Dashboard'
-import AppointmentList from './pages/dashboard/AppointmentList'
-import Reports from './pages/reports/Reports'
-import Settings from './pages/settings/Settings'
-import BookingPage from './pages/booking/BookingPage'
-import ClientsPage from './pages/crm/ClientsPage'
-import PatientRecord from './pages/patients/PatientRecord'
-import BranchSettings from './pages/settings/BranchSettings'
+// The whole logged-in app used to ship in the first chunk, so a visitor landing
+// on a marketing page downloaded the dashboard, CRM and reports before seeing
+// anything. Lazy-loading them keeps the public pages light, which is what Core
+// Web Vitals (a ranking signal) actually measures.
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'))
+const Login = lazy(() => import('./pages/auth/Login'))
+const Register = lazy(() => import('./pages/auth/Register'))
+const ForgotPassword = lazy(() => import('./pages/auth/ForgotPassword'))
+const ResetPassword = lazy(() => import('./pages/auth/ResetPassword'))
+const AuthCallback = lazy(() => import('./pages/auth/AuthCallback'))
+const OnboardingFlow = lazy(() => import('./pages/onboarding/OnboardingFlow'))
+const Dashboard = lazy(() => import('./pages/dashboard/Dashboard'))
+const AppointmentList = lazy(() => import('./pages/dashboard/AppointmentList'))
+const Reports = lazy(() => import('./pages/reports/Reports'))
+const Settings = lazy(() => import('./pages/settings/Settings'))
+const BookingPage = lazy(() => import('./pages/booking/BookingPage'))
+const ClientsPage = lazy(() => import('./pages/crm/ClientsPage'))
+const PatientRecord = lazy(() => import('./pages/patients/PatientRecord'))
+const BranchSettings = lazy(() => import('./pages/settings/BranchSettings'))
+
+// Marketing pages stay eagerly imported: they are the entry point for search
+// traffic, so an extra round-trip before first paint would be the wrong trade.
 import LandingPage from './pages/marketing/LandingPage'
+import SolutionPage from './pages/marketing/SolutionPage'
+import NotFound from './pages/marketing/NotFound'
+import { ALL_MARKETING_PAGES } from './content/marketingPages'
 
 function AuthGuard({ children }) {
   const [session, setSession] = useState(undefined)
@@ -67,13 +77,12 @@ function PublicRoute({ children }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  if (session === undefined) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-accent-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    )
-  }
+  // While the session check is in flight we render the public page rather than a
+  // spinner: this route is the landing page, and a spinner as the first paint
+  // delays LCP and hands crawlers an empty screen. A logged-in visitor sees the
+  // landing page for a moment before the redirect below fires — an acceptable
+  // trade for the page that has to rank.
+  if (session === undefined) return children
 
   if (session) return <Navigate to="/dashboard" replace />
   return children
@@ -102,6 +111,13 @@ export default function App() {
             },
           }}
         />
+        <Suspense
+          fallback={
+            <div className="min-h-screen flex items-center justify-center">
+              <div className="w-8 h-8 border-4 border-accent-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          }
+        >
         <Routes>
           {/* Public */}
           <Route path="/login" element={<Login />} />
@@ -122,10 +138,22 @@ export default function App() {
           <Route path="/crm" element={<ProtectedRoute><ClientsPage /></ProtectedRoute>} />
           <Route path="/patients/:clientPhone" element={<ProtectedRoute><PatientRecord /></ProtectedRoute>} />
 
+          {/* Marketing / SEO pages — generated from content/marketingPages.js so
+              adding a keyword page needs a content entry only, and the sitemap
+              script reads that same list (a route can never be missing from the
+              sitemap). Deliberately NOT wrapped in PublicRoute: they must stay
+              readable for crawlers and for already-logged-in visitors. */}
+          {ALL_MARKETING_PAGES.map((page) => (
+            <Route key={page.slug} path={`/${page.slug}`} element={<SolutionPage slug={page.slug} />} />
+          ))}
+
           {/* Default */}
           <Route path="/" element={<PublicRoute><LandingPage /></PublicRoute>} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          {/* A real 404 instead of redirecting to /dashboard: that redirect made
+              every typo and dead backlink a soft 404 in Search Console. */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
+        </Suspense>
         <Analytics />
       </BrowserRouter>
     </HelmetProvider>
