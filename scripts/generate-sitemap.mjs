@@ -18,6 +18,10 @@ const lastmod = new Date().toISOString().slice(0, 10)
 // hint, so the values just mirror the funnel: home > pricing > clusters.
 const entries = [
   { loc: '/', priority: '1.0', changefreq: 'weekly' },
+  // Not content-driven like the rest — these are hand-built pages, not part
+  // of the marketingPages.js keyword cluster.
+  { loc: '/product', priority: '0.7', changefreq: 'monthly' },
+  { loc: '/faq', priority: '0.6', changefreq: 'monthly' },
   ...ALL_MARKETING_PAGES.map((page) => ({
     loc: `/${page.slug}`,
     priority: page.group === 'pricing' ? '0.9' : '0.8',

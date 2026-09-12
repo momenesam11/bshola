@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import Seo from '../../components/seo/Seo'
-import SiteLinks from '../../components/seo/SiteLinks'
+import Nav from '../../components/marketing/Nav'
+import Footer from '../../components/marketing/Footer'
 
 /**
  * A real 404 page instead of the old `<Navigate to="/dashboard">` catch-all.
@@ -19,6 +20,8 @@ export default function NotFound() {
         path="/404"
         noindex
       />
+
+      <Nav />
 
       <main className="flex-1 flex flex-col items-center justify-center text-center px-6 py-24">
         <p className="text-6xl font-black text-[#16B89A] mb-4">404</p>
@@ -42,11 +45,7 @@ export default function NotFound() {
         </div>
       </main>
 
-      <footer className="bg-[#081A30] text-white pt-14 pb-8">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6">
-          <SiteLinks />
-        </div>
-      </footer>
+      <Footer />
     </div>
   )
 }

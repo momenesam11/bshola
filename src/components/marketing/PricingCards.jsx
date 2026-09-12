@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom'
 import { HiOutlineCheck } from 'react-icons/hi2'
+import { FaWhatsapp } from 'react-icons/fa'
 import { Section, SectionHead } from './Section'
 import Reveal from './Reveal'
 import { PLANS } from '../../lib/seo'
+import { SUPPORT_WHATSAPP } from '../../lib/support'
 
 /**
  * Pricing.
@@ -70,7 +72,10 @@ export default function PricingCards({ id }) {
               <p className="mt-2 text-[13px] text-ink-soft tabular-nums">
                 {plan.months === 1
                   ? 'شهرياً · تجديد كل شهر'
-                  : `لمدة ${plan.months} شهور · يعني ${perMonth} جنيه في الشهر`}
+                  // Arabic noun-number agreement: 3–10 takes the plural
+                  // (شهور), 11+ takes the singular (شهر) — "12 شهور" reads
+                  // as a mistake to an Arabic reader.
+                  : `لمدة ${plan.months} ${plan.months <= 10 ? 'شهور' : 'شهر'} · يعني ${perMonth} جنيه في الشهر`}
               </p>
 
               {savingVsMonthly > 0 && (
@@ -114,6 +119,17 @@ export default function PricingCards({ id }) {
           التجربة 14 يوم بكل المميزات ومن غير بطاقة بنكية — تقدر تستقبل حجوزات حقيقية خلالها.
           الاشتراك والتجديد بيتم بالتنسيق معانا على واتساب؛ مفيش دفع إلكتروني جوه النظام لحد الآن.
         </p>
+        {/* Pricing is where hesitation peaks — "which term fits my business"
+            is exactly the question worth a real answer instead of a guess. */}
+        <a
+          href={`https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent('مرحباً، عايز أساعد أختار الباقة المناسبة لبيزنسي')}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-4 inline-flex items-center gap-1.5 text-[13.5px] font-bold text-accent-700 hover:text-accent-800 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink rounded"
+        >
+          <FaWhatsapp className="w-4 h-4" aria-hidden="true" />
+          مش متأكد أنهي باقة تناسبك؟ كلمنا على واتساب
+        </a>
       </Reveal>
     </Section>
   )

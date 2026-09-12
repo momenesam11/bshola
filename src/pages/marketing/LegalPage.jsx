@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import Seo from '../../components/seo/Seo'
-import SiteLinks from '../../components/seo/SiteLinks'
+import Nav from '../../components/marketing/Nav'
+import Footer from '../../components/marketing/Footer'
 import { LAST_UPDATED, legalPageBySlug } from '../../content/legalPages'
 import { breadcrumbSchema, organizationSchema } from '../../lib/seo'
 import { SUPPORT_EMAIL, SUPPORT_WHATSAPP } from '../../lib/support'
@@ -35,19 +36,7 @@ export default function LegalPage({ slug }) {
         ]}
       />
 
-      <header className="bg-ink text-white">
-        <div className="max-w-3xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">
-          <Link to="/" className="text-[22px] font-bold tracking-tight">
-            بسهولة
-          </Link>
-          <Link
-            to="/"
-            className="text-[13.5px] font-medium text-white/75 hover:text-white transition-colors"
-          >
-            الرجوع للرئيسية
-          </Link>
-        </div>
-      </header>
+      <Nav />
 
       <main className="flex-1">
         <div className="max-w-3xl mx-auto px-5 sm:px-8 py-12 sm:py-16">
@@ -123,14 +112,7 @@ export default function LegalPage({ slug }) {
         </div>
       </main>
 
-      <footer className="bg-ink-deep text-white">
-        <div className="max-w-6xl mx-auto px-5 sm:px-8 py-12">
-          <SiteLinks />
-          <p className="mt-10 pt-6 border-t border-white/10 text-[12px] text-white/45 tabular-nums">
-            © {new Date().getFullYear()} بسهولة · نظام حجز مواعيد وإدارة عملاء
-          </p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   )
 }

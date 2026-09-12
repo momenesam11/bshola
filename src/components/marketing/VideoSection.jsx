@@ -3,30 +3,44 @@ import { Link } from 'react-router-dom'
 import { HiOutlinePlay, HiOutlineVideoCamera } from 'react-icons/hi2'
 import { Section, SectionHead } from './Section'
 
+// YouTube's max-res thumbnail (1280x720) isn't guaranteed to exist for every
+// video — it needs a source uploaded at least that large. `hqdefault` always
+// exists, so it's the fallback swapped in via the <img>'s onError below
+// rather than something we can check up front without a network call.
+const youtubeThumbnail = (id, quality = 'maxresdefault') => `https://img.youtube.com/vi/${id}/${quality}.jpg`
+
 /**
  * A reusable video section.
  *
- * Loading: click-to-load. Nothing but the poster image is fetched until the
- * viewer presses play, so a 16:9 video can never become the page's LCP or eat
- * a mobile data plan. The <video> element is only mounted after that press,
- * which is also why it can carry `autoPlay` safely (the play was a user
- * gesture) — it is never muted-autoplaying in the background.
+ * Two sources are supported: `youtubeId` (an unlisted YouTube video — see
+ * public/videos/README.md for why unlisted, not the file, is what we host)
+ * or a locally-hosted `src` file. Exactly one should be set; `youtubeId`
+ * wins if both are for some reason present.
+ *
+ * Loading: click-to-load either way. Nothing but the poster image is fetched
+ * until the viewer presses play, so a 16:9 video can never become the page's
+ * LCP or eat a mobile data plan. The player (native <video> or YouTube
+ * <iframe>) only mounts after that press, which is also why the native
+ * player can carry `autoPlay` safely (the play was a user gesture) — it is
+ * never muted-autoplaying in the background.
  *
  * Text alternative: `steps` renders as visible, crawlable text under the video
  * and is not optional — it is what Google reads and what the (majority) of
- * sound-off viewers read. `captionsSrc` is supported for a real WebVTT track,
- * but is only wired up when a file is actually provided, so a missing caption
- * file can never throw a console error.
+ * sound-off viewers read. `captionsSrc` (WebVTT) only applies to the local
+ * `src` path; a YouTube embed uses whatever captions are set on the video
+ * itself, on YouTube.
  *
- * Missing asset: when `src` is absent the section renders a labelled
- * placeholder at the correct aspect ratio naming the file it expects, so the
- * page stays honest and the remaining work is self-documenting.
+ * Missing asset: when neither `youtubeId` nor `src` is set, the section
+ * renders a labelled placeholder at the correct aspect ratio naming the file
+ * it expects, so the page stays honest and the remaining work is
+ * self-documenting.
  */
 export default function VideoSection({
   id,
   tone = 'paper',
   title,
   lead,
+  youtubeId,
   src,
   poster,
   expectedSrc,
@@ -37,6 +51,11 @@ export default function VideoSection({
   children,
 }) {
   const [playing, setPlaying] = useState(false)
+  const [thumbFallback, setThumbFallback] = useState(false)
+
+  const hasVideo = Boolean(youtubeId || src)
+  const resolvedPoster =
+    poster ?? (youtubeId ? youtubeThumbnail(youtubeId, thumbFallback ? 'hqdefault' : 'maxresdefault') : undefined)
 
   return (
     <Section id={id} tone={tone}>
@@ -50,10 +69,10 @@ export default function VideoSection({
               as work in progress. */}
           <div
             className={`relative aspect-video w-full overflow-hidden rounded-2xl ${
-              src ? 'border border-rule bg-ink' : 'border-2 border-dashed border-rule bg-white'
+              hasVideo ? 'border border-rule bg-ink' : 'border-2 border-dashed border-rule bg-white'
             }`}
           >
-            {!src ? (
+            {!hasVideo ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-6 text-center">
                 <HiOutlineVideoCamera className="w-8 h-8 text-ink-soft/40" aria-hidden="true" />
                 <p className="text-sm font-bold text-ink-soft">الفيديو لسه مش مضاف</p>
@@ -64,11 +83,19 @@ export default function VideoSection({
                   الخطوات المكتوبة جانبه بتشرح نفس المحتوى.
                 </p>
               </div>
+            ) : playing && youtubeId ? (
+              <iframe
+                className="absolute inset-0 w-full h-full"
+                src={`https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1&rel=0`}
+                title={title}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
             ) : playing ? (
               <video
                 className="absolute inset-0 w-full h-full"
                 src={src}
-                poster={poster}
+                poster={resolvedPoster}
                 controls
                 autoPlay
                 playsInline
@@ -85,12 +112,13 @@ export default function VideoSection({
                 className="group absolute inset-0 w-full h-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-400"
                 aria-label={`شغّل الفيديو: ${title}`}
               >
-                {poster && (
+                {resolvedPoster && (
                   <img
-                    src={poster}
+                    src={resolvedPoster}
                     alt={`صورة من الفيديو: ${title}`}
                     loading="lazy"
                     decoding="async"
+                    onError={() => setThumbFallback(true)}
                     className="absolute inset-0 w-full h-full object-cover"
                   />
                 )}

@@ -1,6 +1,8 @@
 import { HiOutlineCheck, HiOutlineMinus } from 'react-icons/hi2'
+import { FaWhatsapp } from 'react-icons/fa'
 import { Section, SectionHead } from './Section'
 import Reveal from './Reveal'
+import { SUPPORT_WHATSAPP } from '../../lib/support'
 
 /**
  * Honest comparison against a *category*, never a named competitor — we have
@@ -126,6 +128,18 @@ export default function ComparisonTable({ id }) {
         المقارنة بفئة المنصات العالمية عموماً ومش بمنتج بالاسم؛ شروط كل منصة وأسعارها بتتغير،
         فراجعها من موقعها قبل أي قرار.
       </p>
+
+      {/* Comparison naturally raises "but what about my specific case" —
+          a direct question here beats another line of static text. */}
+      <a
+        href={`https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent('مرحباً، عندي سؤال عن الفرق بين بسهولة والمنصات التانية')}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-6 inline-flex items-center gap-1.5 text-[13.5px] font-bold text-accent-700 hover:text-accent-800 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink rounded"
+      >
+        <FaWhatsapp className="w-4 h-4" aria-hidden="true" />
+        عايز تقارن حالتك بالذات؟ اسألنا على واتساب
+      </a>
     </Section>
   )
 }

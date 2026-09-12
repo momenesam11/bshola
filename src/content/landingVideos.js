@@ -1,21 +1,25 @@
 /**
  * The three explainer videos on the landing page.
  *
+ * Hosted as unlisted YouTube uploads rather than files in `public/videos/`
+ * (see the README there): a few uploaded promo videos add tens of MB each,
+ * which would bloat every clone/deploy of this repo for a page that only
+ * ever needs to serve them as a click-to-play embed, something YouTube
+ * already does — compressed, adaptive-bitrate, CDN-served — for free.
+ *
  * One source for both the rendered <VideoSection /> and the VideoObject
  * structured data, so a video can never be described to Google differently
  * from how it is shown — or described at all while it is still missing.
  *
- * To publish a video:
- *   1. Drop the file and its poster in `public/videos/` (see the README there
- *      for the expected names, dimensions and encoding).
- *   2. Set `src` and `poster` below to those paths.
- *   3. Optionally add `captionsSrc` pointing at a real .vtt file, and
- *      `uploadDate` (ISO) + `duration` (ISO 8601, e.g. 'PT1M45S') — both only
- *      improve the structured data.
+ * To publish a video, set `youtubeId` to the id from its youtu.be/<id> link
+ * (upload it as Unlisted, never Public — see the README). Optionally add
+ * `uploadDate` (ISO) + `duration` (ISO 8601, e.g. 'PT1M45S') to improve the
+ * structured data. A locally-hosted `src` file still works as an alternative
+ * (VideoSection supports both) for anyone who'd rather self-host.
  *
- * Until `src` is set the section renders a labelled placeholder naming the
- * file it expects, and no VideoObject is emitted. The written steps are the
- * text alternative and carry the section on their own.
+ * Until a video is set the section renders a labelled placeholder naming
+ * what it's waiting for, and no VideoObject is emitted. The written steps
+ * are the text alternative and carry the section on their own either way.
  */
 
 export const LANDING_VIDEOS = {
@@ -24,9 +28,7 @@ export const LANDING_VIDEOS = {
     title: 'المريض بيحجز في 3 خطوات',
     lead:
       'ده اللي عميلك بيشوفه لما يفتح رابط حجزك. مفيش تحميل تطبيق، مفيش تسجيل حساب، ومفيش استنية لحد يرد عليه.',
-    src: null,
-    expectedSrc: '/videos/patient-booking.mp4',
-    poster: '/videos/patient-booking-poster.jpg',
+    youtubeId: 'GKR4YlVFs2Q',
     stepsTitle: 'الخطوات زي ما هي في صفحة الحجز',
     steps: [
       {
@@ -49,9 +51,7 @@ export const LANDING_VIDEOS = {
     title: 'حسابك جاهز في أقل من 5 دقايق',
     lead:
       'النظام بيمشّيك على 6 خطوات، كل واحدة فيها اختيارات جاهزة. في آخر خطوة يبقى معاك رابط حجز شغال تبعته لعملاءك.',
-    src: null,
-    expectedSrc: '/videos/clinic-signup.mp4',
-    poster: '/videos/clinic-signup-poster.jpg',
+    youtubeId: 'MvhU_10dhyQ',
     stepsTitle: 'الـ6 خطوات',
     steps: [
       {
@@ -86,9 +86,7 @@ export const LANDING_VIDEOS = {
     id: 'system-tour',
     title: 'جولة سريعة في النظام',
     lead: 'اليوم الواحد في بسهولة: تشوف مواعيدك، تبعت تذكيرات بكرا، وتتابع عملاءك وفلوسك.',
-    src: null,
-    expectedSrc: '/videos/system-tour.mp4',
-    poster: '/videos/system-tour-poster.jpg',
+    youtubeId: 'DBaWdV-xNfs',
     stepsTitle: 'اللي هتشوفه',
     steps: [
       {

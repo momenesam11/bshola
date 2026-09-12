@@ -7,14 +7,17 @@ export const SITE_NAME = 'بسهولة'
 export const SITE_LOCALE = 'ar_EG'
 export const DEFAULT_OG_IMAGE = `${SITE_URL}/og-image.png`
 
+// Passes an already-absolute URL (e.g. a YouTube thumbnail) straight through
+// instead of prefixing SITE_URL onto it, which would otherwise turn
+// `https://img.youtube.com/...` into a broken `https://beshola.co/https://...`.
 export const absoluteUrl = (path = '/') =>
-  `${SITE_URL}${path.startsWith('/') ? path : `/${path}`}`
+  /^https?:\/\//.test(path) ? path : `${SITE_URL}${path.startsWith('/') ? path : `/${path}`}`
 
 // Plans mirrored from the pricing section of the landing page. Kept here so
 // the Offer schema Google reads and the prices users see share one source.
 export const PLANS = [
   { name: 'باقة الشهر الواحد', price: 299, months: 1 },
-  { name: 'باقة الـ 3 شهور', price: 650, months: 3 },
+  { name: 'باقة الـ 3 شهور', price: 749, months: 3 },
   { name: 'باقة الـ 6 شهور', price: 1200, months: 6 },
 ]
 
@@ -129,19 +132,36 @@ export function breadcrumbSchema(items = []) {
 /**
  * VideoObject for an explainer video on the landing page.
  *
- * Only emit this for a video that actually exists and is reachable at
- * `contentUrl` — structured data describing a missing file is invalid and can
- * cost the whole page its rich results.
+ * Pass either `youtubeId` (preferred — see src/content/landingVideos.js) or a
+ * self-hosted `contentUrl`. Only emit this for a video that actually exists —
+ * structured data describing a missing video is invalid and can cost the
+ * whole page its rich results.
  */
-export function videoObjectSchema({ name, description, thumbnailUrl, contentUrl, uploadDate, duration }) {
-  if (!contentUrl) return null
+export function videoObjectSchema({
+  name,
+  description,
+  youtubeId,
+  thumbnailUrl,
+  contentUrl,
+  uploadDate,
+  duration,
+}) {
+  if (!youtubeId && !contentUrl) return null
   return {
     '@context': 'https://schema.org',
     '@type': 'VideoObject',
     name,
     description,
-    thumbnailUrl: absoluteUrl(thumbnailUrl),
-    contentUrl: absoluteUrl(contentUrl),
+    thumbnailUrl: absoluteUrl(thumbnailUrl ?? `https://img.youtube.com/vi/${youtubeId}/maxresdefault.jpg`),
+    ...(youtubeId
+      ? {
+          embedUrl: `https://www.youtube-nocookie.com/embed/${youtubeId}`,
+          // A resolvable page URL for the video, which VideoObject also
+          // accepts in place of a direct file — we don't have one for a
+          // self-hosted contentUrl, so that branch omits it.
+          contentUrl: `https://www.youtube.com/watch?v=${youtubeId}`,
+        }
+      : { contentUrl: absoluteUrl(contentUrl) }),
     ...(uploadDate ? { uploadDate } : {}),
     ...(duration ? { duration } : {}),
     inLanguage: 'ar',

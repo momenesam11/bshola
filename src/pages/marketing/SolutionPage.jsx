@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom'
 import { HiOutlineArrowLeft, HiCheck, HiChevronDown, HiChevronUp } from 'react-icons/hi2'
 import { FaWhatsapp } from 'react-icons/fa'
 import Seo from '../../components/seo/Seo'
-import SiteLinks from '../../components/seo/SiteLinks'
+import Nav from '../../components/marketing/Nav'
+import Footer from '../../components/marketing/Footer'
 import { pageBySlug } from '../../content/marketingPages'
 import {
   breadcrumbSchema,
@@ -52,25 +53,7 @@ export default function SolutionPage({ slug }) {
         ]}
       />
 
-      {/* HEADER */}
-      <header className="bg-[#0F2C4E] text-white">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5 flex items-center justify-between">
-          <Link to="/" className="text-2xl font-bold tracking-tight">
-            بسهولة
-          </Link>
-          <div className="flex items-center gap-3">
-            <Link to="/pricing" className="hidden sm:inline text-sm font-medium text-white/80 hover:text-accent transition-colors">
-              الأسعار
-            </Link>
-            <Link
-              to="/register"
-              className="bg-[#16B89A] hover:bg-accent-600 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-colors"
-            >
-              ابدأ مجاناً
-            </Link>
-          </div>
-        </div>
-      </header>
+      <Nav />
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6">
         {/* BREADCRUMB — mirrors the BreadcrumbList schema above */}
@@ -185,31 +168,37 @@ export default function SolutionPage({ slug }) {
           </section>
         )}
 
-        {/* CLOSING CTA */}
+        {/* CLOSING CTA — a WhatsApp option sits next to the trial signup:
+            someone who read this far but still has a question (about their
+            specific business, a feature not covered above) should be able to
+            just ask instead of bouncing. */}
         <section className="mb-16 bg-[#0F2C4E] text-white rounded-3xl p-8 sm:p-12 text-center">
           <h2 className="text-2xl sm:text-3xl font-black mb-4">جاهز تنظّم حجوزاتك؟</h2>
           <p className="text-slate-300 mb-7 max-w-xl mx-auto leading-relaxed">
             14 يوم تجربة مجانية بكل المميزات، بدون بطاقة بنكية وبدون التزام.
           </p>
-          <Link
-            to="/register"
-            className="inline-flex items-center gap-2 bg-[#16B89A] hover:bg-accent-600 text-white font-bold px-8 py-4 rounded-2xl transition-colors"
-          >
-            <span>ابدأ الآن مجاناً</span>
-            <HiOutlineArrowLeft className="w-5 h-5" />
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link
+              to="/register"
+              className="inline-flex items-center justify-center gap-2 bg-[#16B89A] hover:bg-accent-600 text-white font-bold px-8 py-4 rounded-2xl transition-colors"
+            >
+              <span>ابدأ الآن مجاناً</span>
+              <HiOutlineArrowLeft className="w-5 h-5" />
+            </Link>
+            <a
+              href={`https://wa.me/${SUPPORT_WHATSAPP}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 border border-white/25 hover:border-white/60 text-white font-semibold px-8 py-4 rounded-2xl transition-colors"
+            >
+              <FaWhatsapp className="w-5 h-5" />
+              <span>عندك سؤال؟ كلمنا على واتساب</span>
+            </a>
+          </div>
         </section>
       </main>
 
-      {/* FOOTER */}
-      <footer className="bg-[#081A30] text-white pt-14 pb-8">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6">
-          <SiteLinks />
-          <div className="mt-12 pt-6 border-t border-white/10 text-center text-xs text-slate-400">
-            © {new Date().getFullYear()} بسهولة — نظام حجز مواعيد وإدارة عملاء.
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   )
 }

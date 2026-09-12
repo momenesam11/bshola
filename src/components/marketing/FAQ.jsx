@@ -1,8 +1,11 @@
 import { useState } from 'react'
-import { HiChevronDown } from 'react-icons/hi2'
+import { Link } from 'react-router-dom'
+import { HiChevronDown, HiOutlineArrowLeft } from 'react-icons/hi2'
+import { FaWhatsapp } from 'react-icons/fa'
 import { Section, SectionHead } from './Section'
 import Reveal from './Reveal'
 import { FAQS } from '../../content/faqs'
+import { SUPPORT_WHATSAPP } from '../../lib/support'
 
 /**
  * FAQ accordion.
@@ -18,17 +21,23 @@ import { FAQS } from '../../content/faqs'
  * The questions come from what people actually ask before buying — including
  * the two awkward ones (is the reminder automatic? is my data safe if I stop
  * paying?), answered straight.
+ *
+ * `limit` renders only the first N questions with a link to the full /faq
+ * page (used on the homepage, which used to carry all of them). Whatever the
+ * page passes to `faqSchema()` for its structured data must match this same
+ * slice — see LandingPage.jsx and FaqPage.jsx.
  */
-
-export default function FAQ({ id }) {
+export default function FAQ({ id, limit, title = 'أسئلة بنتسألها كتير', headingLevel = 'h2' }) {
   const [open, setOpen] = useState(0)
+  const items = limit ? FAQS.slice(0, limit) : FAQS
+  const truncated = limit && FAQS.length > limit
 
   return (
     <Section id={id} tone="surface">
-      <SectionHead title="أسئلة بنتسألها كتير" />
+      <SectionHead as={headingLevel} title={title} />
 
       <Reveal delay={100} className="mt-8 border-t border-rule">
-        {FAQS.map((faq, i) => {
+        {items.map((faq, i) => {
           const isOpen = open === i
           return (
             <div key={faq.q} className="border-b border-rule">
@@ -71,6 +80,33 @@ export default function FAQ({ id }) {
           )
         })}
       </Reveal>
+
+      {truncated ? (
+        <Reveal delay={160} className="mt-6">
+          <Link
+            to="/faq"
+            className="inline-flex items-center gap-1.5 text-[14px] font-bold text-accent-700 hover:text-accent-800 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink rounded"
+          >
+            شوف كل الأسئلة
+            <HiOutlineArrowLeft className="w-4 h-4" aria-hidden="true" />
+          </Link>
+        </Reveal>
+      ) : (
+        // The full list, not the homepage teaser: someone who read every
+        // question and still isn't sure has a question specific to them —
+        // worth a direct line instead of hoping they scroll to the closing CTA.
+        <Reveal delay={160} className="mt-6">
+          <a
+            href={`https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent('مرحباً، عندي سؤال مش لاقيه في صفحة الأسئلة الشائعة')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-[14px] font-bold text-accent-700 hover:text-accent-800 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink rounded"
+          >
+            <FaWhatsapp className="w-4 h-4" aria-hidden="true" />
+            مش لاقي سؤالك؟ اسألنا على واتساب
+          </a>
+        </Reveal>
+      )}
     </Section>
   )
 }

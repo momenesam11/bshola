@@ -67,6 +67,16 @@ export default function SiteLinks({ className = '' }) {
             </Link>
           </li>
           <li>
+            <Link to="/product" className="text-xs text-slate-300 hover:text-accent transition-colors">
+              جولة في المنتج والمميزات
+            </Link>
+          </li>
+          <li>
+            <Link to="/faq" className="text-xs text-slate-300 hover:text-accent transition-colors">
+              الأسئلة الشائعة
+            </Link>
+          </li>
+          <li>
             <Link to="/register" className="text-xs text-slate-300 hover:text-accent transition-colors">
               ابدأ تجربة 14 يوم مجاناً
             </Link>

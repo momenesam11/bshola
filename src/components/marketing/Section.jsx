@@ -36,17 +36,23 @@ export function Section({ id, children, tone = 'paper', className = '', ...rest 
 /**
  * Section heading. `lead` is the one supporting sentence; anything longer
  * belongs in the section body.
+ *
+ * `as` picks the heading level — defaults to `h2` for an interior section.
+ * Every page needs exactly one `h1`: on the homepage that's Hero's own
+ * heading, so every LandingPage SectionHead stays `h2`; a standalone page
+ * like /product or /faq has no other h1, so its very first SectionHead
+ * passes `as="h1"` instead.
  */
-export function SectionHead({ title, lead, align = 'right', onDark = false, children }) {
+export function SectionHead({ title, lead, align = 'right', onDark = false, as: Tag = 'h2', children }) {
   return (
     <Reveal as="header" className={align === 'center' ? 'text-center mx-auto max-w-2xl' : 'max-w-3xl'}>
-      <h2
+      <Tag
         className={`text-[22px] sm:text-[28px] lg:text-[32px] font-bold leading-[1.3] text-balance ${
           onDark ? 'text-white' : 'text-ink'
         }`}
       >
         {title}
-      </h2>
+      </Tag>
       {lead && (
         <p
           className={`mt-3 text-[15px] sm:text-base leading-[1.85] max-w-[62ch] ${

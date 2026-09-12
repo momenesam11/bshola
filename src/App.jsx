@@ -30,11 +30,42 @@ const BranchSettings = lazy(() => import('./pages/settings/BranchSettings'))
 // Marketing pages stay eagerly imported: they are the entry point for search
 // traffic, so an extra round-trip before first paint would be the wrong trade.
 import LandingPage from './pages/marketing/LandingPage'
+import ProductPage from './pages/marketing/ProductPage'
+import FaqPage from './pages/marketing/FaqPage'
 import SolutionPage from './pages/marketing/SolutionPage'
 import NotFound from './pages/marketing/NotFound'
 import LegalPage from './pages/marketing/LegalPage'
 import { ALL_MARKETING_PAGES } from './content/marketingPages'
 import { LEGAL_PAGES } from './content/legalPages'
+
+/**
+ * React Router doesn't reset scroll on navigation the way a full page load
+ * does — clicking nav from partway down /product to /faq used to land you at
+ * the same scroll offset on the new page instead of its top.
+ *
+ * A hash link (e.g. Nav's `/#pricing`) is handled by hand rather than left to
+ * the browser: clicking it from another route (say /product) is a full
+ * cross-page navigation, and the browser's native "scroll to this id on load"
+ * runs before React has rendered anything into the empty `<div id="root">` —
+ * the element doesn't exist yet, so the native jump silently does nothing and
+ * the page sits at the top. Waiting a frame after mount for the id to exist,
+ * then scrolling to it ourselves, is what makes that landing work at all.
+ */
+function ScrollToTop() {
+  const { pathname, hash } = useLocation()
+  useEffect(() => {
+    if (hash) {
+      const id = hash.slice(1)
+      const raf = requestAnimationFrame(() => {
+        document.getElementById(id)?.scrollIntoView()
+      })
+      return () => cancelAnimationFrame(raf)
+    }
+    window.scrollTo(0, 0)
+    return undefined
+  }, [pathname, hash])
+  return null
+}
 
 function AuthGuard({ children }) {
   const [session, setSession] = useState(undefined)
@@ -94,6 +125,7 @@ export default function App() {
   return (
     <HelmetProvider>
     <BrowserRouter>
+        <ScrollToTop />
         <Toaster
           position="bottom-left"
           toastOptions={{
@@ -154,6 +186,11 @@ export default function App() {
           {LEGAL_PAGES.map((page) => (
             <Route key={page.slug} path={`/${page.slug}`} element={<LegalPage slug={page.slug} />} />
           ))}
+
+          {/* The homepage's deep-dive and full FAQ, split out to keep the
+              homepage itself short — see LandingPage.jsx's file comment. */}
+          <Route path="/product" element={<ProductPage />} />
+          <Route path="/faq" element={<FaqPage />} />
 
           {/* Default */}
           <Route path="/" element={<PublicRoute><LandingPage /></PublicRoute>} />

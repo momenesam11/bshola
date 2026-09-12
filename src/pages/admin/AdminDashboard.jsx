@@ -9,6 +9,7 @@ import {
 } from 'react-icons/hi2'
 import { FaWhatsapp } from 'react-icons/fa'
 import { BUSINESS_TYPES } from '../../utils/constants'
+import { PLANS } from '../../lib/seo'
 import {
   useAdminBusinesses,
   useDeactivateBusiness,
@@ -117,10 +118,14 @@ function StatCard({ label, value }) {
 
 function whatsappLink(business) {
   const phone = (business.owner_phone || business.phone || '').replace(/[^0-9]/g, '')
+  // Pulled from PLANS (src/lib/seo.js) rather than hardcoded, so this message
+  // can't drift from the real price the way it did before (it sat at "99
+  // جنيه" for a while after the actual monthly rate had moved to 299).
+  const startingPrice = PLANS[0].price
   const message = `أهلاً يا دكتور/أستاذ! 👋
 تجربتك المجانية لـ بسهولة انتهت.
 لتجديد اشتراكك وإعادة تفعيل حسابك، تواصل معنا.
-باقات الاشتراك تبدأ من 99 جنيه/شهر 🗓️`
+باقات الاشتراك تبدأ من ${startingPrice} جنيه/شهر 🗓️`
   return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
 }
 
