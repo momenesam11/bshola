@@ -29,6 +29,7 @@ export const LANDING_VIDEOS = {
     lead:
       'ده اللي عميلك بيشوفه لما يفتح رابط حجزك. مفيش تحميل تطبيق، مفيش تسجيل حساب، ومفيش استنية لحد يرد عليه.',
     youtubeId: 'GKR4YlVFs2Q',
+    uploadDate: '2026-09-12',
     stepsTitle: 'الخطوات زي ما هي في صفحة الحجز',
     steps: [
       {
@@ -52,6 +53,7 @@ export const LANDING_VIDEOS = {
     lead:
       'النظام بيمشّيك على 6 خطوات، كل واحدة فيها اختيارات جاهزة. في آخر خطوة يبقى معاك رابط حجز شغال تبعته لعملاءك.',
     youtubeId: 'MvhU_10dhyQ',
+    uploadDate: '2026-09-12',
     stepsTitle: 'الـ6 خطوات',
     steps: [
       {
@@ -87,6 +89,7 @@ export const LANDING_VIDEOS = {
     title: 'جولة سريعة في النظام',
     lead: 'اليوم الواحد في بسهولة: تشوف مواعيدك، تبعت تذكيرات بكرا، وتتابع عملاءك وفلوسك.',
     youtubeId: 'DBaWdV-xNfs',
+    uploadDate: '2026-09-12',
     stepsTitle: 'اللي هتشوفه',
     steps: [
       {
