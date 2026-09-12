@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { HiOutlineCheck } from 'react-icons/hi2'
 import { Section, SectionHead } from './Section'
+import Reveal from './Reveal'
 import { PLANS } from '../../lib/seo'
 
 /**
@@ -38,15 +39,17 @@ export default function PricingCards({ id }) {
       />
 
       <div className="mt-9 grid sm:grid-cols-3 gap-4">
-        {PLANS.map((plan) => {
+        {PLANS.map((plan, i) => {
           const perMonth = Math.round(plan.price / plan.months)
           const isBest = plan.months === 6
           const savingVsMonthly = monthly ? monthly.price - perMonth : 0
 
           return (
-            <div
+            <Reveal
+              as="div"
               key={plan.name}
-              className={`rounded-2xl bg-white p-6 flex flex-col ${
+              delay={i * 100}
+              className={`rounded-2xl bg-white p-6 flex flex-col transition-all hover:-translate-y-1 hover:shadow-lg motion-reduce:hover:translate-y-0 ${
                 isBest ? 'border-2 border-ink' : 'border border-rule'
               }`}
             >
@@ -86,13 +89,13 @@ export default function PricingCards({ id }) {
               >
                 ابدأ تجربتك المجانية
               </Link>
-            </div>
+            </Reveal>
           )
         })}
       </div>
 
       {/* One shared feature list — the plans are terms, not tiers */}
-      <div className="mt-8 rounded-2xl border border-rule bg-white p-6 sm:p-7">
+      <Reveal delay={200} className="mt-8 rounded-2xl border border-rule bg-white p-6 sm:p-7">
         <h3 className="text-[15px] font-bold text-ink">
           كل باقة فيها ده كله — مفيش نسخة ناقصة
         </h3>
@@ -111,7 +114,7 @@ export default function PricingCards({ id }) {
           التجربة 14 يوم بكل المميزات ومن غير بطاقة بنكية — تقدر تستقبل حجوزات حقيقية خلالها.
           الاشتراك والتجديد بيتم بالتنسيق معانا على واتساب؛ مفيش دفع إلكتروني جوه النظام لحد الآن.
         </p>
-      </div>
+      </Reveal>
     </Section>
   )
 }

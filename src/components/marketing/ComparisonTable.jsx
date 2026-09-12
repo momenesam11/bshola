@@ -1,5 +1,6 @@
 import { HiOutlineCheck, HiOutlineMinus } from 'react-icons/hi2'
 import { Section, SectionHead } from './Section'
+import Reveal from './Reveal'
 
 /**
  * Honest comparison against a *category*, never a named competitor — we have
@@ -78,7 +79,7 @@ export default function ComparisonTable({ id }) {
         lead="المنصات العالمية شغالة وكبيرة — بس موديل الفلوس واللغة بتاعتها مش مبنية للسوق المصري. الجدول ده بيقول الفرق، وبيقول كمان اللي مش عندنا."
       />
 
-      <div className="mt-8 overflow-x-auto -mx-5 px-5 sm:mx-0 sm:px-0">
+      <Reveal delay={100} className="mt-8 overflow-x-auto -mx-5 px-5 sm:mx-0 sm:px-0">
         <table className="w-full min-w-[600px] border-collapse">
           <caption className="sr-only">
             مقارنة بين بسهولة وفئة منصات الحجز العالمية
@@ -97,8 +98,15 @@ export default function ComparisonTable({ id }) {
             </tr>
           </thead>
           <tbody>
+            {/* Row-level entrance would need `transform` on <tr>, which some
+                browsers still render inconsistently — so the table reveals as
+                one block (below) and rows get a hover highlight instead, the
+                clinic-register way of saying "this line is active". */}
             {ROWS.map((row) => (
-              <tr key={row.aspect} className="border-b border-rule last:border-b-0">
+              <tr
+                key={row.aspect}
+                className="border-b border-rule last:border-b-0 transition-colors hover:bg-paper/50"
+              >
                 <th scope="row" className="text-right align-top py-4 pl-4 text-[13px] font-bold text-ink">
                   {row.aspect}
                 </th>
@@ -112,7 +120,7 @@ export default function ComparisonTable({ id }) {
             ))}
           </tbody>
         </table>
-      </div>
+      </Reveal>
 
       <p className="mt-5 text-[12px] text-ink-soft/75 leading-relaxed max-w-[64ch]">
         المقارنة بفئة المنصات العالمية عموماً ومش بمنتج بالاسم؛ شروط كل منصة وأسعارها بتتغير،

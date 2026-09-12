@@ -21,6 +21,7 @@ import { FaFacebook, FaInstagram, FaWhatsapp } from 'react-icons/fa'
 import Seo from '../../components/seo/Seo'
 import SiteLinks from '../../components/seo/SiteLinks'
 import { IllustrativeNote, Section, SectionHead } from '../../components/marketing/Section'
+import Reveal from '../../components/marketing/Reveal'
 import BookingPhoneDemo from '../../components/marketing/BookingPhoneDemo'
 import VideoSection from '../../components/marketing/VideoSection'
 import ProductTour from '../../components/marketing/ProductTour'
@@ -337,20 +338,28 @@ function Hero() {
     <section className="bg-ink text-white">
       <div className="max-w-6xl mx-auto px-5 sm:px-8 py-12 sm:py-16 lg:py-20">
         <div className="grid lg:grid-cols-12 gap-10 lg:gap-8 items-center">
+          {/* Entrance is a quick, one-time stagger on load (not scroll-triggered
+              — this is above the fold) using the fadeIn keyframe already
+              defined in tailwind.config.js. motion-reduce drops it to a plain
+              instant render. */}
           <div className="lg:col-span-7">
-            <h1 className="text-[28px] sm:text-[38px] lg:text-[44px] font-extrabold leading-[1.18] tracking-[-0.01em] text-balance">
+            <h1 className="animate-fadeIn motion-reduce:animate-none text-[28px] sm:text-[38px] lg:text-[44px] font-extrabold leading-[1.18] tracking-[-0.01em] text-balance">
               نظام حجز مواعيد عربي، ومرضاك يحجزوا بنفسهم من لينك واحد
             </h1>
 
-            <p className="mt-5 text-[15.5px] sm:text-[17px] leading-[1.85] text-white/75 max-w-[58ch]">
+            <p
+              className="animate-fadeIn motion-reduce:animate-none [animation-delay:90ms] [animation-fill-mode:backwards] mt-5 text-[15.5px] sm:text-[17px] leading-[1.85] text-white/75 max-w-[58ch]"
+            >
               وقت الريسبشن كله بيضيع في تأكيد مواعيد على التليفون والواتساب. بسهولة ينقل ده
               لصفحة حجز شغالة 24 ساعة، ويجهّزلك تذكير كل مواعيد بكرا تبعته بضغطة زر.
             </p>
 
-            <div className="mt-8 flex flex-col sm:flex-row gap-3">
+            <div
+              className="animate-fadeIn motion-reduce:animate-none [animation-delay:170ms] [animation-fill-mode:backwards] mt-8 flex flex-col sm:flex-row gap-3"
+            >
               <Link
                 to="/register"
-                className="inline-flex items-center justify-center bg-accent-500 hover:bg-accent-600 text-white text-[15px] font-bold px-7 py-4 rounded-xl transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                className="inline-flex items-center justify-center bg-accent-500 hover:bg-accent-600 text-white text-[15px] font-bold px-7 py-4 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] motion-reduce:hover:scale-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
               >
                 ابدأ تجربتك المجانية
               </Link>
@@ -362,12 +371,14 @@ function Hero() {
               </a>
             </div>
 
-            <p className="mt-4 text-[13px] text-white/55">
+            <p
+              className="animate-fadeIn motion-reduce:animate-none [animation-delay:230ms] [animation-fill-mode:backwards] mt-4 text-[13px] text-white/55"
+            >
               من غير بطاقة بنكية · الإلغاء في أي وقت · مفيش عمولة على حجوزاتك
             </p>
           </div>
 
-          <div className="lg:col-span-5">
+          <div className="animate-fadeIn motion-reduce:animate-none [animation-delay:140ms] [animation-fill-mode:backwards] lg:col-span-5">
             <BookingPhoneDemo />
             <p className="mt-4 text-center text-[11.5px] text-white/45 leading-relaxed max-w-[280px] mx-auto">
               دي صفحة الحجز الحقيقية زي ما عميلك بيشوفها · الأسماء والأسعار للعرض بس
@@ -392,24 +403,24 @@ function TrustStrip() {
               مبني للأنشطة اللي شغالة بمواعيد
             </p>
             <ul className="flex flex-wrap gap-2">
-              {VERTICALS.map((v) => (
-                <li key={v.label}>
+              {VERTICALS.map((v, i) => (
+                <Reveal as="li" key={v.label} delay={i * 60}>
                   <Link
                     to={v.to}
-                    className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-rule text-[13px] font-semibold text-ink hover:border-ink/30 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+                    className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-rule text-[13px] font-semibold text-ink transition-all hover:border-ink/30 hover:-translate-y-0.5 motion-reduce:hover:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
                   >
                     <v.Icon className="w-4 h-4 text-accent-600" aria-hidden="true" />
                     {v.label}
                   </Link>
-                </li>
+                </Reveal>
               ))}
             </ul>
           </div>
 
           <div className="pt-6 border-t border-rule">
             <ul className="grid sm:grid-cols-3 gap-x-10 gap-y-4">
-              {FACTS.map((fact) => (
-                <li key={fact.label} className="flex items-start gap-2">
+              {FACTS.map((fact, i) => (
+                <Reveal as="li" key={fact.label} delay={i * 90} className="flex items-start gap-2">
                   <HiOutlineCheck
                     className="w-4 h-4 text-accent-600 flex-shrink-0 mt-[3px]"
                     aria-hidden="true"
@@ -418,7 +429,7 @@ function TrustStrip() {
                     <p className="text-[13.5px] font-bold text-ink leading-snug">{fact.label}</p>
                     <p className="text-[12px] text-ink-soft mt-0.5">{fact.detail}</p>
                   </div>
-                </li>
+                </Reveal>
               ))}
             </ul>
           </div>
@@ -436,20 +447,20 @@ function Problem() {
       <div className="mt-8 grid lg:grid-cols-12 gap-10">
         <div className="lg:col-span-7">
           <div className="border-t border-rule">
-            {PROBLEMS.map((problem) => (
-              <div key={problem.title} className="py-5 border-b border-rule">
+            {PROBLEMS.map((problem, i) => (
+              <Reveal key={problem.title} delay={i * 90} className="py-5 border-b border-rule">
                 <h3 className="text-[15.5px] font-bold text-ink">{problem.title}</h3>
                 <p className="mt-1.5 text-[14.5px] leading-[1.8] text-ink-soft max-w-[62ch]">
                   {problem.desc}
                 </p>
-              </div>
+              </Reveal>
             ))}
           </div>
 
         </div>
 
         {/* The product's own loss card, with the numbers labelled as an example */}
-        <div className="lg:col-span-5">
+        <Reveal as="div" delay={150} className="lg:col-span-5">
           <div className="rounded-2xl border border-rule overflow-hidden bg-white" dir="rtl">
             <div className="px-5 py-3 border-b border-rule bg-paper flex items-center justify-between gap-3">
               <p className="text-[12px] font-bold text-ink">كارت خسارة الشهر</p>
@@ -478,14 +489,17 @@ function Problem() {
             الأرقام دي مثال ومش بيانات أي عميل. النظام بيحسبها من مواعيدك ومتوسط سعر خدماتك
             انت، وبتلاقيها في صفحة التقارير.
           </IllustrativeNote>
-        </div>
+        </Reveal>
       </div>
 
       {/* The cost line closes the section across its full width — as a column
           it left a large empty band beside the shorter loss card. */}
-      <p className="mt-12 pt-8 border-t border-rule text-[19px] sm:text-[22px] font-bold text-ink leading-[1.6] max-w-[44ch]">
+      <Reveal
+        delay={250}
+        className="mt-12 pt-8 border-t border-rule text-[19px] sm:text-[22px] font-bold text-ink leading-[1.6] max-w-[44ch]"
+      >
         كل مريض ما جاش = كشف ضايع ووقت ضايع.
-      </p>
+      </Reveal>
     </Section>
   )
 }
@@ -508,7 +522,7 @@ function TourHighlights() {
 function FinalCta() {
   return (
     <section className="bg-ink-deep text-white border-t border-white/10">
-      <div className="max-w-6xl mx-auto px-5 sm:px-8 py-16 sm:py-20 text-center">
+      <Reveal className="max-w-6xl mx-auto px-5 sm:px-8 py-16 sm:py-20 text-center">
         <h2 className="text-[24px] sm:text-[32px] font-bold leading-[1.3] text-balance max-w-[34ch] mx-auto">
           جرّبه 14 يوم على مواعيدك الحقيقية
         </h2>
@@ -519,7 +533,7 @@ function FinalCta() {
         <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
           <Link
             to="/register"
-            className="inline-flex items-center justify-center bg-accent-500 hover:bg-accent-600 text-white text-[15px] font-bold px-8 py-4 rounded-xl transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            className="inline-flex items-center justify-center bg-accent-500 hover:bg-accent-600 text-white text-[15px] font-bold px-8 py-4 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] motion-reduce:hover:scale-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
           >
             ابدأ تجربتك المجانية
           </Link>
@@ -533,7 +547,7 @@ function FinalCta() {
             اسألنا على واتساب
           </a>
         </div>
-      </div>
+      </Reveal>
     </section>
   )
 }

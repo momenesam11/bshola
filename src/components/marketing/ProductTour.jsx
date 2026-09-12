@@ -302,11 +302,16 @@ export default function ProductTour({ id }) {
           })}
         </div>
 
+        {/* Keyed by tab id so switching tabs remounts this block and replays
+            the existing fadeIn keyframe (tailwind.config.js) — a quick
+            crossfade instead of an abrupt swap. motion-reduce drops it to an
+            instant switch. */}
         <div
+          key={tab.id}
           role="tabpanel"
           id={`tour-panel-${tab.id}`}
           aria-labelledby={`tour-tab-${tab.id}`}
-          className="mt-6 grid lg:grid-cols-5 gap-7 lg:gap-10 items-start"
+          className="animate-fadeIn motion-reduce:animate-none mt-6 grid lg:grid-cols-5 gap-7 lg:gap-10 items-start"
         >
           <div className="lg:col-span-3">{tab.render()}</div>
           <div className="lg:col-span-2">
