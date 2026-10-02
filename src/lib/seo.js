@@ -2,7 +2,10 @@
 // Every public page pulls its meta/schema from here so titles, canonicals
 // and structured data can never drift apart across routes.
 
-export const SITE_URL = 'https://beshola.co'
+// The live site serves from www — the apex 308-redirects there — so every
+// canonical, og:url and sitemap entry must use www or Google is told the real
+// page is a URL that redirects away.
+export const SITE_URL = 'https://www.beshola.co'
 export const SITE_NAME = 'بسهولة'
 export const SITE_LOCALE = 'ar_EG'
 export const DEFAULT_OG_IMAGE = `${SITE_URL}/og-image.png`
@@ -73,20 +76,24 @@ export function softwareApplicationSchema() {
     url: SITE_URL,
     inLanguage: 'ar',
     description:
-      'نظام حجز مواعيد وإدارة عملاء أونلاين بتذكير واتساب أوتوماتيك، يناسب العيادات والصالونات ومراكز اللياقة والمراكز التعليمية وحجز الملاعب.',
+      'نظام حجز مواعيد وإدارة عملاء أونلاين بتذكير واتساب من رقمك بضغطة زر، يناسب العيادات والصالونات ومراكز اللياقة والمراكز التعليمية وحجز الملاعب.',
+    // Same rules as the visible page (MARKETING_CLAIMS.md §8): no "automatic"
+    // reminders and no staff management — Google shows this text too.
     featureList: [
       'صفحة حجز أونلاين برابط خاص بكل بيزنس',
-      'تذكير مواعيد تلقائي بالواتساب',
+      'تذكير مواعيد بالواتساب من رقمك بضغطة زر',
+      'قائمة انتظار',
       'ملف عميل كامل بتاريخ الزيارات',
-      'تقارير أداء ودخل يومية وشهرية',
-      'إدارة فروع متعددة وموظفين',
-      'إدارة اشتراكات وخطط العملاء',
+      'تقارير الحضور والغياب وتصدير CSV',
+      'إدارة فروع متعددة',
+      'خطة زيارات وكشف حساب لكل عميل',
     ],
     offers: {
       '@type': 'AggregateOffer',
       priceCurrency: 'EGP',
-      lowPrice: 200,
-      highPrice: 299,
+      // Derived so the range always brackets the Offer prices listed below.
+      lowPrice: Math.min(...PLANS.map((p) => p.price)),
+      highPrice: Math.max(...PLANS.map((p) => p.price)),
       offerCount: PLANS.length,
       offers: PLANS.map((p) => ({
         '@type': 'Offer',

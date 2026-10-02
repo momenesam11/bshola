@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { HiOutlineCheck } from 'react-icons/hi2'
 
 import Seo from '../../components/seo/Seo'
+import { HOME_META } from '../../content/pageMeta'
 import Nav from '../../components/marketing/Nav'
 import Footer from '../../components/marketing/Footer'
 import FinalCta from '../../components/marketing/FinalCta'
@@ -256,9 +257,9 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-paper text-ink font-sans antialiased" dir="rtl">
       <Seo
-        title="بسهولة — نظام حجز مواعيد وإدارة عملاء للعيادات والصالونات"
-        description="نظام حجز مواعيد عربي بالكامل: صفحة حجز برابط خاص بيك، قائمة انتظار، تذكير واتساب من رقمك، ملف عميل وتقارير. اشتراك ثابت بدون عمولة و14 يوم تجربة بدون بطاقة بنكية."
-        path="/"
+        title={HOME_META.title}
+        description={HOME_META.description}
+        path={HOME_META.path}
         schemas={[
           organizationSchema(),
           websiteSchema(),

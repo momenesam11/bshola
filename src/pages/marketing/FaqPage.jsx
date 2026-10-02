@@ -1,4 +1,5 @@
 import Seo from '../../components/seo/Seo'
+import { FAQ_META } from '../../content/pageMeta'
 import Nav from '../../components/marketing/Nav'
 import Footer from '../../components/marketing/Footer'
 import FinalCta from '../../components/marketing/FinalCta'
@@ -15,9 +16,9 @@ export default function FaqPage() {
   return (
     <div className="min-h-screen bg-paper text-ink font-sans antialiased" dir="rtl">
       <Seo
-        title="الأسئلة الشائعة عن بسهولة"
-        description="إجابات مباشرة: إزاي تعمل حساب، هل التذكير تلقائي، فيه عمولة، بياناتك آمنة إزاي، ولو وقفت الاشتراك بياناتك بتروح فين."
-        path="/faq"
+        title={FAQ_META.title}
+        description={FAQ_META.description}
+        path={FAQ_META.path}
         schemas={[
           organizationSchema(),
           faqSchema(FAQS),

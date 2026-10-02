@@ -82,7 +82,7 @@ export default function MonthlyLossCard({ businessId, hasReminders }) {
         <div className="px-6 py-4 bg-amber-50 border-t border-amber-100 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-sm text-amber-700">
             <HiOutlineBell className="w-4 h-4 flex-shrink-0" />
-            <span>التذكير التلقائي غير مفعّل — أنت بتخسر بلاش</span>
+            <span>تذكير الواتساب مش متفعّل — أنت بتخسر بلاش</span>
           </div>
           <button
             onClick={() => navigate('/settings')}

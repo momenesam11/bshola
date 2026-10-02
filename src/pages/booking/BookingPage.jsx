@@ -25,6 +25,7 @@ import { usePublicBusiness, usePublicServices, usePublicBranches, isBusinessLock
 import { useBookedSlotCounts, useCreateAppointment } from '../../hooks/useAppointments'
 import { bookingClientSchema } from '../../lib/validators'
 import { supabase } from '../../lib/supabase'
+import { absoluteUrl } from '../../lib/seo'
 import {
   getDayKey, getSlotsWithAvailabilityForDay, getSlotsWithAvailability, branchHasScheduleBlocks,
   formatTime12, toISODateString,
@@ -386,7 +387,7 @@ export default function BookingPage() {
       <Helmet>
         <title>{business?.name ? `احجز موعدك عند ${business.name} — بسهولة` : 'احجز موعدك — بسهولة'}</title>
         <meta name="description" content={business?.bio || `احجز موعدك بسهولة عند ${business?.name || ''}`} />
-        <link rel="canonical" href={`https://beshola.co/book/${businessSlug}`} />
+        <link rel="canonical" href={absoluteUrl(`/book/${businessSlug}`)} />
         <meta name="robots" content="index, follow" />
       </Helmet>
       {/* Hero */}

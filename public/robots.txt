@@ -20,4 +20,4 @@ Disallow: /forgot-password
 Disallow: /reset-password
 Disallow: /auth/callback
 
-Sitemap: https://beshola.co/sitemap.xml
+Sitemap: https://www.beshola.co/sitemap.xml

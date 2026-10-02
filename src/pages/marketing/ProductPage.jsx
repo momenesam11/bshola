@@ -1,4 +1,5 @@
 import Seo from '../../components/seo/Seo'
+import { PRODUCT_META } from '../../content/pageMeta'
 import Nav from '../../components/marketing/Nav'
 import Footer from '../../components/marketing/Footer'
 import FinalCta from '../../components/marketing/FinalCta'
@@ -43,9 +44,9 @@ export default function ProductPage() {
   return (
     <div className="min-h-screen bg-paper text-ink font-sans antialiased" dir="rtl">
       <Seo
-        title="المنتج — جولة في نظام بسهولة ومقارنة بالبدائل"
-        description="جولة تفاعلية في نظام بسهولة: الحجز والمواعيد، تذكير الواتساب، متابعة العملاء، الملف الطبي، التقارير — ومقارنة صريحة بمنصات الحجز العالمية."
-        path="/product"
+        title={PRODUCT_META.title}
+        description={PRODUCT_META.description}
+        path={PRODUCT_META.path}
         schemas={[
           organizationSchema(),
           softwareApplicationSchema(),
