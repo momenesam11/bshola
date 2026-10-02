@@ -6,6 +6,7 @@ import { Analytics } from '@vercel/analytics/react'
 import { supabase } from './lib/supabase'
 import { BranchProvider } from './context/BranchContext'
 import TrialGuard from './middleware/TrialGuard'
+import { syncTrackingForPath, trackSupportWhatsAppClicks } from './lib/tracking'
 
 // The whole logged-in app used to ship in the first chunk, so a visitor landing
 // on a marketing page downloaded the dashboard, CRM and reports before seeing
@@ -64,6 +65,14 @@ function ScrollToTop() {
     window.scrollTo(0, 0)
     return undefined
   }, [pathname, hash])
+  return null
+}
+
+/** GA4 page_view per route + support-WhatsApp clicks (see lib/tracking.js). */
+function RouteTracker() {
+  const { pathname } = useLocation()
+  useEffect(() => trackSupportWhatsAppClicks(), [])
+  useEffect(() => syncTrackingForPath(pathname), [pathname])
   return null
 }
 
@@ -126,6 +135,7 @@ export default function App() {
     <HelmetProvider>
     <BrowserRouter>
         <ScrollToTop />
+        <RouteTracker />
         <Toaster
           position="bottom-left"
           toastOptions={{

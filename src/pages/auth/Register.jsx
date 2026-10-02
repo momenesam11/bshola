@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { supabase } from '../../lib/supabase'
+import { trackEvent } from '../../lib/tracking'
 import { registerSchema, getPasswordStrength } from '../../lib/validators'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
@@ -35,6 +36,7 @@ export default function Register() {
       }
       return
     }
+    trackEvent('sign_up', { method: 'email' })
     // If session is null, email confirmation is required
     if (!data.session) {
       setSuccess(true)

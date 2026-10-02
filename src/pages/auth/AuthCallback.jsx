@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { supabase } from '../../lib/supabase'
+import { trackEvent } from '../../lib/tracking'
 
 export default function AuthCallback() {
   const navigate = useNavigate()
@@ -21,6 +22,11 @@ export default function AuthCallback() {
         .eq('owner_id', user.id)
         .maybeSingle()
       if (cancelled) return
+      // Email sign-ups are counted in Register.jsx; a Google sign-up never
+      // passes through there, so its first landing without a business is it.
+      if (!business && user.app_metadata?.provider === 'google') {
+        trackEvent('sign_up', { method: 'google' })
+      }
       navigate(business ? '/dashboard' : '/onboarding', { replace: true })
     }
 

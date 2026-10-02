@@ -146,6 +146,7 @@
 | زر حذف الحساب نهائياً | `src/pages/settings/Settings.jsx:716-718` («منطقة الخطر») |
 | الاشتراك والتجديد بالتنسيق على واتساب والتفعيل إداري | `src/pages/admin/AdminDashboard.jsx:118-124` (رسالة التجديد) · `supabase/migrations/012_trial_system.sql:39` (صلاحية التفعيل للأدمن) |
 | قياس زيارات مجمّع بـVercel Analytics | `src/App.jsx` (`<Analytics />` من `@vercel/analytics/react`) |
+| Google Analytics على صفحات الموقع والتسجيل بس، مش جوه النظام ولا على صفحات الحجز | `src/lib/tracking.js` (`UNTRACKED_PREFIXES` · علامة `ga-disable-` · `page_view` يدوي) |
 | محتوى محادثات الواتساب مش بيمر علينا | الرسالة تتكوّن على جهاز المستخدم وتُفتح في تطبيقه — `src/lib/whatsapp.js:45-48`؛ اللي بيتخزن هو `reminder_sent` فقط — `TomorrowReminders.jsx:105` |
 | مفيش بيانات بطاقات بنكية | صفر تكامل مدفوعات في المستودع — §8 |
 
