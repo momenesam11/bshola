@@ -25,7 +25,7 @@ import { usePublicBusiness, usePublicServices, usePublicBranches, isBusinessLock
 import { useBookedSlotCounts, useCreateAppointment } from '../../hooks/useAppointments'
 import { bookingClientSchema } from '../../lib/validators'
 import { supabase } from '../../lib/supabase'
-import { absoluteUrl } from '../../lib/seo'
+import Seo from '../../components/seo/Seo'
 import {
   getDayKey, getSlotsWithAvailabilityForDay, getSlotsWithAvailability, branchHasScheduleBlocks,
   formatTime12, toISODateString,
@@ -384,12 +384,15 @@ export default function BookingPage() {
   // Main booking flow
   return (
     <div className="min-h-screen bg-gray-50" dir="rtl">
-      <Helmet>
-        <title>{business?.name ? `احجز موعدك عند ${business.name} — بسهولة` : 'احجز موعدك — بسهولة'}</title>
-        <meta name="description" content={business?.bio || `احجز موعدك بسهولة عند ${business?.name || ''}`} />
-        <link rel="canonical" href={absoluteUrl(`/book/${businessSlug}`)} />
-        <meta name="robots" content="index, follow" />
-      </Helmet>
+      {/* Seo (not a bare Helmet) so index.html's static canonical — which
+          points at the home page — is removed; with both present Google read
+          every booking page as an alternate of "/". */}
+      <Seo
+        title={business?.name ? `احجز موعدك عند ${business.name} — بسهولة` : 'احجز موعدك — بسهولة'}
+        description={business?.bio || `احجز موعدك بسهولة عند ${business?.name || ''}`}
+        path={`/book/${businessSlug}`}
+        image={business?.cover_url || undefined}
+      />
       {/* Hero */}
       <div className="relative">
         <div className="h-[200px] w-full relative" style={{
