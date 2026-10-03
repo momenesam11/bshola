@@ -5,7 +5,7 @@ const rpc = async (db, sql, params) => (await db.query(sql, params)).rows[0]
 
 describe('032_growth_engine migration', () => {
   it('applies, rolls back cleanly, and re-applies', async () => {
-    const db = await freshDb()
+    const db = await freshDb({ migrate: '032' })
     const tables = async () =>
       (await db.query(`SELECT tablename FROM pg_tables WHERE tablename LIKE 'growth_%' ORDER BY 1`)).rows.map((r) => r.tablename)
     expect(await tables()).toEqual(['growth_activities', 'growth_leads', 'growth_partners', 'growth_settings'])
@@ -281,7 +281,7 @@ describe('growth_sync_platform', () => {
     await createUser(db, 'justnow@x.com')
 
     const r = (await one(db, 'SELECT growth_sync_platform() AS r')).r
-    expect(r).toEqual({ created: 3, updated: 0, signup_incomplete: 1 })
+    expect(r).toEqual({ created: 3, updated: 0, signup_incomplete: 1, qualified: 0 })
 
     const t = await one(db, 'SELECT * FROM growth_leads WHERE business_id = $1', [trial.id])
     expect(t).toMatchObject({ stage: 'trial', source: 'organic_signup', email: 'trial@x.com' })
@@ -295,7 +295,7 @@ describe('growth_sync_platform', () => {
     expect(stuck).toMatchObject({ email: 'stuck@x.com', stage: 'new' })
 
     // Idempotent: a second run changes nothing and duplicates no signal.
-    expect((await one(db, 'SELECT growth_sync_platform() AS r')).r).toEqual({ created: 0, updated: 0, signup_incomplete: 0 })
+    expect((await one(db, 'SELECT growth_sync_platform() AS r')).r).toEqual({ created: 0, updated: 0, signup_incomplete: 0, qualified: 0 })
     const again = await one(db, 'SELECT signals FROM growth_leads WHERE business_id = $1', [trial.id])
     expect(again.signals).toHaveLength(1)
   })

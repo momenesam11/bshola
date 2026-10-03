@@ -187,3 +187,50 @@ export async function attributeSignup() {
     // The nightly sync still creates the lead (as an organic signup).
   }
 }
+
+// ── Partner commissions & the "real clinic" check (migration 033) ─────────
+
+export function useQualifyStatus(businessId) {
+  return useQuery({
+    queryKey: [...KEY, 'qualify', businessId],
+    queryFn: async () => (await callGrowth('qualify_status', { businessId })).check,
+    enabled: !!businessId && hasAdminToken(),
+  })
+}
+
+export function useQualifyLead() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ leadId, manual }) => callGrowth('qualify_lead', { leadId, manual }),
+    onSuccess: ({ lead }) => {
+      patchLead(qc, lead)
+      // A qualification can create a commission — refetch the list for it.
+      qc.invalidateQueries({ queryKey: KEY, exact: true })
+      qc.invalidateQueries({ queryKey: [...KEY, 'activities', lead.id] })
+    },
+  })
+}
+
+export function useSetCommissionStatus() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, status, note }) => (await callGrowth('set_commission_status', { id, status, note })).commission,
+    onSuccess: (commission) =>
+      qc.setQueryData(KEY, (old) =>
+        old ? { ...old, commissions: old.commissions.map((c) => (c.id === commission.id ? commission : c)) } : old),
+  })
+}
+
+/** Public: a partner's own dashboard, by the secret token in their link. */
+export function usePartnerDashboard(token) {
+  return useQuery({
+    queryKey: ['partner-dashboard', token],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('growth_partner_dashboard', { p_token: token })
+      if (error) throw error
+      return data
+    },
+    enabled: !!token,
+    retry: false,
+  })
+}

@@ -58,12 +58,25 @@ export const labelers = {
   sales_angle: (k) => SALES_ANGLES[k]?.label ?? k,
 }
 
-/** Paid leads per partner and the commission owed. */
-export function partnerCommissions(leads, partners) {
+/**
+ * Per partner: how far their clinics got, and money by commission status
+ * (rows from growth_commissions, migration 033). Test accounts never count.
+ */
+export function partnerCommissions(leads, partners, commissions = []) {
+  const sum = (rows) => rows.reduce((s, c) => s + Number(c.amount_egp || 0), 0)
   return partners.map((p) => {
-    const mine = leads.filter((l) => l.partner_id === p.id)
-    const paid = mine.filter(REACHED.paid).length
-    return { partner: p, leads: mine.length, trial: mine.filter(REACHED.trial).length, paid, owed: paid * Number(p.commission_egp || 0) }
+    const mine = leads.filter((l) => l.partner_id === p.id && !l.is_test)
+    const theirs = commissions.filter((c) => c.partner_id === p.id)
+    return {
+      partner: p,
+      leads: mine.length,
+      registered: mine.filter((l) => l.business_id).length,
+      qualified: mine.filter((l) => l.qualified_at).length,
+      paid: mine.filter(REACHED.paid).length,
+      pending: sum(theirs.filter((c) => c.status === 'pending')),
+      approved: sum(theirs.filter((c) => c.status === 'approved')),
+      paidOut: sum(theirs.filter((c) => c.status === 'paid')),
+    }
   })
 }
 
@@ -71,7 +84,9 @@ export function partnerCommissions(leads, partners) {
 export function referralRewards(leads) {
   const byReferrer = new Map()
   for (const l of leads) {
-    if (!l.referrer_business_id || !REACHED.paid(l)) continue
+    if (!l.referrer_business_id || l.is_test || !REACHED.paid(l)) continue
+    // A referrer that is one of the owner's own test accounts earns nothing.
+    if (leads.some((x) => x.business_id === l.referrer_business_id && x.is_test)) continue
     byReferrer.set(l.referrer_business_id, [...(byReferrer.get(l.referrer_business_id) ?? []), l])
   }
   return [...byReferrer.entries()].map(([businessId, referred]) => ({

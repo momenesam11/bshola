@@ -23,6 +23,7 @@ const SUPABASE_STUB = `
   CREATE TABLE auth.users (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     email text,
+    raw_user_meta_data jsonb NOT NULL DEFAULT '{}'::jsonb,
     created_at timestamptz NOT NULL DEFAULT now()
   );
   CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$
@@ -47,6 +48,13 @@ const SUPABASE_STUB = `
     subscription_type text DEFAULT 'trial',
     activated_at timestamptz
   );
+  CREATE TABLE appointments (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    business_id uuid NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+    client_name text NOT NULL DEFAULT 'عميل',
+    client_phone text NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now()
+  );
   GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
   GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;
 `
@@ -56,6 +64,7 @@ export async function freshDb({ migrate = true } = {}) {
   await db.exec(SUPABASE_STUB)
   if (migrate) {
     await db.exec(readSql('supabase/migrations/032_growth_engine.sql'))
+    if (migrate !== '032') await db.exec(readSql('supabase/migrations/033_growth_commissions.sql'))
     // Supabase grants the service role everything on new tables by default.
     await db.exec('GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;')
   }
@@ -71,10 +80,10 @@ export async function as(db, role, fn, userId = null) {
   })
 }
 
-export async function createUser(db, email, createdAt = null) {
+export async function createUser(db, email, createdAt = null, meta = {}) {
   const { rows } = await db.query(
-    `INSERT INTO auth.users (email, created_at) VALUES ($1, coalesce($2::timestamptz, now())) RETURNING id`,
-    [email, createdAt]
+    `INSERT INTO auth.users (email, created_at, raw_user_meta_data) VALUES ($1, coalesce($2::timestamptz, now()), $3::jsonb) RETURNING id`,
+    [email, createdAt, JSON.stringify(meta)]
   )
   return rows[0].id
 }

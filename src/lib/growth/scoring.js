@@ -165,7 +165,7 @@ export function buildQueue(leads, { weights, targetAreas, now = Date.now() } = {
   endOfToday.setHours(23, 59, 59, 999)
 
   return leads
-    .filter((l) => !CLOSED_STAGES.includes(l.stage))
+    .filter((l) => !l.is_test && !CLOSED_STAGES.includes(l.stage))
     .filter((l) => (l.phone || l.email) && (!l.next_follow_up_at || new Date(l.next_follow_up_at) <= endOfToday))
     .map((lead) => {
       const { total, parts } = scoreLead(lead, { weights, targetAreas, now })

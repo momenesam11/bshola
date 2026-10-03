@@ -9,7 +9,7 @@ import { openingMessage, followUpMessage, CALL_SCRIPT } from '../../../lib/growt
 import { displayPhone, whatsappLink, telLink } from '../../../lib/growth/phone'
 import { registerLink, previewLink } from '../../../lib/growth/links'
 import { defaultPreview, PREVIEW_COLORS } from '../../../lib/growth/preview'
-import { useLeadActivities, useLogActivity, useSaveLead, useDeleteLead } from '../../../hooks/useGrowth'
+import { useLeadActivities, useLogActivity, useSaveLead, useDeleteLead, useQualifyLead, useQualifyStatus } from '../../../hooks/useGrowth'
 import ConfirmDialog from '../../../components/ui/ConfirmDialog'
 import LeadForm from './LeadForm'
 import { Btn, Card, Field, ScoreBadge, ScoreBar, StageBadge } from './ui'
@@ -76,6 +76,7 @@ export default function LeadDrawer({ lead, leads, partners, settings, onClose })
           )}
 
           <Recommendation recommended={recommended} />
+          <AccountCard lead={lead} />
           <Composer lead={lead} recommended={recommended} />
           <OutcomeLogger lead={lead} angle={recommended.key} />
           <CallScript lead={lead} angle={recommended.key} />
@@ -185,6 +186,17 @@ function Composer({ lead, recommended }) {
   const text = edits[editKey] ?? generated
   const setText = (value) => setEdits((e) => ({ ...e, [editKey]: value }))
 
+  async function sendEmail() {
+    const subject = `صفحة حجز أونلاين لـ ${lead.name}`
+    window.location.href = `mailto:${lead.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}`
+    try {
+      await log.mutateAsync({ leadId: lead.id, kind: 'email', outcome: 'sent', salesAngle: angle, note: text })
+      toast.success('اتسجّل إنك بعتّ إيميل — المتابعة بعد يومين')
+    } catch (e) {
+      toast.error(e.message)
+    }
+  }
+
   async function send() {
     const url = whatsappLink(lead.phone, text)
     if (!url) return toast.error('مفيش رقم')
@@ -217,11 +229,20 @@ function Composer({ lead, recommended }) {
       )}
       <textarea className={`${inputClass} min-h-[150px] leading-relaxed`} value={text} onChange={(e) => setText(e.target.value)} />
       <div className="flex flex-wrap gap-2 mt-2">
-        <Btn tone="whatsapp" onClick={send} disabled={!lead.phone || log.isPending}>
-          <FaWhatsapp className="w-4 h-4" /> افتح الواتساب وابعت
-        </Btn>
+        {lead.phone ? (
+          <Btn tone="whatsapp" onClick={send} disabled={log.isPending}>
+            <FaWhatsapp className="w-4 h-4" /> افتح الواتساب وابعت
+          </Btn>
+        ) : lead.email ? (
+          <Btn tone="primary" onClick={sendEmail} disabled={log.isPending}>✉️ مفيش رقم — ابعت إيميل</Btn>
+        ) : null}
         <Btn onClick={() => copyText(text)}>نسخ</Btn>
       </div>
+      {!lead.phone && (
+        <p className="text-[11px] text-amber-700 mt-2">
+          مفيش رقم للعميل ده (غالباً سجّل قبل ما نبدأ نحفظ الرقم وقت التسجيل). ابعتله إيميل يطلب رقمه، ولما تعرفه ضيفه من ✏️ فوق.
+        </p>
+      )}
       <p className="text-[11px] text-gray-400 mt-2">الرسالة بتتفتح في الواتساب بتاعك وإنت اللي بتضغط إرسال — النظام مش بيبعت حاجة لوحده.</p>
     </Card>
   )
@@ -449,8 +470,11 @@ function PreviewEditor({ lead }) {
       {enabled && (
         <div className="flex flex-wrap items-center gap-2 mb-3 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
           <span className="text-xs font-bold text-emerald-700">شغالة:</span>
-          <a href={link} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline font-mono truncate" dir="ltr">{link}</a>
-          <Btn tone="ghost" className="!py-1" onClick={() => copyText(link)}>نسخ</Btn>
+          <span className="text-xs text-gray-600 font-mono truncate" dir="ltr">{link}</span>
+          {/* Relative, so it also opens on localhost / preview builds; the
+              copied link is always the real domain the clinic will get. */}
+          <a href={`/demo/${lead.ref_code}`} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-blue-600 hover:underline">👁️ افتحها</a>
+          <Btn tone="ghost" className="!py-1" onClick={() => copyText(link)}>نسخ اللينك</Btn>
         </div>
       )}
       <div className="grid grid-cols-2 gap-2">
@@ -516,6 +540,72 @@ function Timeline({ lead }) {
             </li>
           ))}
         </ol>
+      )}
+    </Card>
+  )
+}
+
+/** Test-account flag + "is this a real clinic?" (migration 033). */
+function AccountCard({ lead }) {
+  const save = useSaveLead()
+  const qualify = useQualifyLead()
+  const { data: check } = useQualifyStatus(lead.business_id)
+
+  async function toggleTest() {
+    try {
+      await save.mutateAsync({ id: lead.id, lead: { is_test: !lead.is_test } })
+      toast.success(lead.is_test ? 'رجع عميل عادي' : 'اتعلّم حساب تجربة — اختفى من القايمة والأرقام')
+    } catch (e) {
+      toast.error(e.message)
+    }
+  }
+
+  async function manualQualify() {
+    try {
+      await qualify.mutateAsync({ leadId: lead.id, manual: true })
+      toast.success('اتأكدت — لو جه من شريك، مكافأة التسجيل اتحسبت له')
+    } catch (e) {
+      toast.error(e.message)
+    }
+  }
+
+  return (
+    <Card title="🧾 الحساب">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="text-sm">
+          {lead.is_test ? (
+            <span className="font-bold text-gray-500">🧪 حساب تجربة — مش بيظهر في القايمة ولا الأرقام ولا العمولات</span>
+          ) : (
+            <span className="text-gray-600">عميل حقيقي</span>
+          )}
+        </div>
+        <Btn tone="ghost" onClick={toggleTest} disabled={save.isPending}>
+          {lead.is_test ? 'رجّعه عميل عادي' : '🧪 ده حساب تجربة'}
+        </Btn>
+      </div>
+
+      {lead.business_id && !lead.is_test && (
+        <div className="mt-3 pt-3 border-t border-gray-100 text-sm">
+          {lead.qualified_at ? (
+            <p className="text-emerald-700 font-semibold">
+              ✅ عيادة حقيقية — {lead.qualified_by === 'admin' ? 'إنت أكّدتها' : 'عندها حجوزات من عملاء حقيقيين'} ({formatDateTime(lead.qualified_at)})
+            </p>
+          ) : (
+            <>
+              <p className="text-gray-700">
+                ⏳ لسه مااتأكدناش إنها عيادة حقيقية.
+                {check && (
+                  <span className="text-gray-500">
+                    {' '}حجوزات: <b>{check.appointments}/{check.need_appointments}</b> · عملاء مختلفين: <b>{check.clients}/{check.need_clients}</b>
+                    {check.shared_owner_phone && <b className="text-red-600"> · رقم صاحبها مستخدم في حساب تاني ⚠️</b>}
+                  </span>
+                )}
+              </p>
+              <p className="text-[11px] text-gray-400 mt-1">بتتأكد لوحدها لما توصل للعدد ده (كل ليلة)، أو أكّدها بإيدك بعد ما تكلّمهم.</p>
+              <Btn className="mt-2" onClick={manualQualify} disabled={qualify.isPending}>✅ كلّمتهم — عيادة حقيقية</Btn>
+            </>
+          )}
+        </div>
       )}
     </Card>
   )

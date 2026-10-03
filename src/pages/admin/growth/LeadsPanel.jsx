@@ -20,11 +20,14 @@ export default function LeadsPanel({ leads, settings, onOpen }) {
   const [source, setSource] = useState('')
   const [category, setCategory] = useState('')
   const [sort, setSort] = useState('score')
+  const [showTests, setShowTests] = useState(false)
+  const testCount = leads.filter((l) => l.is_test).length
 
   const rows = useMemo(() => {
     const needle = q.trim().toLowerCase()
     const phoneNeedle = normalizePhone(q) ?? q.replace(/[^0-9]/g, '')
     return leads
+      .filter((l) => showTests || !l.is_test)
       .filter((l) => !stage || l.stage === stage)
       .filter((l) => !source || l.source === source)
       .filter((l) => !category || l.category === category)
@@ -38,7 +41,7 @@ export default function LeadsPanel({ leads, settings, onOpen }) {
       )
       .map((lead) => ({ lead, score: scoreLead(lead, { weights: settings?.weights, targetAreas: settings?.target_areas }).total }))
       .sort(SORTS[sort].fn)
-  }, [leads, q, stage, source, category, sort, settings])
+  }, [leads, q, stage, source, category, sort, settings, showTests])
 
   return (
     <Card>
@@ -65,7 +68,15 @@ export default function LeadsPanel({ leads, settings, onOpen }) {
       </div>
 
       <div className="flex items-center justify-between mb-2">
-        <p className="text-xs text-gray-500">{rows.length} من {leads.length}</p>
+        <div className="flex items-center gap-3">
+          <p className="text-xs text-gray-500">{rows.length} من {leads.length}</p>
+          {testCount > 0 && (
+            <label className="text-xs text-gray-500 flex items-center gap-1.5 cursor-pointer">
+              <input type="checkbox" checked={showTests} onChange={(e) => setShowTests(e.target.checked)} className="accent-gray-700" />
+              اعرض حسابات التجربة ({testCount})
+            </label>
+          )}
+        </div>
         <Btn tone="ghost" onClick={() => downloadCsv(`beshola-leads-${new Date().toISOString().slice(0, 10)}.csv`, leadsToCsv(rows.map((r) => r.lead)))}>
           ⬇️ تصدير Excel
         </Btn>
@@ -92,12 +103,12 @@ export default function LeadsPanel({ leads, settings, onOpen }) {
                 <tr key={lead.id} onClick={() => onOpen(lead.id)} className="border-b border-gray-50 hover:bg-gray-50 cursor-pointer">
                   <td className="px-4 py-2.5"><ScoreBadge score={score} /></td>
                   <td className="px-2 py-2.5">
-                    <div className="font-semibold text-gray-900">{lead.name}</div>
+                    <div className="font-semibold text-gray-900">{lead.is_test && '🧪 '}{lead.name}</div>
                     <div className="text-[11px] text-gray-400">{categoryLabel(lead.category)} · {lead.area || lead.city || '—'}</div>
                   </td>
                   <td className="px-2 py-2.5"><StageBadge stage={lead.stage} /></td>
                   <td className="px-2 py-2.5 text-xs text-gray-500">{sourceLabel(lead.source)}</td>
-                  <td className="px-2 py-2.5 text-xs font-mono text-gray-600 whitespace-nowrap" dir="ltr">{displayPhone(lead.phone) || '—'}</td>
+                  <td className="px-2 py-2.5 text-xs font-mono text-gray-600 whitespace-nowrap" dir="ltr">{displayPhone(lead.phone) || (lead.email ? <span className="text-amber-700 font-sans">✉️ إيميل بس</span> : '—')}</td>
                   <td className="px-2 py-2.5 text-xs text-gray-500 whitespace-nowrap">{formatDateTime(lead.next_follow_up_at)}</td>
                   <td className="px-2 py-2.5 text-xs text-gray-400 whitespace-nowrap">{formatDate(lead.created_at)}</td>
                 </tr>

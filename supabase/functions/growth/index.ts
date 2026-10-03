@@ -48,9 +48,10 @@ const LEAD_FIELDS = [
   'phone', 'phone_raw', 'email', 'website', 'instagram', 'facebook', 'google_maps_url',
   'google_place_id', 'google_rating', 'google_reviews_count', 'has_online_booking',
   'source', 'source_detail', 'partner_id', 'stage', 'lost_reason', 'sales_angle',
-  'next_follow_up_at', 'signals', 'notes', 'preview',
+  'next_follow_up_at', 'signals', 'notes', 'preview', 'is_test',
 ]
-const PARTNER_FIELDS = ['name', 'phone', 'kind', 'commission_egp', 'notes', 'active']
+const PARTNER_FIELDS = ['name', 'phone', 'kind', 'signup_bonus_egp', 'commission_pct', 'notes', 'active']
+const COMMISSION_STATUSES = ['pending', 'approved', 'paid', 'rejected']
 
 function pick(obj: Record<string, unknown> | undefined, fields: string[]) {
   const out: Record<string, unknown> = {}
@@ -136,19 +137,22 @@ serve(async (req) => {
   try {
     switch (action) {
       case 'list': {
-        const [leads, partners, settings] = await Promise.all([
+        const [leads, partners, settings, commissions] = await Promise.all([
           supabase.from('growth_leads').select('*').order('created_at', { ascending: false }).limit(5000),
           supabase.from('growth_partners').select('*').order('created_at', { ascending: false }),
           supabase.from('growth_settings').select('*').eq('id', 1).maybeSingle(),
+          supabase.from('growth_commissions').select('*').order('created_at', { ascending: false }),
         ])
         if (leads.error) return dbError(leads.error)
         if (partners.error) return dbError(partners.error)
         if (settings.error) return dbError(settings.error)
+        if (commissions.error) return dbError(commissions.error)
         return json({
           success: true,
           leads: leads.data ?? [],
           partners: partners.data ?? [],
           settings: settings.data,
+          commissions: commissions.data ?? [],
           placesConfigured: !!Deno.env.get('GOOGLE_PLACES_API_KEY'),
         })
       }
@@ -237,10 +241,36 @@ serve(async (req) => {
 
       case 'save_settings': {
         const { settings } = body as { settings?: Record<string, unknown> }
-        const fields = pick(settings, ['weights', 'target_areas', 'places_daily_cap'])
+        const fields = pick(settings, ['weights', 'target_areas', 'places_daily_cap', 'qualify_min_appointments', 'qualify_min_clients'])
         const { data, error } = await supabase.from('growth_settings').update(fields).eq('id', 1).select().single()
         if (error) return dbError(error)
         return json({ success: true, settings: data })
+      }
+
+      case 'qualify_lead': {
+        const { leadId, manual } = body as { leadId?: string; manual?: boolean }
+        if (!leadId) return fail('بيانات ناقصة')
+        const { data: check, error } = await supabase.rpc('growth_qualify_lead', { p_lead_id: leadId, p_manual: !!manual })
+        if (error) return dbError(error)
+        const { data: lead, error: e2 } = await supabase.from('growth_leads').select('*').eq('id', leadId).single()
+        if (e2) return dbError(e2)
+        return json({ success: true, check, lead })
+      }
+
+      case 'qualify_status': {
+        const { businessId } = body as { businessId?: string }
+        if (!businessId) return fail('بيانات ناقصة')
+        const { data, error } = await supabase.rpc('growth_qualify_check', { p_business_id: businessId })
+        if (error) return dbError(error)
+        return json({ success: true, check: data })
+      }
+
+      case 'set_commission_status': {
+        const { id, status, note } = body as { id?: string; status?: string; note?: string }
+        if (!id || !status || !COMMISSION_STATUSES.includes(status)) return fail('بيانات ناقصة')
+        const { data, error } = await supabase.rpc('growth_set_commission_status', { p_id: id, p_status: status, p_note: note ?? null })
+        if (error) return dbError(error)
+        return json({ success: true, commission: data })
       }
 
       case 'places_search': {

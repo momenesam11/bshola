@@ -56,6 +56,7 @@ export default function QueuePanel({ leads, settings, onOpen }) {
                       </p>
                       <p className="text-[11px] text-violet-600 truncate">💡 {angle.label}{angle.basis === 'evidence' ? ` — ${angle.because}` : ''}</p>
                     </button>
+                    {!lead.phone && <span className="hidden sm:inline text-[11px] text-amber-700">✉️ إيميل بس</span>}
                     {lead.phone && (
                       <a href={telLink(lead.phone)} className="hidden sm:inline-flex items-center gap-1 text-xs font-mono text-gray-600 hover:text-accent-700" dir="ltr" title="اتصال">
                         <HiOutlinePhone className="w-3.5 h-3.5" /> {displayPhone(lead.phone)}

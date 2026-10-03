@@ -35,10 +35,14 @@ function Growth() {
   const tab = TABS.some((t) => t.key === params.get('tab')) ? params.get('tab') : 'today'
   const openId = params.get('lead')
 
-  const leads = useMemo(() => data?.leads ?? [], [data])
+  const allLeads = useMemo(() => data?.leads ?? [], [data])
+  // The owner's own test accounts stay listed (to un-flag them) but out of the
+  // queue, the numbers and every reward.
+  const leads = useMemo(() => allLeads.filter((l) => !l.is_test), [allLeads])
+  const commissions = data?.commissions ?? []
   const partners = data?.partners ?? []
   const settings = data?.settings
-  const openLead = openId ? leads.find((l) => l.id === openId) : null
+  const openLead = openId ? allLeads.find((l) => l.id === openId) : null
   const queueCount = useMemo(
     () => buildQueue(leads, { weights: settings?.weights, targetAreas: settings?.target_areas }).length,
     [leads, settings]
@@ -58,7 +62,7 @@ function Growth() {
   async function runSync() {
     try {
       const r = await sync.mutateAsync()
-      toast.success(`اتحدّث: ${r.created} جديد · ${r.updated} اتحدّث · ${r.signup_incomplete} سجّلوا وماكمّلوش`)
+      toast.success(`اتحدّث: ${r.created} جديد · ${r.updated} اتحدّث · ${r.signup_incomplete} سجّلوا وماكمّلوش${r.qualified ? ` · ${r.qualified} اتأكد إنها حقيقية` : ''}`)
     } catch (e) {
       toast.error(e.message)
     }
@@ -109,10 +113,10 @@ function Growth() {
         ) : (
           <>
             {tab === 'today' && <QueuePanel leads={leads} settings={settings} onOpen={open} />}
-            {tab === 'leads' && <LeadsPanel leads={leads} settings={settings} onOpen={open} />}
-            {tab === 'add' && <AddPanel leads={leads} partners={partners} onOpen={open} />}
-            {tab === 'maps' && <PlacesPanel leads={leads} configured={data?.placesConfigured} />}
-            {tab === 'partners' && <PartnersPanel leads={leads} partners={partners} onOpen={open} />}
+            {tab === 'leads' && <LeadsPanel leads={allLeads} settings={settings} onOpen={open} />}
+            {tab === 'add' && <AddPanel leads={allLeads} partners={partners} onOpen={open} />}
+            {tab === 'maps' && <PlacesPanel leads={allLeads} configured={data?.placesConfigured} />}
+            {tab === 'partners' && <PartnersPanel leads={allLeads} partners={partners} commissions={commissions} onOpen={open} />}
             {tab === 'numbers' && <NumbersPanel leads={leads} />}
             {tab === 'settings' && <SettingsPanel key={settings?.places_calls_count} settings={settings} placesConfigured={data?.placesConfigured} />}
           </>
@@ -123,7 +127,7 @@ function Growth() {
         <LeadDrawer
           key={openLead.id}
           lead={openLead}
-          leads={leads}
+          leads={allLeads}
           partners={partners}
           settings={settings}
           onClose={() => update({ lead: null })}

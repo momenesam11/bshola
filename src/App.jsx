@@ -16,6 +16,7 @@ import { captureRefFromUrl } from './lib/refCapture'
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'))
 const GrowthPage = lazy(() => import('./pages/admin/growth/GrowthPage'))
 const DemoPage = lazy(() => import('./pages/marketing/DemoPage'))
+const PartnerDashboardPage = lazy(() => import('./pages/marketing/PartnerDashboardPage'))
 const Login = lazy(() => import('./pages/auth/Login'))
 const Register = lazy(() => import('./pages/auth/Register'))
 const ForgotPassword = lazy(() => import('./pages/auth/ForgotPassword'))
@@ -181,6 +182,7 @@ export default function App() {
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/growth" element={<GrowthPage />} />
           <Route path="/demo/:code" element={<DemoPage />} />
+          <Route path="/partner/:token" element={<PartnerDashboardPage />} />
 
           {/* Protected */}
           <Route path="/onboarding" element={<AuthGuard><OnboardingFlow /></AuthGuard>} />

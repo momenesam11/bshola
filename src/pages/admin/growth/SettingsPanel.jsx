@@ -17,6 +17,8 @@ export default function SettingsPanel({ settings, placesConfigured }) {
   const [weights, setWeights] = useState(() => ({ ...DEFAULT_WEIGHTS, ...(settings?.weights ?? {}) }))
   const [areas, setAreas] = useState(() => (settings?.target_areas ?? []).join('، '))
   const [cap, setCap] = useState(settings?.places_daily_cap ?? 100)
+  const [minAppts, setMinAppts] = useState(settings?.qualify_min_appointments ?? 5)
+  const [minClients, setMinClients] = useState(settings?.qualify_min_clients ?? 3)
   const save = useSaveSettings()
 
   async function submit() {
@@ -25,6 +27,8 @@ export default function SettingsPanel({ settings, placesConfigured }) {
         weights: Object.fromEntries(Object.entries(weights).map(([k, v]) => [k, Math.max(0, Number(v) || 0)])),
         target_areas: areas.split(/[،,\n]/).map((a) => a.trim()).filter(Boolean),
         places_daily_cap: Math.max(0, Math.min(5000, parseInt(cap, 10) || 0)),
+        qualify_min_appointments: Math.max(1, Math.min(500, parseInt(minAppts, 10) || 5)),
+        qualify_min_clients: Math.max(1, Math.min(500, parseInt(minClients, 10) || 3)),
       })
       toast.success('اتحفظ — الترتيب اتحدّث')
     } catch (e) {
@@ -66,6 +70,20 @@ export default function SettingsPanel({ settings, placesConfigured }) {
           <Field label="أقصى عدد بحث في اليوم" hint={`النهارده: ${settings?.places_calls_date ? settings.places_calls_count : 0} بحث. 0 = إيقاف البحث خالص.`}>
             <input type="number" min="0" max="5000" className={inputClass} value={cap} onChange={(e) => setCap(e.target.value)} />
           </Field>
+        </Card>
+        <Card title="✅ إمتى العيادة تتحسب «حقيقية»؟">
+          <p className="text-xs text-gray-500 mb-3 leading-relaxed">
+            عشان مكافأة الشريك ماتتصرفش على تسجيل وهمي: العيادة لازم يجيلها العدد ده من الحجوزات من عملاء مختلفين
+            (مش رقم صاحبها، ورقم صاحبها مش مستخدم في حساب تاني). أو تأكّدها إنت بإيدك من صفحتها.
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="عدد الحجوزات">
+              <input type="number" min="1" max="500" className={inputClass} value={minAppts} onChange={(e) => setMinAppts(e.target.value)} />
+            </Field>
+            <Field label="من كام عميل مختلف">
+              <input type="number" min="1" max="500" className={inputClass} value={minClients} onChange={(e) => setMinClients(e.target.value)} />
+            </Field>
+          </div>
         </Card>
         <Btn tone="primary" className="w-full" onClick={submit} disabled={save.isPending}>{save.isPending ? 'بيتحفظ…' : 'حفظ الإعدادات'}</Btn>
       </div>

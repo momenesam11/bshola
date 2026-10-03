@@ -111,6 +111,7 @@ describe('scoring', () => {
       lead({ id: 'paid', stage: 'paid' }),
       lead({ id: 'dnc', stage: 'do_not_contact' }),
       lead({ id: 'nocontact', phone: null, email: null }),
+      lead({ id: 'test', is_test: true, source: 'contact_form', inbound_at: new Date(now).toISOString() }),
     ]
     expect(buildQueue(leads, { now }).map((q) => q.lead.id)).toEqual(['inbound', 'due', 'cold'])
   })
@@ -202,7 +203,14 @@ describe('analytics', () => {
     expect(bySource.find((g) => g.key === 'contact_form')).toMatchObject({ leads: 2, paid: 1, paidRate: 50 })
   })
   it('computes partner commissions and referral rewards', () => {
-    expect(partnerCommissions(leads, [{ id: 'p1', commission_egp: '150' }])[0]).toMatchObject({ leads: 2, paid: 1, owed: 150 })
+    const commissions = [
+      { partner_id: 'p1', amount_egp: '150', status: 'pending' },
+      { partner_id: 'p1', amount_egp: '60', status: 'paid' },
+      { partner_id: 'p2', amount_egp: '999', status: 'pending' },
+    ]
+    expect(partnerCommissions(leads, [{ id: 'p1' }], commissions)[0]).toMatchObject({ leads: 2, paid: 1, pending: 150, paidOut: 60 })
+    const withTest = [...leads, lead({ id: '7', partner_id: 'p1', is_test: true, stage: 'paid' })]
+    expect(partnerCommissions(withTest, [{ id: 'p1' }])[0].leads).toBe(2)
     expect(referralRewards(leads)).toEqual([{ businessId: 'b9', referrerName: 'المرشِّح', referred: [leads[4]] }])
   })
 })

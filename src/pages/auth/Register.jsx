@@ -24,7 +24,10 @@ export default function Register() {
   async function onSubmit({ email, password, ownerPhone }) {
     setServerError('')
     sessionStorage.setItem('beshola_pending_owner_phone', ownerPhone)
-    const { data, error } = await supabase.auth.signUp({ email, password })
+    // Phone also goes into auth metadata: sessionStorage is lost if they confirm
+    // their email on another device, and someone who never finishes onboarding
+    // is a lead we want to call (growth_sync_platform reads owner_phone).
+    const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { owner_phone: ownerPhone } } })
     if (error) {
       const msg = error.message || ''
       if (msg.includes('already registered') || msg.includes('already been registered')) {
