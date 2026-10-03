@@ -22,6 +22,9 @@ const isToday = (iso) => iso && new Date(iso).toDateString() === new Date().toDa
 /** Today's call list, in the order to work it. */
 export default function QueuePanel({ leads, settings, onOpen }) {
   const [reviewOpen, setReviewOpen] = useState(false)
+  // Where the lead came from — Google search, OpenStreetMap, the "call me"
+  // form, a partner… Only sources that have callable leads are offered.
+  const [source, setSource] = useState('')
 
   const stats = useMemo(() => angleStats(leads), [leads])
   const quality = useMemo(() => new Map(leads.map((l) => [l.id, dataQuality(l, leads)])), [leads])
@@ -31,9 +34,17 @@ export default function QueuePanel({ leads, settings, onOpen }) {
   )
 
   // Only leads you can actually call. Email-only ones live in «كل العملاء».
+  const callable = useMemo(() => leads.filter((l) => l.phone), [leads])
+  const sourceCounts = useMemo(() => {
+    const counts = {}
+    for (const q of buildQueue(callable, { weights: settings?.weights, targetAreas: settings?.target_areas })) {
+      counts[q.lead.source] = (counts[q.lead.source] ?? 0) + 1
+    }
+    return Object.entries(counts).sort((a, b) => b[1] - a[1])
+  }, [callable, settings])
   const queue = useMemo(
-    () => buildQueue(leads.filter((l) => l.phone), { weights: settings?.weights, targetAreas: settings?.target_areas }),
-    [leads, settings]
+    () => buildQueue(callable.filter((l) => !source || l.source === source), { weights: settings?.weights, targetAreas: settings?.target_areas }),
+    [callable, source, settings]
   )
 
   const doneToday = leads.filter((l) => isToday(l.last_contacted_at)).length
@@ -63,6 +74,17 @@ export default function QueuePanel({ leads, settings, onOpen }) {
       {reviewOpen && <ReviewPanel suspects={suspects} quality={quality} onOpen={onOpen} onClose={() => setReviewOpen(false)} />}
 
       <QualityLegend />
+
+      {sourceCounts.length > 1 && (
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-ink-soft">جايين منين:</span>
+          <select className="border border-rule rounded-lg px-3 py-1.5 text-sm text-ink bg-white focus:outline-none focus:ring-2 focus:ring-accent-400"
+            value={source} onChange={(e) => setSource(e.target.value)}>
+            <option value="">كل المصادر ({sourceCounts.reduce((n, [, c]) => n + c, 0)})</option>
+            {sourceCounts.map(([key, count]) => <option key={key} value={key}>{sourceLabel(key)} ({count})</option>)}
+          </select>
+        </div>
+      )}
 
       {queue.length === 0 ? (
         <Card>

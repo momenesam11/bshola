@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { osmToRows, overpassQuery } from './osm'
+import { osmToRows, overpassQuery, osmTarget } from './osm'
 
 const el = (tags, id = 1) => ({ type: 'node', id, tags })
 
@@ -30,7 +30,20 @@ describe('OpenStreetMap leads', () => {
     ])).toEqual([])
   })
 
-  it('builds a bounded Overpass query', () => {
-    expect(overpassQuery([1, 2, 3, 4])).toContain('(1,2,3,4)')
+  it('searches a whole governorate by its boundary, or a circle around a district', () => {
+    const gov = osmTarget({ governorate: 'cairo' })
+    expect(gov).toMatchObject({ target: { areaId: 3604103336 }, governorate: 'القاهرة', area: null })
+    expect(overpassQuery(gov.target)).toContain('area(id:3604103336)->.a;')
+    const maadi = osmTarget({ governorate: 'cairo', area: 'المعادي', radiusKm: 2 })
+    expect(maadi.target).toEqual({ lat: 29.9602, lon: 31.2569, radiusM: 2000 })
+    expect(overpassQuery(maadi.target)).toContain('(around:2000,29.9602,31.2569)')
+    expect(maadi.label).toBe('المعادي، القاهرة (2 كم)')
+    expect(() => osmTarget({ governorate: 'nowhere' })).toThrow()
+    expect(() => osmTarget({ governorate: 'giza', area: 'المعادي' })).toThrow()
+  })
+
+  it('labels rows with the searched place', () => {
+    const [row] = osmToRows([el({ name: 'عيادة', amenity: 'dentist', phone: '01011112222' })], { governorate: 'الجيزة', area: 'الدقي', label: 'الدقي، الجيزة (3 كم)' })
+    expect(row).toMatchObject({ city: 'الجيزة', area: 'الدقي', source_detail: 'OpenStreetMap — الدقي، الجيزة (3 كم)' })
   })
 })

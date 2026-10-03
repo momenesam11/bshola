@@ -47,9 +47,13 @@ async function runOsm() {
   // GROWTH_FORCE_OSM=1 runs it on any day (the dashboard button does too).
   const weekday = new Intl.DateTimeFormat('en-US', { timeZone: 'Africa/Cairo', weekday: 'short' }).format(new Date())
   if (weekday !== 'Sat' && !process.env.GROWTH_FORCE_OSM) return { skipped: 'weekly — runs on Saturdays' }
-  const rows = await fetchOsmClinics(undefined, { userAgent: 'Beshola-growth/1.0 (+https://www.beshola.co)' })
-  const res = await importRows(rows, 'import')
-  return { found: rows.length, ...res }
+  const userAgent = 'Beshola-growth/1.0 (+https://www.beshola.co)'
+  const out = {}
+  for (const governorate of ['cairo', 'giza']) {
+    const { rows } = await fetchOsmClinics({ governorate, userAgent })
+    out[governorate] = { found: rows.length, ...(await importRows(rows, 'openstreetmap')) }
+  }
+  return out
 }
 
 // ── 2. Google Places ────────────────────────────────────────────────────────

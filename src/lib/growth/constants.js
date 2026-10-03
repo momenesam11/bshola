@@ -30,6 +30,7 @@ export const SOURCES = [
   { key: 'organic_signup', label: 'تسجيل مباشر', intent: 70, inbound: true },
   { key: 'facebook_group', label: 'جروب فيسبوك', intent: 60, inbound: false },
   { key: 'google_maps_api', label: 'خرائط جوجل (بحث)', intent: 30, inbound: false },
+  { key: 'openstreetmap', label: 'OpenStreetMap', intent: 30, inbound: false },
   { key: 'google_maps_manual', label: 'خرائط جوجل (يدوي)', intent: 30, inbound: false },
   { key: 'import', label: 'استيراد شيت', intent: 30, inbound: false },
   { key: 'manual', label: 'إضافة يدوية', intent: 30, inbound: false },

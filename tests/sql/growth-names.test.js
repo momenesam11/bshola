@@ -65,3 +65,22 @@ describe('036: auto-discovery settings', () => {
     expect((await one(db, `SELECT count(*)::int AS c FROM information_schema.columns WHERE table_name = 'growth_settings' AND column_name LIKE 'auto_discover%'`)).c).toBe(0)
   })
 })
+
+describe('037: OpenStreetMap source', () => {
+  it('imports as openstreetmap, backfills old OSM rows, and rolls back', async () => {
+    const db = await freshDb({ migrate: '036' })
+    await db.query(`INSERT INTO growth_leads (name, source, source_detail) VALUES ('قديمة', 'import', 'OpenStreetMap'), ('شيت', 'import', NULL)`)
+    await db.exec(readSql('supabase/migrations/037_growth_osm_source.sql'))
+    expect((await db.query(`SELECT name, source FROM growth_leads ORDER BY name`)).rows).toEqual([
+      { name: 'شيت', source: 'import' },
+      { name: 'قديمة', source: 'openstreetmap' },
+    ])
+    const r = (await one(db, `SELECT growth_import_leads('[{"name":"عيادة من الخريطة","phone":"01012345670"}]'::jsonb, 'openstreetmap') AS r`)).r
+    expect(r.inserted).toBe(1)
+    expect((await one(db, `SELECT source FROM growth_leads WHERE name = 'عيادة من الخريطة'`)).source).toBe('openstreetmap')
+
+    await db.exec(readSql('supabase/rollbacks/037_growth_osm_source_down.sql'))
+    expect((await one(db, `SELECT count(*)::int AS c FROM growth_leads WHERE source = 'openstreetmap'`)).c).toBe(0)
+    await expect(db.query(`UPDATE growth_leads SET source = 'openstreetmap'`)).rejects.toThrow()
+  })
+})

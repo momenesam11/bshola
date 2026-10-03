@@ -7,7 +7,8 @@ import { categoryFromText } from '../../../lib/growth/csv'
 import { SIGNAL_LABELS } from '../../../lib/growth/constants'
 import { usePlacesSearch, useImportLeads } from '../../../hooks/useGrowth'
 import { fetchOsmClinics, OSM_ATTRIBUTION } from '../../../lib/growth/osm'
-import { Btn, Card, EmptyState } from './ui'
+import { GOVERNORATES, RADIUS_OPTIONS, areasFor } from '../../../lib/growth/regions'
+import { Btn, Card, EmptyState, Field } from './ui'
 import { inputClass } from './format'
 import { HiOutlineExclamationCircle, HiOutlineGlobeAlt, HiOutlineKey, HiOutlineLightBulb, HiOutlineMap } from 'react-icons/hi2'
 
@@ -185,30 +186,34 @@ export default function PlacesPanel({ leads, configured }) {
 }
 
 /**
- * Free, keyless source: every clinic OpenStreetMap knows in Cairo & Giza that
- * has a phone. New ones are imported; ones already in the list are skipped.
+ * Free, keyless source: clinics OpenStreetMap knows in a governorate, or in
+ * a circle around one district, that have a phone. Only new ones are offered.
  */
 function OsmCard({ leads }) {
   const importLeads = useImportLeads()
-  const [state, setState] = useState({ status: 'idle', rows: [] })
+  const [governorate, setGovernorate] = useState('cairo')
+  const [area, setArea] = useState('')
+  const [radiusKm, setRadiusKm] = useState(3)
+  const [state, setState] = useState({ status: 'idle', rows: [], label: '' })
   const fresh = state.rows.filter((r) => !findDuplicate(r, leads))
+  const areas = areasFor(governorate)
 
   async function load() {
-    setState({ status: 'loading', rows: [] })
+    setState({ status: 'loading', rows: [], label: '' })
     try {
-      const rows = await fetchOsmClinics()
-      setState({ status: 'ready', rows })
+      const { rows, label } = await fetchOsmClinics({ governorate, area: area || null, radiusKm })
+      setState({ status: 'ready', rows, label })
     } catch (e) {
-      setState({ status: 'idle', rows: [] })
+      setState({ status: 'idle', rows: [], label: '' })
       toast.error(e.message)
     }
   }
 
   async function add() {
     try {
-      const res = await importLeads.mutateAsync({ rows: fresh, source: 'import' })
+      const res = await importLeads.mutateAsync({ rows: fresh, source: 'openstreetmap' })
       toast.success(`اتضاف ${res.inserted} عيادة${res.skipped ? ` · متكرر ${res.skipped}` : ''}`)
-      setState({ status: 'idle', rows: [] })
+      setState({ status: 'idle', rows: [], label: '' })
     } catch (e) {
       toast.error(e.message)
     }
@@ -219,26 +224,51 @@ function OsmCard({ leads }) {
   return (
     <Card icon={HiOutlineGlobeAlt} title="OpenStreetMap — مجاني ومن غير مفتاح">
       <p className="text-sm text-ink-soft leading-relaxed">
-        خريطة مفتوحة بيانتها مسموح استخدامها. بتجيب العيادات اللي في القاهرة والجيزة وليها رقم تليفون (من غير صيدليات ومستشفيات ومعامل).
-        عددها أقل من جوجل، بس ببلاش. تقدر تدوس كل كام أسبوع تجيب الجديد.
+        اختار المكان واضغط «هات»: بيجيب العيادات اللي ليها رقم تليفون (من غير صيدليات ومستشفيات ومعامل)، ويوريك الجداد بس.
       </p>
-      {state.status !== 'ready' ? (
-        <Btn tone="primary" className="mt-3" onClick={load} disabled={state.status === 'loading'}>
-          {state.status === 'loading' ? 'بيجيب العيادات… (ممكن ياخد دقيقة)' : 'جيب العيادات'}
+      <div className="mt-3 grid sm:grid-cols-[1fr_1fr_auto_auto] gap-2 items-end">
+        <Field label="المحافظة">
+          <select className={inputClass} value={governorate} onChange={(e) => { setGovernorate(e.target.value); setArea('') }}>
+            {GOVERNORATES.map((g) => <option key={g.key} value={g.key}>{g.name}</option>)}
+          </select>
+        </Field>
+        <Field label="المنطقة">
+          <select className={inputClass} value={area} onChange={(e) => setArea(e.target.value)} disabled={!areas.length}>
+            <option value="">المحافظة كلها</option>
+            {areas.map((a) => <option key={a.name} value={a.name}>{a.name}</option>)}
+          </select>
+        </Field>
+        <Field label="حوالين المنطقة">
+          <select className={inputClass} value={radiusKm} onChange={(e) => setRadiusKm(Number(e.target.value))} disabled={!area}>
+            {RADIUS_OPTIONS.map((r) => <option key={r} value={r}>{r} كم</option>)}
+          </select>
+        </Field>
+        <Btn tone="primary" onClick={load} disabled={state.status === 'loading'} className="h-[38px]">
+          {state.status === 'loading' ? 'بيجيب…' : 'هات'}
         </Btn>
-      ) : (
+      </div>
+      {!areas.length && <p className="text-[12.5px] text-ink-soft mt-2">المحافظة دي بنبحث فيها كلها — لسه مفيش مناطق محددة جواها.</p>}
+      {state.status === 'loading' && <p className="text-[12.5px] text-ink-soft mt-2">ممكن ياخد لحد دقيقة — السيرفرات دي مجانية.</p>}
+
+      {state.status === 'ready' && (
         <div className="mt-3 rounded-lg bg-paper border border-rule p-3 space-y-2">
           <p className="text-sm text-ink">
-            لقيت <b>{state.rows.length}</b> عيادة برقم — منهم <b>{fresh.length}</b> جداد مش عندك
+            <b>{state.label}</b>: لقيت <b>{state.rows.length}</b> عيادة برقم — منهم <b>{fresh.length}</b> جداد مش عندك
             {fresh.length > 0 && (
               <span className="text-ink-soft"> (أسنان {byCategory.dental ?? 0} · جلدية {byCategory.derma ?? 0} · عيادات تانية {byCategory.clinic ?? 0})</span>
             )}
           </p>
+          {fresh.length > 0 && (
+            <ul className="text-xs text-ink-soft max-h-28 overflow-y-auto space-y-0.5">
+              {fresh.slice(0, 12).map((r) => <li key={r.google_maps_url}>• {r.name}</li>)}
+              {fresh.length > 12 && <li>… و{fresh.length - 12} كمان</li>}
+            </ul>
+          )}
           <div className="flex gap-2">
             <Btn tone="primary" onClick={add} disabled={!fresh.length || importLeads.isPending}>
               {importLeads.isPending ? 'بيضيف…' : `ضيف الـ ${fresh.length} للقايمة`}
             </Btn>
-            <Btn onClick={() => setState({ status: 'idle', rows: [] })}>إلغاء</Btn>
+            <Btn onClick={() => setState({ status: 'idle', rows: [], label: '' })}>إلغاء</Btn>
           </div>
         </div>
       )}
