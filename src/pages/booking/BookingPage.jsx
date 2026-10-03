@@ -26,6 +26,7 @@ import { useBookedSlotCounts, useCreateAppointment } from '../../hooks/useAppoin
 import { bookingClientSchema } from '../../lib/validators'
 import { supabase } from '../../lib/supabase'
 import Seo from '../../components/seo/Seo'
+import { bookingFooterPath } from '../../lib/growth/links'
 import {
   getDayKey, getSlotsWithAvailabilityForDay, getSlotsWithAvailability, branchHasScheduleBlocks,
   formatTime12, toISODateString,
@@ -643,6 +644,14 @@ export default function BookingPage() {
             </div>
           )}
         </div>
+
+        {/* Made-with link: patients are often business owners too. The B-<slug>
+            ref credits this customer as the referrer (lib/growth/links.js). */}
+        <p className="text-center text-[11px] text-gray-400 py-6">
+          صفحة الحجز دي معمولة بـ{' '}
+          <a href={bookingFooterPath(businessSlug)} target="_blank" rel="noopener" className="font-semibold text-gray-500 hover:text-gray-700 underline">بسهولة</a>
+          {' '}— اعمل صفحة زيها لنشاطك
+        </p>
       </div>
     </div>
   )

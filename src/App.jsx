@@ -7,12 +7,15 @@ import { supabase } from './lib/supabase'
 import { BranchProvider } from './context/BranchContext'
 import TrialGuard from './middleware/TrialGuard'
 import { syncTrackingForPath, trackSupportWhatsAppClicks } from './lib/tracking'
+import { captureRefFromUrl } from './lib/refCapture'
 
 // The whole logged-in app used to ship in the first chunk, so a visitor landing
 // on a marketing page downloaded the dashboard, CRM and reports before seeing
 // anything. Lazy-loading them keeps the public pages light, which is what Core
 // Web Vitals (a ranking signal) actually measures.
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'))
+const GrowthPage = lazy(() => import('./pages/admin/growth/GrowthPage'))
+const DemoPage = lazy(() => import('./pages/marketing/DemoPage'))
 const Login = lazy(() => import('./pages/auth/Login'))
 const Register = lazy(() => import('./pages/auth/Register'))
 const ForgotPassword = lazy(() => import('./pages/auth/ForgotPassword'))
@@ -33,6 +36,7 @@ const BranchSettings = lazy(() => import('./pages/settings/BranchSettings'))
 import LandingPage from './pages/marketing/LandingPage'
 import ProductPage from './pages/marketing/ProductPage'
 import FaqPage from './pages/marketing/FaqPage'
+import LossCalculatorPage from './pages/marketing/LossCalculatorPage'
 import SolutionPage from './pages/marketing/SolutionPage'
 import NotFound from './pages/marketing/NotFound'
 import LegalPage from './pages/marketing/LegalPage'
@@ -68,10 +72,14 @@ function ScrollToTop() {
   return null
 }
 
-/** GA4 page_view per route + support-WhatsApp clicks (see lib/tracking.js). */
+/**
+ * GA4 page_view per route + support-WhatsApp clicks (see lib/tracking.js),
+ * and remembering any ?ref= attribution code (see lib/refCapture.js).
+ */
 function RouteTracker() {
-  const { pathname } = useLocation()
+  const { pathname, search } = useLocation()
   useEffect(() => trackSupportWhatsAppClicks(), [])
+  useEffect(() => captureRefFromUrl(search), [search])
   useEffect(() => syncTrackingForPath(pathname), [pathname])
   return null
 }
@@ -171,6 +179,8 @@ export default function App() {
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/book/:businessSlug" element={<BookingPage />} />
           <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin/growth" element={<GrowthPage />} />
+          <Route path="/demo/:code" element={<DemoPage />} />
 
           {/* Protected */}
           <Route path="/onboarding" element={<AuthGuard><OnboardingFlow /></AuthGuard>} />
@@ -201,6 +211,7 @@ export default function App() {
               homepage itself short — see LandingPage.jsx's file comment. */}
           <Route path="/product" element={<ProductPage />} />
           <Route path="/faq" element={<FaqPage />} />
+          <Route path="/tools/no-show-calculator" element={<LossCalculatorPage />} />
 
           {/* Default */}
           <Route path="/" element={<PublicRoute><LandingPage /></PublicRoute>} />

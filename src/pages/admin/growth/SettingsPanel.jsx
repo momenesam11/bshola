@@ -1,0 +1,74 @@
+import { useState } from 'react'
+import toast from 'react-hot-toast'
+import { DEFAULT_WEIGHTS } from '../../../lib/growth/constants'
+import { useSaveSettings } from '../../../hooks/useGrowth'
+import { Btn, Card, Field } from './ui'
+import { inputClass } from './format'
+
+const WEIGHT_LABELS = {
+  fit: ['مناسب لينا', 'نوع النشاط والمنطقة'],
+  intent: ['نيّة الشراء', 'جه لوحده؟ طلب يتكلّم؟ تجربته بتخلص؟'],
+  pain: ['المشكلة واضحة', 'شكاوى في التقييمات، مفيش حجز أونلاين'],
+  activity: ['نشاط المكان', 'عدد التقييمات، جديد، فرع جديد'],
+  contactability: ['سهل نوصله', 'موبايل عليه واتساب؟'],
+}
+
+export default function SettingsPanel({ settings, placesConfigured }) {
+  const [weights, setWeights] = useState(() => ({ ...DEFAULT_WEIGHTS, ...(settings?.weights ?? {}) }))
+  const [areas, setAreas] = useState(() => (settings?.target_areas ?? []).join('، '))
+  const [cap, setCap] = useState(settings?.places_daily_cap ?? 100)
+  const save = useSaveSettings()
+
+  async function submit() {
+    try {
+      await save.mutateAsync({
+        weights: Object.fromEntries(Object.entries(weights).map(([k, v]) => [k, Math.max(0, Number(v) || 0)])),
+        target_areas: areas.split(/[،,\n]/).map((a) => a.trim()).filter(Boolean),
+        places_daily_cap: Math.max(0, Math.min(5000, parseInt(cap, 10) || 0)),
+      })
+      toast.success('اتحفظ — الترتيب اتحدّث')
+    } catch (e) {
+      toast.error(e.message)
+    }
+  }
+
+  const total = Object.values(weights).reduce((s, v) => s + (Number(v) || 0), 0)
+
+  return (
+    <div className="grid lg:grid-cols-2 gap-4 items-start">
+      <Card title="⚖️ أوزان التقييم">
+        <p className="text-xs text-gray-500 mb-4">كل جزء بياخد درجة من 100، والوزن بيحدد أهميته في الترتيب. المجموع دلوقتي {total}.</p>
+        <div className="space-y-4">
+          {Object.entries(WEIGHT_LABELS).map(([key, [label, hint]]) => (
+            <div key={key}>
+              <div className="flex justify-between text-sm">
+                <span className="font-semibold text-gray-800">{label}</span>
+                <span className="tabular-nums text-gray-500">{weights[key]}</span>
+              </div>
+              <input type="range" min="0" max="50" value={weights[key]} onChange={(e) => setWeights((w) => ({ ...w, [key]: Number(e.target.value) }))} className="w-full accent-emerald-600" />
+              <p className="text-[11px] text-gray-400">{hint}</p>
+            </div>
+          ))}
+        </div>
+        <Btn tone="ghost" className="mt-3" onClick={() => setWeights(DEFAULT_WEIGHTS)}>رجّع الافتراضي</Btn>
+      </Card>
+
+      <div className="space-y-4">
+        <Card title="📍 المناطق المستهدفة">
+          <Field label="افصل بينهم بفاصلة" hint="العملاء برّه المناطق دي بياخدوا تقييم «مناسب لينا» أقل">
+            <textarea className={`${inputClass} min-h-[70px]`} value={areas} onChange={(e) => setAreas(e.target.value)} />
+          </Field>
+        </Card>
+        <Card title="🗺️ خرائط جوجل">
+          <p className={`text-sm mb-3 ${placesConfigured ? 'text-green-700' : 'text-amber-700'}`}>
+            {placesConfigured ? '✅ مفتاح Google Places متضاف' : '⚠️ مفتاح Google Places مش متضاف — الخطوات في docs/growth-engine.md'}
+          </p>
+          <Field label="أقصى عدد بحث في اليوم" hint={`النهارده: ${settings?.places_calls_date ? settings.places_calls_count : 0} بحث. 0 = إيقاف البحث خالص.`}>
+            <input type="number" min="0" max="5000" className={inputClass} value={cap} onChange={(e) => setCap(e.target.value)} />
+          </Field>
+        </Card>
+        <Btn tone="primary" className="w-full" onClick={submit} disabled={save.isPending}>{save.isPending ? 'بيتحفظ…' : 'حفظ الإعدادات'}</Btn>
+      </div>
+    </div>
+  )
+}

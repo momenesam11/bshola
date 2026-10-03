@@ -22,6 +22,7 @@ const entries = [
   // of the marketingPages.js keyword cluster.
   { loc: '/product', priority: '0.7', changefreq: 'monthly' },
   { loc: '/faq', priority: '0.6', changefreq: 'monthly' },
+  { loc: '/tools/no-show-calculator', priority: '0.7', changefreq: 'monthly' },
   ...ALL_MARKETING_PAGES.map((page) => ({
     loc: `/${page.slug}`,
     priority: page.group === 'pricing' ? '0.9' : '0.8',

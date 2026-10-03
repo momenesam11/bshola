@@ -27,6 +27,7 @@ import confetti from 'canvas-confetti'
 import toast from 'react-hot-toast'
 import { supabase } from '../../lib/supabase'
 import { trackEvent } from '../../lib/tracking'
+import { attributeSignup } from '../../hooks/useGrowth'
 import { phoneSchema } from '../../lib/validators'
 import { DEFAULT_REMINDER_TEMPLATE, MEDICAL_TYPES } from '../../utils/constants'
 import { useCreateBusiness, useUpsertService, uploadBusinessAsset } from '../../hooks/useBusiness'
@@ -732,6 +733,8 @@ function ShareKitScreen({ businessName, slug }) {
     confetti({ particleCount: 120, spread: 80, origin: { y: 0.4 }, colors: ['#10B981', '#6366F1', '#F59E0B', '#EF4444'] })
     // The real conversion: a business with a working booking link.
     trackEvent('start_trial')
+    // Credit whichever lead/partner/referral link brought them (migration 032).
+    attributeSignup()
   }, [])
 
   return (

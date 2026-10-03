@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Helmet } from 'react-helmet-async'
+import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import {
   HiOutlineMagnifyingGlass,
@@ -16,11 +17,11 @@ import {
   getBusinessStatus,
   getAdminStats,
   searchBusinesses,
-  adminLogin,
   adminLogout,
   hasAdminToken,
 } from '../../hooks/useAdmin'
 import ActivateModal from '../../components/admin/ActivateModal'
+import PasswordGate from '../../components/admin/AdminPasswordGate'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
 
 const STATUS_CONFIG = {
@@ -50,61 +51,6 @@ function formatDate(iso) {
 function daysLeft(trialEndsAt) {
   if (!trialEndsAt) return null
   return Math.ceil((new Date(trialEndsAt) - new Date()) / (1000 * 60 * 60 * 24))
-}
-
-function PasswordGate({ onAuthenticated }) {
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState(false)
-  const [loading, setLoading] = useState(false)
-
-  async function handleSubmit(e) {
-    e.preventDefault()
-    setLoading(true)
-    const token = await adminLogin(password)
-    setLoading(false)
-    if (token) {
-      onAuthenticated()
-    } else {
-      setError(true)
-      setTimeout(() => setError(false), 500)
-    }
-  }
-
-  return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4" dir="rtl">
-      <Helmet><meta name="robots" content="noindex, nofollow" /></Helmet>
-      <form
-        onSubmit={handleSubmit}
-        className={`w-full max-w-sm bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center ${error ? 'animate-shake' : ''}`}
-      >
-        <div className="inline-flex items-center justify-center w-14 h-14 bg-accent-500 rounded-2xl mb-3 shadow-lg">
-          <span className="text-white font-bold text-2xl">ب</span>
-        </div>
-        <h1 className="text-xl font-bold text-gray-900 mb-4">لوحة تحكم المالك</h1>
-        <input
-          type="password"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-          placeholder="كلمة السر"
-          dir="ltr"
-          autoFocus
-          className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-accent-400 focus:border-accent-400"
-        />
-        {error && <p className="text-xs text-red-500 mt-2">كلمة السر غلط</p>}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full mt-4 bg-accent-500 text-white font-medium rounded-lg py-2.5 text-sm hover:bg-accent-600 transition-colors disabled:opacity-50"
-        >
-          {loading ? 'جاري التحقق...' : 'دخول'}
-        </button>
-      </form>
-      <style>{`
-        @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
-        .animate-shake { animation: shake 0.3s; }
-      `}</style>
-    </div>
-  )
 }
 
 function StatCard({ label, value }) {
@@ -180,13 +126,21 @@ function Dashboard() {
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-gray-900">لوحة تحكم بسهولة</h1>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-red-600 transition-colors"
-          >
-            <HiOutlineArrowRightOnRectangle className="w-4 h-4" />
-            تسجيل خروج
-          </button>
+          <div className="flex items-center gap-4">
+            <Link
+              to="/admin/growth"
+              className="flex items-center gap-1.5 text-sm font-bold text-white bg-accent-500 hover:bg-accent-600 px-3.5 py-2 rounded-lg transition-colors"
+            >
+              🚀 العملاء المحتملين
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-red-600 transition-colors"
+            >
+              <HiOutlineArrowRightOnRectangle className="w-4 h-4" />
+              تسجيل خروج
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">

@@ -3,7 +3,7 @@ import { supabaseAdmin } from '../lib/supabaseAdmin'
 
 const TOKEN_KEY = 'beshola_admin_token'
 
-function getToken() {
+export function getToken() {
   return sessionStorage.getItem(TOKEN_KEY)
 }
 

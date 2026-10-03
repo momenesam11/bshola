@@ -36,6 +36,7 @@ import { supabase } from '../../lib/supabase'
 import { useBranch } from '../../context/BranchContext'
 import ScheduleBlockEditor from '../../components/ui/ScheduleBlockEditor'
 import BookingLinkActions from '../../components/booking/BookingLinkActions'
+import ReferralCard from '../../components/referral/ReferralCard'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
 function ServiceRow({ service, onUpdateField, onDelete }) {
   return (
@@ -704,6 +705,10 @@ export default function Settings() {
           <>
             <Section title="الأمان" subtitle="تغيير كلمة المرور الخاصة بحسابك">
               <SecuritySection />
+            </Section>
+
+            <Section title="🎁 رشّح زميل" subtitle="لينك الترشيح الخاص بيك">
+              <ReferralCard business={business} />
             </Section>
 
             {/* Logout (mobile only — desktop/tablet sidebar already has it) */}

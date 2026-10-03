@@ -11,6 +11,8 @@
  *   · account deletion from Settings → منطقة الخطر (src/pages/settings/Settings.jsx:716)
  *   · Vercel Analytics mounted app-wide (src/App.jsx)
  *   · Google Analytics on marketing/sign-up routes only (src/lib/tracking.js)
+ *   · "call me" form / calculator leads stored for sales contact (migration 032,
+ *     growth_submit_lead) and do-not-contact honoured (growth_log_activity)
  *
  * If any of those change, this text has to change with them.
  */
@@ -70,6 +72,14 @@ export const PRIVACY_PAGE = {
       h2: 'قياس استخدام الموقع',
       body:
         'بنستخدم Vercel Analytics لقياس عدد زيارات الصفحات بشكل مجمّع (عدد الزيارات والصفحات الأكثر فتحاً). القياس ده مش بيربط الزيارة بشخص معيّن. وعلى صفحات موقعنا التعريفية وصفحات التسجيل بس، بنستخدم Google Analytics عشان نعرف الزوار جايين منين وكام واحد سجّل — وده بيستخدم كوكيز من Google. Google Analytics مش موجود جوه النظام بعد الدخول، ولا على صفحات الحجز اللي عملاءك بيحجزوا منها، فمفيش أي بيانات عن عملاءك أو مرضاك بتروح لـGoogle.',
+    },
+    {
+      h2: 'لو سيبت رقمك أو كلّمناك',
+      bullets: [
+        'لو سيبت رقمك في فورم «كلّمني» أو في حاسبة الغياب، بنحفظ اسمك ورقمك واسم نشاطك (واللي كتبته في الحاسبة) عشان نكلّمك — مش بنبيعهم ولا بنديهم لحد.',
+        'لو عملت حساب، بنستخدم إيميلك ورقمك عشان نتواصل معاك بخصوص التجربة والاشتراك.',
+        'لو قلتلنا «ماتكلّمنيش تاني»، بنسجّلها ومش بنتواصل معاك تاني. ولو عايز نمسح بياناتك دي خالص، كلّمنا.',
+      ],
     },
     {
       h2: 'حقوقك في بياناتك',

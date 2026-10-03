@@ -14,6 +14,7 @@ Disallow: /settings/branches
 Disallow: /patients
 Disallow: /onboarding
 Disallow: /admin
+Disallow: /demo/
 Disallow: /login
 Disallow: /register
 Disallow: /forgot-password
