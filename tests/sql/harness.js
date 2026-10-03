@@ -66,6 +66,7 @@ export async function freshDb({ migrate = true } = {}) {
     await db.exec(readSql('supabase/migrations/032_growth_engine.sql'))
     if (migrate !== '032') await db.exec(readSql('supabase/migrations/033_growth_commissions.sql'))
     if (migrate !== '032' && migrate !== '033') await db.exec(readSql('supabase/migrations/034_growth_signup_ref.sql'))
+    if (!['032', '033', '034'].includes(migrate)) await db.exec(readSql('supabase/migrations/035_growth_business_name.sql'))
     // Supabase grants the service role everything on new tables by default.
     await db.exec('GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;')
   }

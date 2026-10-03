@@ -129,4 +129,4 @@
 | حفظ كود الـ ref | `src/lib/refCapture.js` |
 
 - **العزل:** جداول `growth_*` عليها RLS من غير أي policies، و`anon`/`authenticated` ملهمش أي صلاحية عليها. الموقع العام بيوصل لها من 3 دوال `SECURITY DEFINER` بس، وكل دالة بتتحقق من مدخلاتها: `growth_submit_lead` (فيها حد 60 طلب في الساعة)، و`growth_get_preview`، و`growth_attribute_signup`.
-- **الاختبارات:** `npm test`. فيه 43 اختبار SQL بيشغّلوا الـ migration والـ rollback على Postgres جوه الجهاز (PGlite)، و30 اختبار للمنطق.
+- **الاختبارات:** `npm test`. فيه 48 اختبار SQL بيشغّلوا الـ migration والـ rollback على Postgres جوه الجهاز (PGlite)، و30 اختبار للمنطق.
