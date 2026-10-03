@@ -15,7 +15,7 @@ const book = (db, bizId, phones) =>
 
 describe('033 migration', () => {
   it('rolls back to the 032 state and re-applies', async () => {
-    const db = await freshDb()
+    const db = await freshDb({ migrate: '033' })
     await db.exec(readSql('supabase/rollbacks/033_growth_commissions_down.sql'))
     expect((await one(db, `SELECT to_regclass('public.growth_commissions') AS t`)).t).toBeNull()
     const cols = (await db.query(`SELECT column_name FROM information_schema.columns WHERE table_name = 'growth_leads' AND column_name IN ('is_test','qualified_at')`)).rows
@@ -147,5 +147,43 @@ describe('sync v2', () => {
     await db.query(`UPDATE auth.users SET raw_user_meta_data = '{"owner_phone":"01011112222"}' WHERE id = $1`, [uid])
     await one(db, 'SELECT growth_sync_platform()')
     expect(await one(db, 'SELECT phone FROM growth_leads WHERE owner_user_id = $1', [uid])).toEqual({ phone: '201011112222' })
+  })
+})
+
+describe('034: ref saved on the account at sign-up', () => {
+  it('credits the partner even when onboarding never finished in the same browser', async () => {
+    const db = await freshDb()
+    const partner = await one(db, `INSERT INTO growth_partners (name) VALUES ('مندوب') RETURNING *`)
+    const uid = await createUser(db, 'a@x.com', null, { ref: partner.ref_code, owner_phone: '01000000009' })
+    const biz = await createBusiness(db, uid)
+    // Browser lost the code: called with no ref at all.
+    await as(db, 'authenticated', (tx) => tx.query('SELECT growth_attribute_signup(NULL)'), uid)
+    expect(await one(db, 'SELECT source, partner_id FROM growth_leads WHERE business_id = $1', [biz.id])).toEqual({ source: 'partner', partner_id: partner.id })
+  })
+
+  it('nightly sync attributes a business that never called attribution', async () => {
+    const db = await freshDb()
+    const partner = await one(db, `INSERT INTO growth_partners (name) VALUES ('مندوب') RETURNING *`)
+    const uid = await createUser(db, 'b@x.com', null, { ref: partner.ref_code })
+    const biz = await createBusiness(db, uid)
+    const r = (await one(db, 'SELECT growth_sync_platform() AS r')).r
+    expect(r.created).toBe(1)
+    expect(await one(db, 'SELECT source, partner_id, stage FROM growth_leads WHERE business_id = $1', [biz.id])).toEqual({ source: 'partner', partner_id: partner.id, stage: 'trial' })
+    expect((await one(db, 'SELECT growth_sync_platform() AS r')).r.created).toBe(0)
+  })
+
+  it('credits unfinished sign-ups to their partner', async () => {
+    const db = await freshDb()
+    const partner = await one(db, `INSERT INTO growth_partners (name) VALUES ('مندوب') RETURNING *`)
+    await createUser(db, 'c@x.com', new Date(Date.now() - 3 * 3600e3).toISOString(), { ref: partner.ref_code })
+    await one(db, 'SELECT growth_sync_platform()')
+    expect(await one(db, `SELECT partner_id FROM growth_leads WHERE source = 'signup_incomplete'`)).toEqual({ partner_id: partner.id })
+  })
+
+  it('rolls back to the 033 state', async () => {
+    const db = await freshDb()
+    await db.exec(readSql('supabase/rollbacks/034_growth_signup_ref_down.sql'))
+    expect((await one(db, `SELECT to_regproc('growth_attribute_user') AS f`)).f).toBeNull()
+    expect((await one(db, 'SELECT growth_sync_platform() AS r')).r).toEqual({ created: 0, updated: 0, signup_incomplete: 0, qualified: 0 })
   })
 })

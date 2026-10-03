@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { supabase } from '../../lib/supabase'
 import { trackEvent } from '../../lib/tracking'
+import { getStoredRef } from '../../lib/refCapture'
 import { registerSchema, getPasswordStrength } from '../../lib/validators'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
@@ -20,6 +21,12 @@ export default function Register() {
     resolver: zodResolver(registerSchema),
   })
   const passwordStrength = getPasswordStrength(watch('password'))
+  // The partner/referral/lead code they came with. Read from the URL too: on a
+  // direct /register?ref=… visit this renders before RouteTracker stores it.
+  const [refCode] = useState(() => {
+    const fromUrl = new URLSearchParams(window.location.search).get('ref')
+    return /^[LPRB]-[A-Za-z0-9-]{2,80}$/.test(fromUrl ?? '') ? fromUrl : getStoredRef()
+  })
 
   async function onSubmit({ email, password, ownerPhone }) {
     setServerError('')
@@ -27,7 +34,7 @@ export default function Register() {
     // Phone also goes into auth metadata: sessionStorage is lost if they confirm
     // their email on another device, and someone who never finishes onboarding
     // is a lead we want to call (growth_sync_platform reads owner_phone).
-    const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { owner_phone: ownerPhone } } })
+    const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { owner_phone: ownerPhone, ...(refCode ? { ref: refCode } : {}) } } })
     if (error) {
       const msg = error.message || ''
       if (msg.includes('already registered') || msg.includes('already been registered')) {
@@ -79,6 +86,11 @@ export default function Register() {
         <meta name="robots" content="noindex" />
       </Helmet>
       <div className="mb-8">
+        {refCode && (
+          <p className="mb-4 inline-flex items-center gap-1.5 text-xs font-semibold text-accent-700 bg-accent-50 border border-accent-100 rounded-lg px-3 py-1.5">
+            🎁 جاي بترشيح — هيتسجّل مع حسابك
+          </p>
+        )}
         <h2 className="text-2xl font-bold text-gray-900">إنشاء حساب جديد</h2>
         <p className="text-gray-500 text-sm mt-1">
           عندك حساب؟{' '}
