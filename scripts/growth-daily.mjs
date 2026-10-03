@@ -2,7 +2,8 @@
 //
 // Runs on a schedule (.github/workflows/growth-daily.yml) — nobody has to
 // open the dashboard. Each run:
-//   1. OpenStreetMap: every clinic in Cairo & Giza with a phone (free, no key)
+//   1. OpenStreetMap: every clinic in Cairo & Giza with a phone (free, no key) —
+//      weekly, on Saturdays
 //   2. Google Places:  the next slice of the type × area rotation, with review
 //      pain signals (if GOOGLE_PLACES_API_KEY is set and auto-discovery is on)
 //   3. growth_sync_platform(): new sign-ups, trials, payments, qualification
@@ -41,6 +42,11 @@ async function importRows(rows, source) {
 
 // ── 1. OpenStreetMap ────────────────────────────────────────────────────────
 async function runOsm() {
+  // OSM changes slowly — the same clinics come back every day — so once a
+  // week is enough to pick up new ones and kinder to the free public servers.
+  // GROWTH_FORCE_OSM=1 runs it on any day (the dashboard button does too).
+  const weekday = new Intl.DateTimeFormat('en-US', { timeZone: 'Africa/Cairo', weekday: 'short' }).format(new Date())
+  if (weekday !== 'Sat' && !process.env.GROWTH_FORCE_OSM) return { skipped: 'weekly — runs on Saturdays' }
   const rows = await fetchOsmClinics(undefined, { userAgent: 'Beshola-growth/1.0 (+https://www.beshola.co)' })
   const res = await importRows(rows, 'import')
   return { found: rows.length, ...res }
