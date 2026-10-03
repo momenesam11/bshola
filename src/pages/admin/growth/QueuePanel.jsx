@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import toast from 'react-hot-toast'
-import { HiOutlineBeaker, HiOutlineBellAlert, HiOutlineCheck, HiOutlineCheckBadge, HiOutlineCheckCircle, HiOutlineChevronLeft, HiOutlineClipboardDocumentList, HiOutlineEnvelope, HiOutlineExclamationTriangle, HiOutlineFire, HiOutlineLightBulb, HiOutlinePhone, HiOutlineShieldExclamation, HiOutlineTrash } from 'react-icons/hi2'
+import { HiOutlineBeaker, HiOutlineBellAlert, HiOutlineCheck, HiOutlineCheckCircle, HiOutlineChevronLeft, HiOutlineClipboardDocumentList, HiOutlineEnvelope, HiOutlineExclamationTriangle, HiOutlineFire, HiOutlineLightBulb, HiOutlinePhone, HiOutlineShieldExclamation, HiOutlineTrash } from 'react-icons/hi2'
 import { FaWhatsapp } from 'react-icons/fa'
 import { buildQueue } from '../../../lib/growth/scoring'
 import { chooseAngle, angleStats } from '../../../lib/growth/angles'
@@ -17,39 +17,11 @@ const BUCKETS = [
   { key: 2, icon: HiOutlineClipboardDocumentList, title: 'عيادات جديدة — الأعلى تقييماً', hint: 'لسه ماتكلّمتش معاهم', tone: 'border-rule bg-white' },
 ]
 
-const CATEGORY_FILTERS = [
-  { key: '', label: 'الكل' },
-  { key: 'dental', label: 'أسنان' },
-  { key: 'derma', label: 'جلدية وتجميل' },
-  { key: 'clinic', label: 'عيادات تانية' },
-]
-
-const PHONE_ONLY_KEY = 'beshola_growth_phone_only'
-const readPhoneOnly = () => {
-  try {
-    return localStorage.getItem(PHONE_ONLY_KEY) !== 'false'
-  } catch {
-    return true
-  }
-}
-
 const isToday = (iso) => iso && new Date(iso).toDateString() === new Date().toDateString()
 
 /** Today's call list, in the order to work it. */
 export default function QueuePanel({ leads, settings, onOpen }) {
-  const [phoneOnly, setPhoneOnlyState] = useState(readPhoneOnly)
-  const [category, setCategory] = useState('')
-  const [realOnly, setRealOnly] = useState(false)
   const [reviewOpen, setReviewOpen] = useState(false)
-
-  const setPhoneOnly = (v) => {
-    setPhoneOnlyState(v)
-    try {
-      localStorage.setItem(PHONE_ONLY_KEY, String(v))
-    } catch {
-      // per-browser preference only
-    }
-  }
 
   const stats = useMemo(() => angleStats(leads), [leads])
   const quality = useMemo(() => new Map(leads.map((l) => [l.id, dataQuality(l, leads)])), [leads])
@@ -58,15 +30,11 @@ export default function QueuePanel({ leads, settings, onOpen }) {
     [leads, quality]
   )
 
-  const queue = useMemo(() => {
-    const pool = leads.filter(
-      (l) =>
-        (!phoneOnly || l.phone) &&
-        (!category || l.category === category) &&
-        (!realOnly || quality.get(l.id)?.level === 'real')
-    )
-    return buildQueue(pool, { weights: settings?.weights, targetAreas: settings?.target_areas })
-  }, [leads, phoneOnly, category, realOnly, quality, settings])
+  // Only leads you can actually call. Email-only ones live in «كل العملاء».
+  const queue = useMemo(
+    () => buildQueue(leads.filter((l) => l.phone), { weights: settings?.weights, targetAreas: settings?.target_areas }),
+    [leads, settings]
+  )
 
   const doneToday = leads.filter((l) => isToday(l.last_contacted_at)).length
   const total = doneToday + queue.length
@@ -94,23 +62,12 @@ export default function QueuePanel({ leads, settings, onOpen }) {
 
       {reviewOpen && <ReviewPanel suspects={suspects} quality={quality} onOpen={onOpen} onClose={() => setReviewOpen(false)} />}
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-2">
-        <Chip on={phoneOnly} onClick={() => setPhoneOnly(!phoneOnly)}><HiOutlinePhone className="w-3.5 h-3.5" aria-hidden="true" /> عندهم رقم بس</Chip>
-        <Chip on={realOnly} onClick={() => setRealOnly(!realOnly)}><HiOutlineCheckBadge className="w-3.5 h-3.5" aria-hidden="true" /> المتأكَّد منهم بس</Chip>
-        <span className="w-px h-5 bg-gray-200 mx-1" />
-        {CATEGORY_FILTERS.map((c) => (
-          <Chip key={c.key} on={category === c.key} onClick={() => setCategory(c.key)}>{c.label}</Chip>
-        ))}
-      </div>
-
       <QualityLegend />
 
       {queue.length === 0 ? (
         <Card>
           <EmptyState icon={HiOutlineCheckCircle} title="مفيش حد مستني مكالمة دلوقتي">
             ضيف عيادات من «إضافة» أو شغّل «خرائط جوجل»، أو دوس «تحديث من النظام» يجيب اللي سجّلوا وماكمّلوش.
-            {phoneOnly && ' (فلتر «عندهم رقم بس» شغال — شيله تشوف اللي معاهم إيميل بس.)'}
           </EmptyState>
         </Card>
       ) : (
@@ -146,15 +103,6 @@ function Stat({ icon: Icon, label, value, tone, hint }) {
       <p className={`text-3xl font-bold mt-1 tabular-nums ${tone}`}>{value}</p>
       {hint && <p className="text-[12.5px] text-amber-600 mt-0.5">{hint}</p>}
     </div>
-  )
-}
-
-function Chip({ on, onClick, children }) {
-  return (
-    <button type="button" onClick={onClick}
-      className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${on ? 'bg-ink text-white border-ink' : 'bg-white text-ink-soft border-rule hover:border-gray-400'}`}>
-      {children}
-    </button>
   )
 }
 
