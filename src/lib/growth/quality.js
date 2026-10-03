@@ -47,7 +47,8 @@ export function dataQuality(lead, allLeads = []) {
     return { level: 'real', label: 'حقيقية', reasons: [lead.qualified_by === 'admin' ? 'إنت أكّدته' : 'عنده حجوزات من عملاء حقيقيين'] }
   }
   if (lead.google_place_id || lead.google_maps_url) {
-    return { level: 'real', label: 'حقيقية', reasons: ['موجود على خرائط جوجل'] }
+    const where = lead.google_maps_url?.includes('openstreetmap.org') ? 'OpenStreetMap' : 'خرائط جوجل'
+    return { level: 'real', label: 'حقيقية', reasons: [`موجودة على ${where}`] }
   }
   if (lead.stage === 'paid') return { level: 'real', label: 'حقيقية', reasons: ['دفع اشتراك'] }
   return { level: 'unknown', label: 'مش متأكدين', reasons: ['مفيش دليل لسه — اتأكد في أول مكالمة'] }

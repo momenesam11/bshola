@@ -6,9 +6,10 @@ import { findDuplicate } from '../../../lib/growth/dedupe'
 import { categoryFromText } from '../../../lib/growth/csv'
 import { SIGNAL_LABELS } from '../../../lib/growth/constants'
 import { usePlacesSearch, useImportLeads } from '../../../hooks/useGrowth'
+import { fetchOsmClinics, OSM_ATTRIBUTION } from '../../../lib/growth/osm'
 import { Btn, Card, EmptyState } from './ui'
 import { inputClass } from './format'
-import { HiOutlineExclamationCircle, HiOutlineKey, HiOutlineLightBulb, HiOutlineMap } from 'react-icons/hi2'
+import { HiOutlineExclamationCircle, HiOutlineGlobeAlt, HiOutlineKey, HiOutlineLightBulb, HiOutlineMap } from 'react-icons/hi2'
 
 const KINDS = [
   { key: 'dental', label: 'عيادة أسنان' },
@@ -47,11 +48,14 @@ export default function PlacesPanel({ leads, configured }) {
 
   if (!configured) {
     return (
-      <Card>
-        <EmptyState icon={HiOutlineKey} title="البحث الأوتوماتيك في خرائط جوجل محتاج مفتاح Google Places">
-          الخطوات في ملف <b>docs/growth-engine.md</b>. لحد ما تضيفه، اجمع العيادات بإيدك من تاب «إضافة» (فيه شرح).
-        </EmptyState>
-      </Card>
+      <div className="space-y-4">
+        <OsmCard leads={leads} />
+        <Card>
+          <EmptyState icon={HiOutlineKey} title="البحث في خرائط جوجل محتاج مفتاح Google Places">
+            جوجل فيه عيادات أكتر بكتير، بس محتاج حساب Google Cloud بكارت. الخطوات في <b>docs/growth-engine.md</b>.
+          </EmptyState>
+        </Card>
+      </div>
     )
   }
 
@@ -110,6 +114,7 @@ export default function PlacesPanel({ leads, configured }) {
 
   return (
     <div className="space-y-4">
+      <OsmCard leads={leads} />
       <Card icon={HiOutlineMap} title="دوّر في خرائط جوجل">
         <div className="grid sm:grid-cols-[1fr_1fr_auto] gap-2">
           <select className={inputClass} value={kind} onChange={(e) => setKind(e.target.value)} disabled={!!custom.trim()}>
@@ -176,5 +181,68 @@ export default function PlacesPanel({ leads, configured }) {
         </Card>
       )}
     </div>
+  )
+}
+
+/**
+ * Free, keyless source: every clinic OpenStreetMap knows in Cairo & Giza that
+ * has a phone. New ones are imported; ones already in the list are skipped.
+ */
+function OsmCard({ leads }) {
+  const importLeads = useImportLeads()
+  const [state, setState] = useState({ status: 'idle', rows: [] })
+  const fresh = state.rows.filter((r) => !findDuplicate(r, leads))
+
+  async function load() {
+    setState({ status: 'loading', rows: [] })
+    try {
+      const rows = await fetchOsmClinics()
+      setState({ status: 'ready', rows })
+    } catch (e) {
+      setState({ status: 'idle', rows: [] })
+      toast.error(e.message)
+    }
+  }
+
+  async function add() {
+    try {
+      const res = await importLeads.mutateAsync({ rows: fresh, source: 'import' })
+      toast.success(`اتضاف ${res.inserted} عيادة${res.skipped ? ` · متكرر ${res.skipped}` : ''}`)
+      setState({ status: 'idle', rows: [] })
+    } catch (e) {
+      toast.error(e.message)
+    }
+  }
+
+  const byCategory = fresh.reduce((m, r) => ((m[r.category] = (m[r.category] ?? 0) + 1), m), {})
+
+  return (
+    <Card icon={HiOutlineGlobeAlt} title="OpenStreetMap — مجاني ومن غير مفتاح">
+      <p className="text-sm text-ink-soft leading-relaxed">
+        خريطة مفتوحة بيانتها مسموح استخدامها. بتجيب العيادات اللي في القاهرة والجيزة وليها رقم تليفون (من غير صيدليات ومستشفيات ومعامل).
+        عددها أقل من جوجل، بس ببلاش. تقدر تدوس كل كام أسبوع تجيب الجديد.
+      </p>
+      {state.status !== 'ready' ? (
+        <Btn tone="primary" className="mt-3" onClick={load} disabled={state.status === 'loading'}>
+          {state.status === 'loading' ? 'بيجيب العيادات… (ممكن ياخد دقيقة)' : 'جيب العيادات'}
+        </Btn>
+      ) : (
+        <div className="mt-3 rounded-lg bg-paper border border-rule p-3 space-y-2">
+          <p className="text-sm text-ink">
+            لقيت <b>{state.rows.length}</b> عيادة برقم — منهم <b>{fresh.length}</b> جداد مش عندك
+            {fresh.length > 0 && (
+              <span className="text-ink-soft"> (أسنان {byCategory.dental ?? 0} · جلدية {byCategory.derma ?? 0} · عيادات تانية {byCategory.clinic ?? 0})</span>
+            )}
+          </p>
+          <div className="flex gap-2">
+            <Btn tone="primary" onClick={add} disabled={!fresh.length || importLeads.isPending}>
+              {importLeads.isPending ? 'بيضيف…' : `ضيف الـ ${fresh.length} للقايمة`}
+            </Btn>
+            <Btn onClick={() => setState({ status: 'idle', rows: [] })}>إلغاء</Btn>
+          </div>
+        </div>
+      )}
+      <p className="text-[12.5px] text-ink-soft mt-3">البيانات: {OSM_ATTRIBUTION}</p>
+    </Card>
   )
 }

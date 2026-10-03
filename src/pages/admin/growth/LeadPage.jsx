@@ -159,7 +159,7 @@ export default function LeadPage({ lead, leads, partners, settings, onBack, tab 
 
 function ContactRow({ lead }) {
   const links = [
-    lead.google_maps_url && ['خرائط جوجل', lead.google_maps_url],
+    lead.google_maps_url && [lead.google_maps_url.includes('openstreetmap.org') ? 'OpenStreetMap' : 'خرائط جوجل', lead.google_maps_url],
     lead.instagram && ['إنستجرام', lead.instagram.startsWith('http') ? lead.instagram : `https://instagram.com/${lead.instagram.replace('@', '')}`],
     lead.facebook && ['فيسبوك', lead.facebook],
     lead.website && ['الموقع', lead.website],
