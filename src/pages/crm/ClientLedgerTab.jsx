@@ -103,7 +103,7 @@ export default function ClientLedgerTab({ businessId, clientPhone }) {
                 <p className={`text-sm font-bold ${entry.entry_type === 'charge' ? 'text-red-600' : 'text-accent-600'}`} dir="ltr">
                   {entry.entry_type === 'charge' ? '+' : '-'}{entry.amount} ج.م
                 </p>
-                <p className="text-[10px] text-slate-400 mt-0.5" dir="ltr">الرصيد: {entry.balanceAfter} ج.م</p>
+                <p className="text-[11.5px] text-slate-400 mt-0.5" dir="ltr">الرصيد: {entry.balanceAfter} ج.م</p>
               </div>
             </div>
           ))}

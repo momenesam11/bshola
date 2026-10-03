@@ -90,7 +90,7 @@ function Growth() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6" dir="rtl">
+    <div className="min-h-screen bg-paper p-4 sm:p-6" dir="rtl">
       <Helmet>
         <title>العملاء المحتملين — بسهولة</title>
         <meta name="robots" content="noindex, nofollow" />
@@ -98,8 +98,8 @@ function Growth() {
       <div className="max-w-7xl mx-auto space-y-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <Link to="/admin" className="text-gray-400 hover:text-gray-700" title="لوحة التحكم"><HiOutlineArrowRight className="w-5 h-5" /></Link>
-            <h1 className="text-2xl font-bold text-gray-900">🚀 العملاء المحتملين</h1>
+            <Link to="/admin" className="text-gray-400 hover:text-ink-soft" title="لوحة التحكم"><HiOutlineArrowRight className="w-5 h-5" /></Link>
+            <h1 className="text-2xl font-bold text-ink">🚀 العملاء المحتملين</h1>
           </div>
           <Btn onClick={runSync} disabled={sync.isPending} title="يجيب التسجيلات الجديدة ويحدّث التجارب والدفع">
             <HiOutlineArrowPath className={`w-4 h-4 ${sync.isPending ? 'animate-spin' : ''}`} /> تحديث من النظام
@@ -113,7 +113,7 @@ function Growth() {
               type="button"
               onClick={() => update({ tab: t.key, lead: null, ltab: null })}
               className={`flex-shrink-0 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                tab === t.key && !openLead ? 'bg-gray-900 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                tab === t.key && !openLead ? 'bg-ink text-white' : 'bg-white text-ink-soft border border-rule hover:bg-paper'
               }`}
             >
               {t.label}

@@ -52,16 +52,16 @@ export default function SettingsPanel({ settings, placesConfigured }) {
   return (
     <div className="grid lg:grid-cols-2 gap-4 items-start">
       <Card title="⚖️ أوزان التقييم">
-        <p className="text-xs text-gray-500 mb-4">كل جزء بياخد درجة من 100، والوزن بيحدد أهميته في الترتيب. المجموع دلوقتي {total}.</p>
+        <p className="text-xs text-ink-soft mb-4">كل جزء بياخد درجة من 100، والوزن بيحدد أهميته في الترتيب. المجموع دلوقتي {total}.</p>
         <div className="space-y-4">
           {Object.entries(WEIGHT_LABELS).map(([key, [label, hint]]) => (
             <div key={key}>
               <div className="flex justify-between text-sm">
-                <span className="font-semibold text-gray-800">{label}</span>
-                <span className="tabular-nums text-gray-500">{weights[key]}</span>
+                <span className="font-semibold text-ink">{label}</span>
+                <span className="tabular-nums text-ink-soft">{weights[key]}</span>
               </div>
-              <input type="range" min="0" max="50" value={weights[key]} onChange={(e) => setWeights((w) => ({ ...w, [key]: Number(e.target.value) }))} className="w-full accent-emerald-600" />
-              <p className="text-[11px] text-gray-400">{hint}</p>
+              <input type="range" min="0" max="50" value={weights[key]} onChange={(e) => setWeights((w) => ({ ...w, [key]: Number(e.target.value) }))} className="w-full accent-accent-600" />
+              <p className="text-[12.5px] text-gray-400">{hint}</p>
             </div>
           ))}
         </div>
@@ -76,10 +76,10 @@ export default function SettingsPanel({ settings, placesConfigured }) {
         </Card>
         <Card title="🤖 البحث الأوتوماتيك اليومي">
           <label className="flex items-center gap-2 text-sm font-semibold cursor-pointer">
-            <input type="checkbox" checked={autoOn} onChange={(e) => setAutoOn(e.target.checked)} className="w-4 h-4 accent-emerald-600" />
+            <input type="checkbox" checked={autoOn} onChange={(e) => setAutoOn(e.target.checked)} className="w-4 h-4 accent-accent-600" />
             كل يوم، أول ما أفتح الصفحة، دوّر لوحدك وضيف عيادات جديدة
           </label>
-          <p className="text-xs text-gray-500 mt-2 leading-relaxed">
+          <p className="text-xs text-ink-soft mt-2 leading-relaxed">
             بيضيف بس العيادات المفتوحة اللي ليها رقم، ومش بيكرر حد موجود، وبيقرا تقييماتها ويعلّم الشكاوى.
             {!placesConfigured && <b className="text-amber-700"> محتاج مفتاح Google Places الأول.</b>}
           </p>
@@ -88,7 +88,7 @@ export default function SettingsPanel({ settings, placesConfigured }) {
               <div className="flex flex-wrap gap-3 pt-1">
                 {DISCOVERY_CATEGORIES.map((c) => (
                   <label key={c} className="flex items-center gap-1.5 text-sm cursor-pointer">
-                    <input type="checkbox" className="accent-emerald-600" checked={autoCats.includes(c)}
+                    <input type="checkbox" className="accent-accent-600" checked={autoCats.includes(c)}
                       onChange={(e) => setAutoCats((list) => (e.target.checked ? [...list, c] : list.filter((x) => x !== c)))} />
                     {CATEGORY_BY_KEY[c]?.label}
                   </label>
@@ -101,11 +101,11 @@ export default function SettingsPanel({ settings, placesConfigured }) {
             <Field label="كام بحث في اليوم" hint={`كل بحث بيجيب لحد 20 عيادة. عندك ${totalSearches} بحث مختلف — بيلف عليهم بالدور، يعني دورة كاملة كل ${Math.max(1, Math.ceil(totalSearches / (parseInt(autoPerDay, 10) || 4)))} يوم.`}>
               <input type="number" min="1" max="50" className={inputClass} value={autoPerDay} onChange={(e) => setAutoPerDay(e.target.value)} />
             </Field>
-            {settings?.auto_discover_last_run && <p className="text-[11px] text-gray-400">آخر مرة اشتغل: {settings.auto_discover_last_run}</p>}
+            {settings?.auto_discover_last_run && <p className="text-[12.5px] text-gray-400">آخر مرة اشتغل: {settings.auto_discover_last_run}</p>}
           </div>
         </Card>
         <Card title="🗺️ خرائط جوجل">
-          <p className={`text-sm mb-3 ${placesConfigured ? 'text-green-700' : 'text-amber-700'}`}>
+          <p className={`text-sm mb-3 ${placesConfigured ? 'text-accent-700' : 'text-amber-700'}`}>
             {placesConfigured ? '✅ مفتاح Google Places متضاف' : '⚠️ مفتاح Google Places مش متضاف — الخطوات في docs/growth-engine.md'}
           </p>
           <Field label="أقصى عدد بحث في اليوم" hint={`النهارده: ${settings?.places_calls_date ? settings.places_calls_count : 0} بحث. 0 = إيقاف البحث خالص.`}>
@@ -113,7 +113,7 @@ export default function SettingsPanel({ settings, placesConfigured }) {
           </Field>
         </Card>
         <Card title="✅ إمتى العيادة تتحسب «حقيقية»؟">
-          <p className="text-xs text-gray-500 mb-3 leading-relaxed">
+          <p className="text-xs text-ink-soft mb-3 leading-relaxed">
             عشان مكافأة الشريك ماتتصرفش على تسجيل وهمي: العيادة لازم يجيلها العدد ده من الحجوزات من عملاء مختلفين
             (مش رقم صاحبها، ورقم صاحبها مش مستخدم في حساب تاني). أو تأكّدها إنت بإيدك من صفحتها.
           </p>

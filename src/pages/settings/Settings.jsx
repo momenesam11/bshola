@@ -690,7 +690,7 @@ export default function Settings() {
             <p className="text-xs text-slate-400">
               المتغيرات:{' '}
               {['{client_name}', '{service}', '{time}', '{business_name}', '{branch}'].map(v => (
-                <code key={v} className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 mx-0.5 text-[11px]">{v}</code>
+                <code key={v} className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 mx-0.5 text-[12.5px]">{v}</code>
               ))}
             </p>
             <div className="flex items-center gap-3">

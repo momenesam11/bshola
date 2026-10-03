@@ -17,8 +17,8 @@ import { SUPPORT_WHATSAPP } from '../../lib/support'
 const STATUS = {
   lead: { label: 'لسه ماسجّلتش', tone: 'bg-slate-100 text-slate-600' },
   registered: { label: 'سجّلت — مستنيين نتأكد إنها حقيقية', tone: 'bg-amber-50 text-amber-700' },
-  qualified: { label: 'عيادة حقيقية ✅', tone: 'bg-emerald-50 text-emerald-700' },
-  paid: { label: 'اشتركت 💎', tone: 'bg-green-100 text-green-800' },
+  qualified: { label: 'عيادة حقيقية ✅', tone: 'bg-accent-50 text-accent-700' },
+  paid: { label: 'اشتركت 💎', tone: 'bg-accent-100 text-accent-800' },
 }
 const MONEY_STATUS = {
   pending: 'بتتراجع',
@@ -99,7 +99,7 @@ export default function PartnerDashboardPage() {
             <button type="button" onClick={copy} className="text-sm font-bold text-accent-700">نسخ</button>
           </div>
           <a href={`https://wa.me/?text=${encodeURIComponent(shareText)}`} target="_blank" rel="noopener noreferrer"
-            className="mt-3 inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white text-sm font-bold px-4 py-2.5 rounded-xl">
+            className="mt-3 inline-flex items-center gap-2 bg-accent-500 hover:bg-accent-600 text-white text-sm font-bold px-4 py-2.5 rounded-xl">
             <FaWhatsapp className="w-4 h-4" /> ابعته لدكتور على واتساب
           </a>
         </section>
@@ -117,8 +117,8 @@ export default function PartnerDashboardPage() {
           <p className="text-sm font-bold mb-3">فلوسك</p>
           <div className="grid grid-cols-3 gap-2 text-center text-sm">
             <div className="rounded-xl bg-amber-50 py-3"><b className="block text-base tabular-nums">{egp(total(['pending']))}</b>بتتراجع</div>
-            <div className="rounded-xl bg-blue-50 py-3"><b className="block text-base tabular-nums">{egp(total(['approved']))}</b>هتتدفع</div>
-            <div className="rounded-xl bg-green-50 py-3"><b className="block text-base tabular-nums">{egp(total(['paid']))}</b>اتدفعت</div>
+            <div className="rounded-xl bg-ink/5 py-3"><b className="block text-base tabular-nums">{egp(total(['approved']))}</b>هتتدفع</div>
+            <div className="rounded-xl bg-accent-50 py-3"><b className="block text-base tabular-nums">{egp(total(['paid']))}</b>اتدفعت</div>
           </div>
           {commissions.length > 0 && (
             <ul className="mt-4 divide-y divide-slate-100 text-sm">
@@ -130,7 +130,7 @@ export default function PartnerDashboardPage() {
                   </div>
                   <div className="text-left">
                     <p className="font-bold tabular-nums">{egp(c.amount)}</p>
-                    <p className="text-[11px] text-ink-soft">{MONEY_STATUS[c.status]}</p>
+                    <p className="text-[12.5px] text-ink-soft">{MONEY_STATUS[c.status]}</p>
                   </div>
                 </li>
               ))}
@@ -150,7 +150,7 @@ export default function PartnerDashboardPage() {
                     <p className="font-semibold">{c.name}</p>
                     <p className="text-xs text-ink-soft">{date(c.joined_at)}</p>
                   </div>
-                  <span className={`text-[11px] font-bold px-2 py-1 rounded-full whitespace-nowrap ${STATUS[c.status].tone}`}>{STATUS[c.status].label}</span>
+                  <span className={`text-[12.5px] font-bold px-2 py-1 rounded-full whitespace-nowrap ${STATUS[c.status].tone}`}>{STATUS[c.status].label}</span>
                 </li>
               ))}
             </ul>

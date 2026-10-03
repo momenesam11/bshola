@@ -74,7 +74,7 @@ function ClientCard({ client, onView, tomorrowAppt, businessName }) {
             {client.status}
           </span>
           {tomorrowAppt && (
-            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 flex items-center gap-1">
+            <span className="text-[11.5px] font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 flex items-center gap-1">
               <HiOutlineBell className="w-3 h-3" />
               غداً {formatTime12(tomorrowAppt.appointment_time?.slice(0, 5))}
             </span>

@@ -27,7 +27,7 @@ function junkPhone(phone) {
 export function dataQuality(lead, allLeads = []) {
   if (lead.is_test) return { level: 'test', label: 'حساب تجربة', reasons: ['إنت علّمته حساب تجربة'] }
   // Your own call beats any heuristic.
-  if (lead.qualified_by === 'admin') return { level: 'real', label: 'حقيقي', reasons: ['إنت أكّدته'] }
+  if (lead.qualified_by === 'admin') return { level: 'real', label: 'حقيقية', reasons: ['إنت أكّدته'] }
 
   const reasons = []
   if (lead.phone && lead.phone === SUPPORT_WHATSAPP) reasons.push('ده رقمك إنت')
@@ -41,21 +41,21 @@ export function dataQuality(lead, allLeads = []) {
     reasons.push('نفس الإيميل على عميل تاني')
   }
 
-  if (reasons.length) return { level: 'suspect', label: 'محتاج مراجعة', reasons }
+  if (reasons.length) return { level: 'suspect', label: 'شكلها غلط', reasons }
 
   if (lead.qualified_at) {
-    return { level: 'real', label: 'حقيقي', reasons: [lead.qualified_by === 'admin' ? 'إنت أكّدته' : 'عنده حجوزات من عملاء حقيقيين'] }
+    return { level: 'real', label: 'حقيقية', reasons: [lead.qualified_by === 'admin' ? 'إنت أكّدته' : 'عنده حجوزات من عملاء حقيقيين'] }
   }
   if (lead.google_place_id || lead.google_maps_url) {
-    return { level: 'real', label: 'حقيقي', reasons: ['موجود على خرائط جوجل'] }
+    return { level: 'real', label: 'حقيقية', reasons: ['موجود على خرائط جوجل'] }
   }
-  if (lead.stage === 'paid') return { level: 'real', label: 'حقيقي', reasons: ['دفع اشتراك'] }
-  return { level: 'unknown', label: 'لسه مش متأكدين', reasons: ['مفيش دليل لسه — اتأكد في أول مكالمة'] }
+  if (lead.stage === 'paid') return { level: 'real', label: 'حقيقية', reasons: ['دفع اشتراك'] }
+  return { level: 'unknown', label: 'مش متأكدين', reasons: ['مفيش دليل لسه — اتأكد في أول مكالمة'] }
 }
 
 export const QUALITY_STYLE = {
-  real: { icon: '✅', tone: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  unknown: { icon: '❔', tone: 'bg-gray-50 text-gray-500 border-gray-200' },
+  real: { icon: '✅', tone: 'bg-accent-50 text-accent-700 border-accent-200' },
+  unknown: { icon: '❔', tone: 'bg-paper text-ink-soft border-rule' },
   suspect: { icon: '⚠️', tone: 'bg-amber-50 text-amber-800 border-amber-200' },
   test: { icon: '🧪', tone: 'bg-gray-100 text-gray-500 border-gray-200' },
 }

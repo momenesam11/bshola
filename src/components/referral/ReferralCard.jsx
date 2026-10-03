@@ -37,7 +37,7 @@ export default function ReferralCard({ business }) {
         href={`https://wa.me/?text=${encodeURIComponent(message)}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white text-sm font-bold px-4 py-2.5 rounded-xl"
+        className="inline-flex items-center gap-2 bg-accent-500 hover:bg-accent-600 text-white text-sm font-bold px-4 py-2.5 rounded-xl"
       >
         <FaWhatsapp className="w-4 h-4" /> ابعته على واتساب
       </a>

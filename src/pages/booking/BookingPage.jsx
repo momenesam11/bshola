@@ -418,7 +418,7 @@ export default function BookingPage() {
               {business.specialty && <p className="text-sm text-gray-500 truncate">{business.specialty}</p>}
             </div>
             {business.years_experience > 0 && (
-              <span className="hidden sm:inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full font-bold flex-shrink-0 mt-1"
+              <span className="hidden sm:inline-flex items-center gap-1 text-[12.5px] px-2.5 py-1 rounded-full font-bold flex-shrink-0 mt-1"
                 style={{ backgroundColor: `${brandColor}15`, color: brandColor }}>
                 <HiOutlineStar className="w-3 h-3" /> {business.years_experience} سنة
               </span>
@@ -536,9 +536,9 @@ export default function BookingPage() {
                         isSelected ? 'text-white shadow-md' : 'border-gray-100 hover:border-[var(--brand-color)] text-gray-700'
                       }`}
                       style={isSelected ? { backgroundColor: brandColor, borderColor: brandColor } : undefined}>
-                      <p className={`text-[10px] ${isSelected ? 'opacity-80' : 'text-gray-400'}`}>{format(d, 'EEE', { locale: ar })}</p>
+                      <p className={`text-[11.5px] ${isSelected ? 'opacity-80' : 'text-gray-400'}`}>{format(d, 'EEE', { locale: ar })}</p>
                       <p className="text-lg font-bold">{format(d, 'd')}</p>
-                      <p className={`text-[10px] ${isSelected ? 'opacity-80' : 'text-gray-400'}`}>{format(d, 'MMM', { locale: ar })}</p>
+                      <p className={`text-[11.5px] ${isSelected ? 'opacity-80' : 'text-gray-400'}`}>{format(d, 'MMM', { locale: ar })}</p>
                     </button>
                   )
                 })}
@@ -587,7 +587,7 @@ export default function BookingPage() {
                         {slot.isAvailable ? formatTime12(slot.time) : (
                           <>
                             <HiOutlineLockClosed className="w-3.5 h-3.5" />
-                            <span className="text-[10px]">{isJustBooked ? 'تم حجزه للتو' : 'محجوز'}</span>
+                            <span className="text-[11.5px]">{isJustBooked ? 'تم حجزه للتو' : 'محجوز'}</span>
                           </>
                         )}
                       </button>
@@ -639,7 +639,7 @@ export default function BookingPage() {
               </form>
 
               {business.cancellation_policy && (
-                <p className="text-[11px] text-gray-400 text-center mt-3">{business.cancellation_policy}</p>
+                <p className="text-[12.5px] text-gray-400 text-center mt-3">{business.cancellation_policy}</p>
               )}
             </div>
           )}
@@ -647,7 +647,7 @@ export default function BookingPage() {
 
         {/* Made-with link: patients are often business owners too. The B-<slug>
             ref credits this customer as the referrer (lib/growth/links.js). */}
-        <p className="text-center text-[11px] text-gray-400 py-6">
+        <p className="text-center text-[12.5px] text-gray-400 py-6">
           صفحة الحجز دي معمولة بـ{' '}
           <a href={bookingFooterPath(businessSlug)} target="_blank" rel="noopener" className="font-semibold text-gray-500 hover:text-gray-700 underline">بسهولة</a>
           {' '}— اعمل صفحة زيها لنشاطك

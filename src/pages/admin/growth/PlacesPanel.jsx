@@ -120,7 +120,7 @@ export default function PlacesPanel({ leads, configured }) {
           <Btn tone="primary" onClick={() => run()} disabled={search.isPending}>{search.isPending ? 'بيدوّر…' : 'دوّر'}</Btn>
         </div>
         <input className={`${inputClass} mt-2`} placeholder="أو اكتب بحث بنفسك: «مركز ليزر التجمع»" value={custom} onChange={(e) => setCustom(e.target.value)} />
-        <p className="text-[11px] text-gray-400 mt-2">كل بحث = طلب واحد من جوجل (بفلوس). فيه حد يومي من الإعدادات عشان ماتتفاجئش بفاتورة.</p>
+        <p className="text-[12.5px] text-gray-400 mt-2">كل بحث = طلب واحد من جوجل (بفلوس). فيه حد يومي من الإعدادات عشان ماتتفاجئش بفاتورة.</p>
       </Card>
 
       {enriched.length > 0 && (
@@ -140,24 +140,24 @@ export default function PlacesPanel({ leads, configured }) {
               <li key={p.google_place_id} className={`py-3 flex gap-3 ${p.duplicate || p.closed ? 'opacity-50' : ''}`}>
                 <input
                   type="checkbox"
-                  className="mt-1 w-4 h-4 accent-emerald-600"
+                  className="mt-1 w-4 h-4 accent-accent-600"
                   checked={selected.has(p.google_place_id)}
                   disabled={!!p.duplicate}
                   onChange={() => toggle(p.google_place_id)}
                 />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <a href={p.google_maps_url} target="_blank" rel="noopener noreferrer" className="font-bold text-gray-900 hover:underline">{p.name}</a>
+                    <a href={p.google_maps_url} target="_blank" rel="noopener noreferrer" className="font-bold text-ink hover:underline">{p.name}</a>
                     {p.google_rating != null && <span className="text-xs text-amber-600">★ {p.google_rating} ({p.google_reviews_count})</span>}
-                    {p.duplicate && <span className="text-[11px] bg-gray-100 text-gray-600 rounded px-1.5">موجود في القايمة</span>}
-                    {p.closed && <span className="text-[11px] bg-red-50 text-red-600 rounded px-1.5">مقفول</span>}
+                    {p.duplicate && <span className="text-[12.5px] bg-gray-100 text-ink-soft rounded px-1.5">موجود في القايمة</span>}
+                    {p.closed && <span className="text-[12.5px] bg-red-50 text-red-600 rounded px-1.5">مقفول</span>}
                   </div>
-                  <p className="text-xs text-gray-500 truncate">{p.address}</p>
-                  <p className="text-xs text-gray-600 font-mono mt-0.5" dir="ltr">{p.phone ? displayPhone(normalizePhone(p.phone) ?? '') || p.phone : 'مفيش رقم'}</p>
+                  <p className="text-xs text-ink-soft truncate">{p.address}</p>
+                  <p className="text-xs text-ink-soft font-mono mt-0.5" dir="ltr">{p.phone ? displayPhone(normalizePhone(p.phone) ?? '') || p.phone : 'مفيش رقم'}</p>
                   {p.signals.length > 0 && (
                     <ul className="mt-1.5 space-y-1">
                       {p.signals.map((s) => (
-                        <li key={s.type} className={`text-[11px] leading-relaxed ${s.kind === 'fact' ? 'text-red-700' : 'text-gray-500'}`}>
+                        <li key={s.type} className={`text-[12.5px] leading-relaxed ${s.kind === 'fact' ? 'text-red-700' : 'text-ink-soft'}`}>
                           {s.kind === 'fact' ? '🔴' : '💭'} <b>{SIGNAL_LABELS[s.type]}</b> — {s.evidence}
                         </li>
                       ))}

@@ -6,10 +6,10 @@ import { Card } from './ui'
 
 function Stat({ label, value, hint }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+    <div className="bg-white rounded-xl border border-rule shadow-sm p-4">
       <p className="text-xs text-gray-400">{label}</p>
-      <p className="text-2xl font-bold text-gray-900 mt-1 tabular-nums">{value}</p>
-      {hint && <p className="text-[11px] text-gray-400 mt-0.5">{hint}</p>}
+      <p className="text-2xl font-bold text-ink mt-1 tabular-nums">{value}</p>
+      {hint && <p className="text-[12.5px] text-gray-400 mt-0.5">{hint}</p>}
     </div>
   )
 }
@@ -22,7 +22,7 @@ function ConversionTable({ title, rows }) {
       ) : (
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-[11px] text-gray-400 border-b border-gray-100">
+            <tr className="text-[12.5px] text-gray-400 border-b border-rule">
               <th className="text-right font-medium py-1.5"> </th>
               <th className="text-center font-medium py-1.5">عملاء</th>
               <th className="text-center font-medium py-1.5">اتكلّموا</th>
@@ -34,11 +34,11 @@ function ConversionTable({ title, rows }) {
           <tbody>
             {rows.map((r) => (
               <tr key={r.key} className="border-b border-gray-50 last:border-0">
-                <td className="py-2 font-semibold text-gray-800">{r.label}</td>
+                <td className="py-2 font-semibold text-ink">{r.label}</td>
                 <td className="py-2 text-center tabular-nums">{r.leads}</td>
                 <td className="py-2 text-center tabular-nums">{r.contacted}</td>
                 <td className="py-2 text-center tabular-nums">{r.trial}</td>
-                <td className="py-2 text-center tabular-nums font-bold text-green-700">{r.paid}</td>
+                <td className="py-2 text-center tabular-nums font-bold text-accent-700">{r.paid}</td>
                 <td className="py-2 text-center tabular-nums">{r.paidRate}%</td>
               </tr>
             ))}
@@ -89,8 +89,8 @@ export default function NumbersPanel({ leads }) {
             {steps.map((s) => (
               <div key={s.key}>
                 <div className="flex justify-between text-xs">
-                  <span className="font-semibold text-gray-700">{s.label}</span>
-                  <span className="tabular-nums text-gray-500">
+                  <span className="font-semibold text-ink-soft">{s.label}</span>
+                  <span className="tabular-nums text-ink-soft">
                     {s.count}{s.rateFromPrev !== null && <span className="text-gray-400"> ({s.rateFromPrev}% من اللي قبله)</span>}
                   </span>
                 </div>
@@ -104,9 +104,9 @@ export default function NumbersPanel({ leads }) {
 
         <Card title="💪 مجهودك (آخر 30 يوم)">
           <div className="grid grid-cols-3 gap-3 text-center">
-            <div><p className="text-2xl font-bold tabular-nums">{effort.calls30}</p><p className="text-xs text-gray-500">{ACTIVITY_KINDS.call}</p></div>
-            <div><p className="text-2xl font-bold tabular-nums">{effort.whatsapp30}</p><p className="text-xs text-gray-500">{ACTIVITY_KINDS.whatsapp}</p></div>
-            <div><p className="text-2xl font-bold tabular-nums">{effort.week}</p><p className="text-xs text-gray-500">تواصل الأسبوع ده</p></div>
+            <div><p className="text-2xl font-bold tabular-nums">{effort.calls30}</p><p className="text-xs text-ink-soft">{ACTIVITY_KINDS.call}</p></div>
+            <div><p className="text-2xl font-bold tabular-nums">{effort.whatsapp30}</p><p className="text-xs text-ink-soft">{ACTIVITY_KINDS.whatsapp}</p></div>
+            <div><p className="text-2xl font-bold tabular-nums">{effort.week}</p><p className="text-xs text-ink-soft">تواصل الأسبوع ده</p></div>
           </div>
           {effort.outcomes.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-4">
@@ -123,7 +123,7 @@ export default function NumbersPanel({ leads }) {
         <ConversionTable title="🏥 حسب نوع العيادة" rows={conversionBy(leads, 'category', labelers.category)} />
         <ConversionTable title="💡 حسب زاوية البيع" rows={conversionBy(leads.filter((l) => l.sales_angle), 'sales_angle', labelers.sales_angle)} />
       </div>
-      <p className="text-[11px] text-gray-400">الأرقام دي بتتحسب من القايمة نفسها. التجربة والدفع بيتحدّثوا لوحدهم كل ليلة (أو من زرار «تحديث من النظام»).</p>
+      <p className="text-[12.5px] text-gray-400">الأرقام دي بتتحسب من القايمة نفسها. التجربة والدفع بيتحدّثوا لوحدهم كل ليلة (أو من زرار «تحديث من النظام»).</p>
     </div>
   )
 }

@@ -41,6 +41,10 @@ export default {
         'glow-pulse': 'glowPulse 6s ease-in-out infinite',
         drift: 'drift 12s ease-in-out infinite',
       },
+      // Secondary text read too small in the app at Tailwind's 12px.
+      fontSize: {
+        xs: ['0.8125rem', { lineHeight: '1.25rem' }],
+      },
       colors: {
         // ── Marketing surface tokens (landing page) ──────────────────
         // The landing page is built on a 'clinic register' palette: a

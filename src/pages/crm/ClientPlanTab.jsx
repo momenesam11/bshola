@@ -84,7 +84,7 @@ export default function ClientPlanTab({ businessId, clientPhone, clientName }) {
           return (
             <div key={visit.id} className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100 flex-wrap">
               <span className="text-xs font-bold text-slate-400 flex-shrink-0">زيارة {visit.visit_number}</span>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full border font-medium flex-shrink-0 ${cfg.cls}`}>{cfg.label}</span>
+              <span className={`text-[11.5px] px-2 py-0.5 rounded-full border font-medium flex-shrink-0 ${cfg.cls}`}>{cfg.label}</span>
 
               {canBook ? (
                 <>

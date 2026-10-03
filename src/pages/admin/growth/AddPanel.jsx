@@ -54,14 +54,14 @@ function ImportCard() {
 
   return (
     <Card title="📄 استيراد شيت (Excel / CSV)">
-      <ol className="text-sm text-gray-600 list-decimal pr-5 space-y-1 mb-3">
+      <ol className="text-sm text-ink-soft list-decimal pr-5 space-y-1 mb-3">
         <li>نزّل الشيت الجاهز واملاه (أو استخدم شيت عندك فيه عمود «الاسم»).</li>
         <li>من Excel: <b>حفظ باسم ← CSV UTF-8</b>.</li>
         <li>ارفعه هنا. المتكرر (نفس الرقم أو نفس الاسم في نفس المنطقة) بيتشال لوحده.</li>
       </ol>
       <div className="flex flex-wrap gap-2 items-center">
         <Btn onClick={() => downloadCsv('beshola-leads-template.csv', csvTemplate())}>⬇️ الشيت الجاهز</Btn>
-        <label className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold bg-gray-900 text-white cursor-pointer hover:bg-gray-800">
+        <label className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold bg-ink text-white cursor-pointer hover:bg-ink-deep">
           ⬆️ ارفع CSV
           <input type="file" accept=".csv,text/csv" className="hidden" onChange={onFile} />
         </label>
@@ -69,7 +69,7 @@ function ImportCard() {
       {parsed && (
         <div className="mt-4 rounded-lg bg-gray-50 p-3 space-y-3">
           <p className="text-sm"><b>{parsed.name}</b>: {parsed.rows.length} صف</p>
-          <ul className="text-xs text-gray-600 space-y-0.5 max-h-32 overflow-y-auto">
+          <ul className="text-xs text-ink-soft space-y-0.5 max-h-32 overflow-y-auto">
             {parsed.rows.slice(0, 8).map((r, i) => <li key={i}>• {r.name} {r.phone ? `— ${r.phone}` : ''} {r.area ? `(${r.area})` : ''}</li>)}
             {parsed.rows.length > 8 && <li>… و{parsed.rows.length - 8} كمان</li>}
           </ul>
@@ -91,7 +91,7 @@ function ImportCard() {
 function HowToCard() {
   return (
     <Card title="🗺️ إزاي تجمع عيادات من خرائط جوجل بإيدك">
-      <ol className="text-sm text-gray-600 list-decimal pr-5 space-y-1.5 leading-relaxed">
+      <ol className="text-sm text-ink-soft list-decimal pr-5 space-y-1.5 leading-relaxed">
         <li>افتح <b>maps.google.com</b> ودوّر مثلاً: <b>«عيادة أسنان مدينة نصر»</b>.</li>
         <li>افتح كل عيادة وانسخ: الاسم، الرقم، لينك الخريطة، عدد التقييمات.</li>
         <li>اقرا آخر التقييمات: لو حد اشتكى إن <b>محدش بيرد</b> أو <b>الحجز صعب</b> — اكتبها في الملاحظات (دي أقوى إشارة).</li>

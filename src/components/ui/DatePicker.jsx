@@ -86,7 +86,7 @@ export default function DatePicker({ value, onChange, placeholder = 'اختر ت
           {/* Weekday headers */}
           <div className="grid grid-cols-7 mb-1">
             {AR_DAYS_SHORT.map((d, i) => (
-              <div key={i} className="text-center text-[11px] text-slate-400 font-medium py-1">{d}</div>
+              <div key={i} className="text-center text-[12.5px] text-slate-400 font-medium py-1">{d}</div>
             ))}
           </div>
 

@@ -2,14 +2,14 @@
 // supabase/migrations/032_growth_engine.sql — change both together.
 
 export const STAGES = [
-  { key: 'new', label: 'جديد', color: 'bg-slate-100 text-slate-700' },
-  { key: 'contacted', label: 'اتكلّم', color: 'bg-blue-50 text-blue-700' },
+  { key: 'new', label: 'جديد', color: 'bg-ink/5 text-ink' },
+  { key: 'contacted', label: 'اتكلّم', color: 'bg-ink/10 text-ink' },
   { key: 'follow_up', label: 'متابعة', color: 'bg-amber-50 text-amber-700' },
-  { key: 'interested', label: 'مهتم', color: 'bg-emerald-50 text-emerald-700' },
-  { key: 'demo', label: 'ديمو', color: 'bg-violet-50 text-violet-700' },
-  { key: 'trial', label: 'في التجربة', color: 'bg-cyan-50 text-cyan-700' },
-  { key: 'paid', label: 'دفع 💎', color: 'bg-green-100 text-green-800' },
-  { key: 'lost', label: 'ضاع', color: 'bg-red-50 text-red-600' },
+  { key: 'interested', label: 'مهتم', color: 'bg-accent-50 text-accent-700' },
+  { key: 'demo', label: 'ديمو', color: 'bg-accent-100 text-accent-800' },
+  { key: 'trial', label: 'في التجربة', color: 'bg-accent-100 text-accent-800' },
+  { key: 'paid', label: 'دفع 💎', color: 'bg-accent-600 text-white' },
+  { key: 'lost', label: 'ضاع', color: 'bg-gray-100 text-gray-500' },
   { key: 'do_not_contact', label: 'ماتكلّمهوش', color: 'bg-gray-200 text-gray-600' },
 ]
 export const STAGE_BY_KEY = Object.fromEntries(STAGES.map((s) => [s.key, s]))

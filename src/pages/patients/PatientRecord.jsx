@@ -105,7 +105,7 @@ function TagInput({ tags = [], onChange, placeholder, chipClass = 'bg-primary-50
 function Section({ title, children }) {
   return (
     <div>
-      <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">{title}</h3>
+      <h3 className="text-[12.5px] font-bold text-slate-400 uppercase tracking-widest mb-3">{title}</h3>
       {children}
     </div>
   )
@@ -164,7 +164,7 @@ function PatientHeader({ clientPhone, clientName, visits = [], diagnoses = [] })
           <div key={label} className="flex flex-col items-center py-2.5 gap-0.5">
             <Icon className="w-3.5 h-3.5 text-slate-300 mb-0.5" />
             <span className="text-sm font-bold text-slate-900">{value}</span>
-            <span className="text-[10px] text-slate-400">{label}</span>
+            <span className="text-[11.5px] text-slate-400">{label}</span>
           </div>
         ))}
       </div>
@@ -398,7 +398,7 @@ function VisitCard({ visit, businessId, clientPhone, diagnosesMap, clientName })
             </p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <span className={`text-[10px] px-2 py-0.5 rounded-full border font-medium ${s.badge}`}>{s.label}</span>
+            <span className={`text-[11.5px] px-2 py-0.5 rounded-full border font-medium ${s.badge}`}>{s.label}</span>
             <HiOutlineChevronDown className={`w-4 h-4 text-slate-300 transition-transform ${expanded ? 'rotate-180' : ''}`} />
           </div>
         </button>
@@ -414,7 +414,7 @@ function VisitCard({ visit, businessId, clientPhone, diagnosesMap, clientName })
                   { label: 'ملاحظات', val: diag.notes, className: 'text-slate-500 italic' },
                 ].filter(r => r.val).map(({ label, val, className }) => (
                   <div key={label}>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">{label}</span>
+                    <span className="text-[11.5px] font-bold text-slate-400 uppercase tracking-wide">{label}</span>
                     <p className={`text-sm mt-0.5 ${className}`}>{val}</p>
                   </div>
                 ))}
@@ -575,7 +575,7 @@ function TabPrescriptions({ businessId, clientPhone }) {
               <div className="p-4 overflow-x-auto">
                 <table className="w-full text-sm min-w-[360px]">
                   <thead>
-                    <tr className="text-[10px] font-bold text-slate-400 uppercase tracking-wide border-b border-slate-100">
+                    <tr className="text-[11.5px] font-bold text-slate-400 uppercase tracking-wide border-b border-slate-100">
                       <th className="text-right py-2 font-semibold">الدواء</th>
                       <th className="text-right py-2 font-semibold">الجرعة</th>
                       <th className="text-right py-2 font-semibold">التكرار</th>
@@ -742,12 +742,12 @@ function TabAttachments({ businessId, clientPhone, isMedical }) {
               )}
               <div className="p-2.5">
                 <div className="flex items-center justify-between gap-2">
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${FILE_TYPE_COLORS[att.file_type] || FILE_TYPE_COLORS.other}`}>
+                  <span className={`text-[11.5px] px-1.5 py-0.5 rounded-full font-medium ${FILE_TYPE_COLORS[att.file_type] || FILE_TYPE_COLORS.other}`}>
                     {FILE_TYPE_LABELS[att.file_type] || 'أخرى'}
                   </span>
-                  <span className="text-[10px] text-slate-500 font-medium">{format(new Date(att.uploaded_at), 'dd/MM/yy')}</span>
+                  <span className="text-[11.5px] text-slate-500 font-medium">{format(new Date(att.uploaded_at), 'dd/MM/yy')}</span>
                 </div>
-                {att.notes && <p className="text-[10px] text-slate-400 mt-1 truncate">{att.notes}</p>}
+                {att.notes && <p className="text-[11.5px] text-slate-400 mt-1 truncate">{att.notes}</p>}
               </div>
             </div>
           ))}

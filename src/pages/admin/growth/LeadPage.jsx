@@ -59,20 +59,20 @@ export default function LeadPage({ lead, leads, partners, settings, onBack, tab 
 
   return (
     <div className="space-y-4" dir="rtl">
-      <button type="button" onClick={onBack} className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-500 hover:text-gray-900">
+      <button type="button" onClick={onBack} className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-soft hover:text-ink">
         <HiOutlineArrowRight className="w-4 h-4" /> رجوع للقايمة
       </button>
 
-      <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+      <section className="bg-white rounded-2xl border border-rule shadow-sm p-5">
         <div className="flex flex-wrap items-start gap-4">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-2xl font-bold text-gray-900">{lead.name}</h1>
+              <h1 className="text-2xl font-bold text-ink">{lead.name}</h1>
               <ScoreBadge score={total} />
               <StageBadge stage={lead.stage} />
               <QualityBadge quality={quality} />
             </div>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-ink-soft mt-1">
               {categoryLabel(lead.category)}
               {lead.specialty ? ` · ${lead.specialty}` : ''}
               {lead.area || lead.city ? ` · ${[lead.area, lead.city].filter(Boolean).join('، ')}` : ''}
@@ -84,7 +84,7 @@ export default function LeadPage({ lead, leads, partners, settings, onBack, tab 
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {lead.phone && (
-              <a href={telLink(lead.phone)} className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-accent-500 text-white text-sm font-bold hover:bg-accent-600">
+              <a href={telLink(lead.phone)} className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-ink text-white text-sm font-bold hover:bg-ink-deep">
                 <HiOutlinePhone className="w-4 h-4" /> اتصال · <span dir="ltr" className="font-mono">{displayPhone(lead.phone)}</span>
               </a>
             )}
@@ -92,7 +92,7 @@ export default function LeadPage({ lead, leads, partners, settings, onBack, tab 
           </div>
         </div>
         {editing && (
-          <div className="mt-5 pt-5 border-t border-gray-100">
+          <div className="mt-5 pt-5 border-t border-rule">
             <LeadForm lead={lead} leads={leads} partners={partners} onSaved={() => setEditing(false)} onCancel={() => setEditing(false)} />
           </div>
         )}
@@ -100,10 +100,10 @@ export default function LeadPage({ lead, leads, partners, settings, onBack, tab 
 
       <Recommendation recommended={recommended} />
 
-      <nav className="flex gap-1 overflow-x-auto bg-white rounded-xl border border-gray-100 p-1">
+      <nav className="flex gap-1 overflow-x-auto bg-white rounded-xl border border-rule p-1">
         {TABS.map((t) => (
           <button key={t.key} type="button" onClick={() => onTab(t.key)}
-            className={`flex-1 min-w-max px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors ${current === t.key ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>
+            className={`flex-1 min-w-max px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors ${current === t.key ? 'bg-ink text-white' : 'text-ink-soft hover:bg-paper'}`}>
             {t.label}
           </button>
         ))}
@@ -138,7 +138,7 @@ export default function LeadPage({ lead, leads, partners, settings, onBack, tab 
       {current === 'history' && <Timeline lead={lead} />}
 
       <div className="flex justify-between items-center pt-2 pb-8">
-        <span className="text-[11px] text-gray-400">كود التتبع: <span dir="ltr" className="font-mono">{lead.ref_code}</span> · اتضاف {formatDateTime(lead.created_at)}</span>
+        <span className="text-[12.5px] text-gray-400">كود التتبع: <span dir="ltr" className="font-mono">{lead.ref_code}</span> · اتضاف {formatDateTime(lead.created_at)}</span>
         <Btn tone="danger" onClick={() => setConfirmDelete(true)}><HiOutlineTrash className="w-4 h-4" /> مسح</Btn>
       </div>
 
@@ -171,31 +171,31 @@ function ContactRow({ lead }) {
             <a href={telLink(lead.phone)} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-accent-500 text-white text-sm font-bold hover:bg-accent-600">
               <HiOutlinePhone className="w-4 h-4" /> اتصال
             </a>
-            <button type="button" onClick={() => copyText(displayPhone(lead.phone), 'الرقم اتنسخ')} className="text-sm font-mono text-gray-700 px-2 py-2 rounded-lg hover:bg-gray-100" dir="ltr">
+            <button type="button" onClick={() => copyText(displayPhone(lead.phone), 'الرقم اتنسخ')} className="text-sm font-mono text-ink-soft px-2 py-2 rounded-lg hover:bg-gray-100" dir="ltr">
               {displayPhone(lead.phone)}
             </button>
           </>
         ) : (
           <span className="text-sm text-gray-400">مفيش رقم</span>
         )}
-        {lead.contact_person && <span className="text-sm text-gray-600">· {lead.contact_person}</span>}
-        {lead.email && <a href={`mailto:${lead.email}`} className="text-sm text-blue-600 hover:underline" dir="ltr">{lead.email}</a>}
+        {lead.contact_person && <span className="text-sm text-ink-soft">· {lead.contact_person}</span>}
+        {lead.email && <a href={`mailto:${lead.email}`} className="text-sm text-accent-700 hover:underline" dir="ltr">{lead.email}</a>}
       </div>
       {links.length > 0 && (
         <div className="flex flex-wrap gap-3 mt-3 text-xs">
           {links.map(([label, href]) => (
-            <a key={label} href={href} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-600 hover:underline">
+            <a key={label} href={href} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-accent-700 hover:underline">
               {label} <HiOutlineArrowTopRightOnSquare className="w-3 h-3" />
             </a>
           ))}
         </div>
       )}
-      <div className="grid grid-cols-3 gap-2 mt-3 text-[11px] text-gray-500">
-        <div>آخر تواصل: <b className="text-gray-700">{formatDateTime(lead.last_contacted_at)}</b></div>
-        <div>المتابعة الجاية: <b className="text-gray-700">{formatDateTime(lead.next_follow_up_at)}</b></div>
-        <div>محاولات: <b className="text-gray-700">{lead.contact_attempts}</b></div>
+      <div className="grid grid-cols-3 gap-2 mt-3 text-[12.5px] text-ink-soft">
+        <div>آخر تواصل: <b className="text-ink-soft">{formatDateTime(lead.last_contacted_at)}</b></div>
+        <div>المتابعة الجاية: <b className="text-ink-soft">{formatDateTime(lead.next_follow_up_at)}</b></div>
+        <div>محاولات: <b className="text-ink-soft">{lead.contact_attempts}</b></div>
       </div>
-      {lead.notes && <p className="mt-3 text-sm text-gray-700 bg-gray-50 rounded-lg px-3 py-2 whitespace-pre-wrap">{lead.notes}</p>}
+      {lead.notes && <p className="mt-3 text-sm text-ink-soft bg-gray-50 rounded-lg px-3 py-2 whitespace-pre-wrap">{lead.notes}</p>}
     </Card>
   )
 }
@@ -208,14 +208,14 @@ const BASIS = {
 
 function Recommendation({ recommended }) {
   return (
-    <section className="rounded-2xl border border-violet-200 bg-gradient-to-l from-violet-50 to-white p-5">
-      <p className="text-xs font-bold text-violet-600">ابدأ المكالمة بالكلام ده</p>
-      <p className="mt-1 text-lg font-bold text-violet-950">{recommended.label}</p>
-      <p className="text-[15px] text-violet-900 mt-1.5 leading-relaxed">«{recommended.pitch}»</p>
-      <p className="text-xs text-violet-700 mt-3 leading-relaxed">
+    <section className="rounded-2xl border border-accent-200 bg-gradient-to-l from-accent-50 to-white p-5">
+      <p className="text-xs font-bold text-accent-700">ابدأ المكالمة بالكلام ده</p>
+      <p className="mt-1 text-lg font-bold text-ink">{recommended.label}</p>
+      <p className="text-[15px] text-ink mt-1.5 leading-relaxed">«{recommended.pitch}»</p>
+      <p className="text-xs text-accent-700 mt-3 leading-relaxed">
         <b>{BASIS[recommended.basis]}</b> {recommended.because}
       </p>
-      {recommended.track && <p className="text-xs text-violet-700 mt-1">📊 {recommended.track}</p>}
+      {recommended.track && <p className="text-xs text-accent-700 mt-1">📊 {recommended.track}</p>}
     </section>
   )
 }
@@ -262,7 +262,7 @@ function Composer({ lead, recommended }) {
       <div className="flex gap-1">
         {[['opener', 'أول رسالة'], ['follow1', 'متابعة 1'], ['follow2', 'متابعة أخيرة']].map(([k, label]) => (
           <button key={k} type="button" onClick={() => setVariant(k)}
-            className={`text-[11px] px-2 py-1 rounded-md font-semibold ${variant === k ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600'}`}>
+            className={`text-[12.5px] px-2 py-1 rounded-md font-semibold ${variant === k ? 'bg-ink text-white' : 'bg-gray-100 text-ink-soft'}`}>
             {label}
           </button>
         ))}
@@ -287,11 +287,11 @@ function Composer({ lead, recommended }) {
         <Btn onClick={() => copyText(text)}>نسخ</Btn>
       </div>
       {!lead.phone && (
-        <p className="text-[11px] text-amber-700 mt-2">
+        <p className="text-[12.5px] text-amber-700 mt-2">
           مفيش رقم للعميل ده (غالباً سجّل قبل ما نبدأ نحفظ الرقم وقت التسجيل). ابعتله إيميل يطلب رقمه، ولما تعرفه ضيفه من ✏️ فوق.
         </p>
       )}
-      <p className="text-[11px] text-gray-400 mt-2">الرسالة بتتفتح في الواتساب بتاعك وإنت اللي بتضغط إرسال — النظام مش بيبعت حاجة لوحده.</p>
+      <p className="text-[12.5px] text-gray-400 mt-2">الرسالة بتتفتح في الواتساب بتاعك وإنت اللي بتضغط إرسال — النظام مش بيبعت حاجة لوحده.</p>
     </Card>
   )
 }
@@ -331,7 +331,7 @@ function OutcomeLogger({ lead, angle }) {
       <div className="flex gap-1.5 mb-3">
         {['call', 'whatsapp', 'visit'].map((k) => (
           <button key={k} type="button" onClick={() => setKind(k)}
-            className={`text-xs px-3 py-1.5 rounded-lg font-semibold ${kind === k ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600'}`}>
+            className={`text-xs px-3 py-1.5 rounded-lg font-semibold ${kind === k ? 'bg-ink text-white' : 'bg-gray-100 text-ink-soft'}`}>
             {ACTIVITY_KINDS[k]}
           </button>
         ))}
@@ -339,7 +339,7 @@ function OutcomeLogger({ lead, angle }) {
       <div className="grid grid-cols-3 gap-1.5">
         {OUTCOMES.map((o) => (
           <button key={o.key} type="button" onClick={() => setOutcome(outcome === o.key ? null : o.key)}
-            className={`text-xs px-2 py-2 rounded-lg border font-semibold transition-colors ${outcome === o.key ? 'border-accent-500 bg-accent-50 text-accent-800' : 'border-gray-200 text-gray-700 hover:bg-gray-50'}`}>
+            className={`text-xs px-2 py-2 rounded-lg border font-semibold transition-colors ${outcome === o.key ? 'border-accent-500 bg-accent-50 text-accent-800' : 'border-rule text-ink-soft hover:bg-paper'}`}>
             {o.icon} {o.label}
           </button>
         ))}
@@ -368,12 +368,12 @@ function CallScript({ lead, angle, defaultOpen = false }) {
   return (
     <Card title="📞 سكريبت المكالمة" actions={<Btn tone="ghost" onClick={() => setOpen((v) => !v)}>{open ? 'إخفاء' : 'عرض'}</Btn>}>
       {!open ? (
-        <p className="text-sm text-gray-600">{CALL_SCRIPT.opener(lead)}</p>
+        <p className="text-sm text-ink-soft">{CALL_SCRIPT.opener(lead)}</p>
       ) : (
-        <div className="space-y-4 text-sm text-gray-800 leading-relaxed">
+        <div className="space-y-4 text-sm text-ink leading-relaxed">
           <Step n="1" title="الافتتاح">
             <p>{CALL_SCRIPT.opener(lead)}</p>
-            <p className="text-gray-500 mt-1">{CALL_SCRIPT.permission}</p>
+            <p className="text-ink-soft mt-1">{CALL_SCRIPT.permission}</p>
           </Step>
           <Step n="2" title="اسأل واسمع (سجّل الإجابات في الملاحظة)">
             <ul className="list-disc pr-5 space-y-1">{CALL_SCRIPT.discovery(lead).map((q) => <li key={q}>{q}</li>)}</ul>
@@ -384,9 +384,9 @@ function CallScript({ lead, angle, defaultOpen = false }) {
           <Step n="4" title="الاعتراضات">
             <div className="space-y-2">
               {CALL_SCRIPT.objections.map((o) => (
-                <details key={o.q} className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
+                <details key={o.q} className="rounded-lg border border-rule bg-gray-50 px-3 py-2">
                   <summary className="cursor-pointer font-semibold">«{o.q}»</summary>
-                  <p className="mt-1.5 text-gray-700">{o.a}</p>
+                  <p className="mt-1.5 text-ink-soft">{o.a}</p>
                 </details>
               ))}
             </div>
@@ -403,9 +403,9 @@ function CallScript({ lead, angle, defaultOpen = false }) {
 function Step({ n, title, children }) {
   return (
     <div className="flex gap-3">
-      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gray-900 text-white text-xs font-bold flex items-center justify-center">{n}</span>
+      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-ink text-white text-xs font-bold flex items-center justify-center">{n}</span>
       <div className="min-w-0 flex-1">
-        <p className="font-bold text-gray-900 mb-1">{title}</p>
+        <p className="font-bold text-ink mb-1">{title}</p>
         {children}
       </div>
     </div>
@@ -445,11 +445,11 @@ function Research({ lead }) {
 
   return (
     <Card title="🔎 اللي نعرفه عنهم">
-      <p className="text-[11px] font-bold text-gray-500 mb-1.5">✅ حقائق (شفناها)</p>
+      <p className="text-[12.5px] font-bold text-ink-soft mb-1.5">✅ حقائق (شفناها)</p>
       <SignalList items={facts} empty="مفيش حقائق مسجّلة لسه" onRemove={removeSignal} />
-      <p className="text-[11px] font-bold text-gray-500 mt-4 mb-1.5">💭 استنتاجات (ممكن تكون غلط — اتأكد في المكالمة)</p>
+      <p className="text-[12.5px] font-bold text-ink-soft mt-4 mb-1.5">💭 استنتاجات (ممكن تكون غلط — اتأكد في المكالمة)</p>
       <SignalList items={inferences} empty="مفيش استنتاجات" onRemove={removeSignal} />
-      <div className="mt-4 pt-4 border-t border-gray-100 grid sm:grid-cols-[1fr_auto] gap-2">
+      <div className="mt-4 pt-4 border-t border-rule grid sm:grid-cols-[1fr_auto] gap-2">
         <div className="grid grid-cols-2 gap-2">
           <select className={inputClass} value={type} onChange={(e) => setType(e.target.value)}>
             {MANUAL_SIGNAL_TYPES.map((t) => <option key={t} value={t}>{SIGNAL_LABELS[t]}</option>)}
@@ -474,9 +474,9 @@ function SignalList({ items, empty, onRemove }) {
         {items.map((s) => (
           <li key={s.type} className="text-sm rounded-lg bg-gray-50 px-3 py-2 flex gap-2 items-start">
             <div className="min-w-0 flex-1">
-              <p className="font-semibold text-gray-800">{SIGNAL_LABELS[s.type] ?? s.type}</p>
-              <p className="text-gray-600 text-xs mt-0.5 leading-relaxed">{s.evidence}</p>
-              {s.source_url && <a href={s.source_url} target="_blank" rel="noopener noreferrer" className="text-[11px] text-blue-600 hover:underline">المصدر ↗</a>}
+              <p className="font-semibold text-ink">{SIGNAL_LABELS[s.type] ?? s.type}</p>
+              <p className="text-ink-soft text-xs mt-0.5 leading-relaxed">{s.evidence}</p>
+              {s.source_url && <a href={s.source_url} target="_blank" rel="noopener noreferrer" className="text-[12.5px] text-accent-700 hover:underline">المصدر ↗</a>}
             </div>
             <button type="button" onClick={() => onRemove(s.type)} className="text-gray-300 hover:text-red-500" title="شيل"><HiOutlineXMark className="w-4 h-4" /></button>
           </li>
@@ -512,16 +512,16 @@ function PreviewEditor({ lead }) {
 
   return (
     <Card title="⭐ صفحة حجز تجريبية باسمهم">
-      <p className="text-xs text-gray-500 mb-3 leading-relaxed">
+      <p className="text-xs text-ink-soft mb-3 leading-relaxed">
         صفحة توضيحية فيها اسم {lead.name} وخدماتهم، مكتوب عليها بوضوح إنها مثال. لما يدوسوا «فعّل صفحتي» بيسجّلوا ويتحسبوا عليك.
       </p>
       {enabled && (
-        <div className="flex flex-wrap items-center gap-2 mb-3 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
-          <span className="text-xs font-bold text-emerald-700">شغالة:</span>
-          <span className="text-xs text-gray-600 font-mono truncate" dir="ltr">{link}</span>
+        <div className="flex flex-wrap items-center gap-2 mb-3 bg-accent-50 border border-accent-200 rounded-lg px-3 py-2">
+          <span className="text-xs font-bold text-accent-700">شغالة:</span>
+          <span className="text-xs text-ink-soft font-mono truncate" dir="ltr">{link}</span>
           {/* Relative, so it also opens on localhost / preview builds; the
               copied link is always the real domain the clinic will get. */}
-          <a href={`/demo/${lead.ref_code}`} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-blue-600 hover:underline">👁️ افتحها</a>
+          <a href={`/demo/${lead.ref_code}`} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-accent-700 hover:underline">👁️ افتحها</a>
           <Btn tone="ghost" className="!py-1" onClick={() => copyText(link)}>نسخ اللينك</Btn>
         </div>
       )}
@@ -533,12 +533,12 @@ function PreviewEditor({ lead }) {
           <div className="flex gap-1.5 pt-1">
             {PREVIEW_COLORS.map((c) => (
               <button key={c} type="button" onClick={() => setDraft((d) => ({ ...d, color: c }))}
-                className={`w-7 h-7 rounded-full border-2 ${draft.color === c ? 'border-gray-900' : 'border-white'}`} style={{ backgroundColor: c }} aria-label={c} />
+                className={`w-7 h-7 rounded-full border-2 ${draft.color === c ? 'border-ink' : 'border-white'}`} style={{ backgroundColor: c }} aria-label={c} />
             ))}
           </div>
         </Field>
       </div>
-      <p className="text-xs font-semibold text-gray-600 mt-3 mb-1">الخدمات (السعر اختياري — سيبه فاضي لو مش عارفه)</p>
+      <p className="text-xs font-semibold text-ink-soft mt-3 mb-1">الخدمات (السعر اختياري — سيبه فاضي لو مش عارفه)</p>
       <div className="space-y-1.5">
         {draft.services.map((s, i) => (
           <div key={i} className="grid grid-cols-[1fr_80px_80px_auto] gap-1.5">
@@ -554,9 +554,9 @@ function PreviewEditor({ lead }) {
         <Btn tone="primary" onClick={() => persist(true)} disabled={save.isPending}>{enabled ? 'حفظ التعديلات' : 'شغّل الصفحة'}</Btn>
         {enabled && <Btn tone="danger" onClick={() => persist(false)} disabled={save.isPending}>اقفل الصفحة</Btn>}
       </div>
-      <div className="mt-4 pt-3 border-t border-gray-100 flex flex-wrap items-center gap-2 text-xs">
-        <span className="text-gray-500">لينك التسجيل المباشر (بيتحسب عليك):</span>
-        <span className="font-mono text-gray-700 truncate" dir="ltr">{registerLink(lead.ref_code)}</span>
+      <div className="mt-4 pt-3 border-t border-rule flex flex-wrap items-center gap-2 text-xs">
+        <span className="text-ink-soft">لينك التسجيل المباشر (بيتحسب عليك):</span>
+        <span className="font-mono text-ink-soft truncate" dir="ltr">{registerLink(lead.ref_code)}</span>
         <Btn tone="ghost" className="!py-1" onClick={() => copyText(registerLink(lead.ref_code))}>نسخ</Btn>
       </div>
     </Card>
@@ -574,16 +574,16 @@ function Timeline({ lead }) {
       ) : (
         <ol className="space-y-3">
           {activities.map((a) => (
-            <li key={a.id} className="text-sm border-r-2 border-gray-200 pr-3">
-              <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                <b className="text-gray-800">{ACTIVITY_KINDS[a.kind] ?? a.kind}</b>
+            <li key={a.id} className="text-sm border-r-2 border-rule pr-3">
+              <div className="flex flex-wrap items-center gap-2 text-xs text-ink-soft">
+                <b className="text-ink">{ACTIVITY_KINDS[a.kind] ?? a.kind}</b>
                 {a.outcome && <span className="px-1.5 py-0.5 rounded bg-gray-100">{OUTCOME_BY_KEY[a.outcome]?.icon} {OUTCOME_BY_KEY[a.outcome]?.label}</span>}
-                {a.sales_angle && <span className="text-violet-600">{SALES_ANGLES[a.sales_angle]?.label}</span>}
+                {a.sales_angle && <span className="text-accent-700">{SALES_ANGLES[a.sales_angle]?.label}</span>}
                 <span>{formatDateTime(a.created_at)}</span>
               </div>
-              {a.body && <p className="text-gray-700 mt-1 whitespace-pre-wrap leading-relaxed line-clamp-6">{a.body}</p>}
+              {a.body && <p className="text-ink-soft mt-1 whitespace-pre-wrap leading-relaxed line-clamp-6">{a.body}</p>}
               {a.meta?.details && Object.keys(a.meta.details).length > 0 && (
-                <p className="text-[11px] text-gray-500 mt-1 font-mono" dir="ltr">{JSON.stringify(a.meta.details)}</p>
+                <p className="text-[12.5px] text-ink-soft mt-1 font-mono" dir="ltr">{JSON.stringify(a.meta.details)}</p>
               )}
             </li>
           ))}
@@ -622,9 +622,9 @@ function AccountCard({ lead }) {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="text-sm">
           {lead.is_test ? (
-            <span className="font-bold text-gray-500">🧪 حساب تجربة — مش بيظهر في القايمة ولا الأرقام ولا العمولات</span>
+            <span className="font-bold text-ink-soft">🧪 حساب تجربة — مش بيظهر في القايمة ولا الأرقام ولا العمولات</span>
           ) : (
-            <span className="text-gray-600">عميل حقيقي</span>
+            <span className="text-ink-soft">عميل حقيقي</span>
           )}
         </div>
         <Btn tone="ghost" onClick={toggleTest} disabled={save.isPending}>
@@ -633,23 +633,23 @@ function AccountCard({ lead }) {
       </div>
 
       {lead.business_id && !lead.is_test && (
-        <div className="mt-3 pt-3 border-t border-gray-100 text-sm">
+        <div className="mt-3 pt-3 border-t border-rule text-sm">
           {lead.qualified_at ? (
-            <p className="text-emerald-700 font-semibold">
+            <p className="text-accent-700 font-semibold">
               ✅ عيادة حقيقية — {lead.qualified_by === 'admin' ? 'إنت أكّدتها' : 'عندها حجوزات من عملاء حقيقيين'} ({formatDateTime(lead.qualified_at)})
             </p>
           ) : (
             <>
-              <p className="text-gray-700">
+              <p className="text-ink-soft">
                 ⏳ لسه مااتأكدناش إنها عيادة حقيقية.
                 {check && (
-                  <span className="text-gray-500">
+                  <span className="text-ink-soft">
                     {' '}حجوزات: <b>{check.appointments}/{check.need_appointments}</b> · عملاء مختلفين: <b>{check.clients}/{check.need_clients}</b>
                     {check.shared_owner_phone && <b className="text-red-600"> · رقم صاحبها مستخدم في حساب تاني ⚠️</b>}
                   </span>
                 )}
               </p>
-              <p className="text-[11px] text-gray-400 mt-1">بتتأكد لوحدها لما توصل للعدد ده (كل ليلة)، أو أكّدها بإيدك بعد ما تكلّمهم.</p>
+              <p className="text-[12.5px] text-gray-400 mt-1">بتتأكد لوحدها لما توصل للعدد ده (كل ليلة)، أو أكّدها بإيدك بعد ما تكلّمهم.</p>
               <Btn className="mt-2" onClick={manualQualify} disabled={qualify.isPending}>✅ كلّمتهم — عيادة حقيقية</Btn>
             </>
           )}
