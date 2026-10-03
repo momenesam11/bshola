@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { normalizePhone, isMobile, displayPhone, whatsappLink } from './phone'
 import { detectReviewSignals, inferPlaceSignals } from './reviewSignals'
 import { scoreLead, buildQueue, scoreContactability, scorePain } from './scoring'
-import { chooseAngle } from './angles'
+import { chooseAngle, angleStats } from './angles'
 import { openingMessage, followUpMessage, CALL_SCRIPT } from './messages'
 import { parseLeadsCsv, parseCsvRows, csvTemplate, categoryFromText, leadsToCsv } from './csv'
 import { funnel, conversionBy, partnerCommissions, referralRewards } from './analytics'
@@ -126,6 +126,23 @@ describe('sales angle', () => {
     expect(chooseAngle(lead({ source: 'signup_incomplete' })).key).toBe('onboarding_help')
     expect(chooseAngle(lead({ signals: [{ type: 'trial_expiring', kind: 'fact', evidence: 'x' }, { type: 'review_pain_phone', kind: 'fact' }] })).key).toBe('trial_closing')
   })
+  it('learns from results when there is no evidence about the lead', () => {
+    const done = (angle, stage) => lead({ sales_angle: angle, last_contacted_at: 'x', stage })
+    const history = [
+      done('no_shows', 'lost'), done('no_shows', 'lost'), done('no_shows', 'contacted'),
+      done('receptionist_workload', 'interested'), done('receptionist_workload', 'paid'), done('receptionist_workload', 'lost'),
+    ]
+    const stats = angleStats(history)
+    expect(stats.dental.receptionist_workload).toEqual({ tried: 3, positive: 2 })
+    const a = chooseAngle(lead(), { stats, categoryLabel: 'عيادة أسنان' })
+    expect(a).toMatchObject({ key: 'receptionist_workload', basis: 'results' })
+    expect(a.because).toContain('2 من 3')
+    // Evidence still wins, with the track record attached.
+    const e = chooseAngle(lead({ signals: [{ type: 'review_pain_phone', kind: 'fact', evidence: 'x' }] }), { stats, categoryLabel: 'عيادة أسنان' })
+    expect(e).toMatchObject({ basis: 'evidence', key: 'receptionist_workload' })
+    expect(e.track).toContain('2 من 3')
+  })
+
   it('falls back to a labelled default without evidence', () => {
     expect(chooseAngle(lead())).toMatchObject({ key: 'no_shows', basis: 'default' })
     expect(chooseAngle(lead({ category: 'derma' })).key).toBe('social_to_booking')
@@ -233,5 +250,49 @@ describe('dedupe, preview, links', () => {
     expect(registerLink('L-X')).toBe('https://www.beshola.co/register?ref=L-X')
     expect(previewLink('L-X')).toBe('https://www.beshola.co/demo/L-X')
     expect(bestLinkFor(lead())).toContain('/register?ref=')
+  })
+})
+
+describe('data quality', () => {
+  it('flags the owner, test words, junk numbers and email-only names', async () => {
+    const { dataQuality } = await import('./quality')
+    expect(dataQuality(lead({ phone: '201021179969' }))).toMatchObject({ level: 'suspect', reasons: ['ده رقمك إنت'] })
+    expect(dataQuality(lead({ name: 'عيادة تجربة' })).level).toBe('suspect')
+    expect(dataQuality(lead({ name: 'test clinic' })).level).toBe('suspect')
+    expect(dataQuality(lead({ phone: '201000000000' })).reasons).toContain('الرقم شكله مش حقيقي')
+    expect(dataQuality(lead({ name: 'a@b.com', email: 'a@b.com' })).reasons).toContain('مفيش اسم عيادة — إيميل بس')
+  })
+  it('calls Maps listings, verified and paying clinics real', async () => {
+    const { dataQuality } = await import('./quality')
+    expect(dataQuality(lead({ google_place_id: 'x' })).level).toBe('real')
+    expect(dataQuality(lead({ qualified_at: 'x', qualified_by: 'auto' })).level).toBe('real')
+    expect(dataQuality(lead()).level).toBe('unknown')
+    expect(dataQuality(lead({ is_test: true })).level).toBe('test')
+  })
+})
+
+describe('auto discovery', () => {
+  it('rotates through category × area day by day', async () => {
+    const { discoveryQueries, nextBatch } = await import('./discover')
+    const list = discoveryQueries(['dental', 'derma', 'nope'], ['المعادي', 'الدقي'])
+    expect(list.map((q) => q.query)).toEqual(['عيادة أسنان المعادي', 'عيادة جلدية وتجميل المعادي', 'عيادة أسنان الدقي', 'عيادة جلدية وتجميل الدقي'])
+    const day1 = nextBatch(list, 0, 3)
+    expect(day1.batch).toHaveLength(3)
+    const day2 = nextBatch(list, day1.cursor, 3)
+    expect(day2.batch.map((q) => q.query)).toEqual(['عيادة جلدية وتجميل الدقي', 'عيادة أسنان المعادي', 'عيادة جلدية وتجميل المعادي'])
+    expect(nextBatch([], 5, 3)).toEqual({ batch: [], cursor: 0 })
+  })
+  it('keeps only open places with a phone, with their review signals', async () => {
+    const { placeToRow } = await import('./discover')
+    const meta = { category: 'dental', area: 'المعادي', query: 'عيادة أسنان المعادي' }
+    expect(placeToRow({ name: 'x', phone: null }, meta)).toBeNull()
+    expect(placeToRow({ name: 'x', phone: '01012345678', business_status: 'CLOSED_PERMANENTLY' }, meta)).toBeNull()
+    const row = placeToRow({ name: 'عيادة', phone: '+20 10 1234 5678', google_place_id: 'g', google_reviews_count: 4, reviews: [{ text: 'محدش بيرد على التليفون' }] }, meta)
+    expect(row).toMatchObject({ phone: '201012345678', category: 'dental', area: 'المعادي', google_place_id: 'g' })
+    expect(row.signals.map((s) => s.type)).toEqual(['review_pain_phone', 'likely_new', 'no_website'])
+  })
+  it('knows the date in Cairo', async () => {
+    const { cairoToday } = await import('./discover')
+    expect(cairoToday(new Date('2026-10-03T22:30:00Z'))).toBe('2026-10-04')
   })
 })

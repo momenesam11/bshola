@@ -53,3 +53,15 @@ describe('035: a signed-up clinic shows under its own name', () => {
     expect((await one(db, 'SELECT growth_sync_platform() AS r')).r).toEqual({ created: 0, updated: 0, signup_incomplete: 0, qualified: 0 })
   })
 })
+
+describe('036: auto-discovery settings', () => {
+  it('adds off-by-default settings with dental + derma and 16 areas, and rolls back', async () => {
+    const db = await freshDb()
+    const s = await one(db, 'SELECT * FROM growth_settings WHERE id = 1')
+    expect(s).toMatchObject({ auto_discover_enabled: false, auto_discover_categories: ['dental', 'derma'], auto_discover_per_day: 4, auto_discover_cursor: 0 })
+    expect(s.auto_discover_areas).toHaveLength(16)
+    await expect(db.query('UPDATE growth_settings SET auto_discover_per_day = 0')).rejects.toThrow()
+    await db.exec(readSql('supabase/rollbacks/036_growth_auto_discover_down.sql'))
+    expect((await one(db, `SELECT count(*)::int AS c FROM information_schema.columns WHERE table_name = 'growth_settings' AND column_name LIKE 'auto_discover%'`)).c).toBe(0)
+  })
+})

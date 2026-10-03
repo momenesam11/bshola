@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import toast from 'react-hot-toast'
-import { HiOutlineXMark, HiOutlinePhone, HiOutlineTrash, HiOutlinePencilSquare, HiOutlineArrowTopRightOnSquare } from 'react-icons/hi2'
+import { HiOutlineXMark, HiOutlinePhone, HiOutlineTrash, HiOutlinePencilSquare, HiOutlineArrowTopRightOnSquare, HiOutlineArrowRight } from 'react-icons/hi2'
 import { FaWhatsapp } from 'react-icons/fa'
 import { STAGES, OUTCOMES, ACTIVITY_KINDS, SIGNAL_LABELS, OUTCOME_BY_KEY } from '../../../lib/growth/constants'
 import { scoreLead } from '../../../lib/growth/scoring'
-import { chooseAngle, SALES_ANGLES } from '../../../lib/growth/angles'
+import { chooseAngle, angleStats, SALES_ANGLES } from '../../../lib/growth/angles'
+import { dataQuality } from '../../../lib/growth/quality'
 import { openingMessage, followUpMessage, CALL_SCRIPT } from '../../../lib/growth/messages'
 import { displayPhone, whatsappLink, telLink } from '../../../lib/growth/phone'
 import { registerLink, previewLink } from '../../../lib/growth/links'
@@ -12,93 +13,134 @@ import { defaultPreview, PREVIEW_COLORS } from '../../../lib/growth/preview'
 import { useLeadActivities, useLogActivity, useSaveLead, useDeleteLead, useQualifyLead, useQualifyStatus } from '../../../hooks/useGrowth'
 import ConfirmDialog from '../../../components/ui/ConfirmDialog'
 import LeadForm from './LeadForm'
-import { Btn, Card, Field, ScoreBadge, ScoreBar, StageBadge } from './ui'
+import { Btn, Card, Field, QualityBadge, ScoreBadge, ScoreBar, StageBadge } from './ui'
 import { categoryLabel, copyText, formatDateTime, fromLocalInput, inputClass, sourceLabel } from './format'
 
 const PART_LABELS = { fit: 'مناسب لينا قد إيه', intent: 'نيّة الشراء', pain: 'المشكلة واضحة', activity: 'نشاط المكان', contactability: 'سهل نوصله' }
 
-export default function LeadDrawer({ lead, leads, partners, settings, onClose }) {
+const TABS = [
+  { key: 'contact', label: '💬 التواصل' },
+  { key: 'script', label: '📞 السكريبت' },
+  { key: 'info', label: '🔎 المعلومات' },
+  { key: 'demo', label: '⭐ الصفحة التجريبية' },
+  { key: 'history', label: '🕓 السجل' },
+]
+
+/**
+ * One lead, as a full page with tabs (replaces the old side drawer). The
+ * recommendation sits above the tabs so it's in view whatever you're doing.
+ */
+export default function LeadPage({ lead, leads, partners, settings, onBack, tab = 'contact', onTab }) {
   const [editing, setEditing] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const del = useDeleteLead()
-
-  useEffect(() => {
-    const onKey = (e) => e.key === 'Escape' && onClose()
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
 
   const { total, parts } = useMemo(
     () => scoreLead(lead, { weights: settings?.weights, targetAreas: settings?.target_areas }),
     [lead, settings]
   )
-  const recommended = useMemo(() => chooseAngle(lead), [lead])
+  const stats = useMemo(() => angleStats(leads), [leads])
+  const recommended = useMemo(
+    () => chooseAngle(lead, { stats, categoryLabel: categoryLabel(lead.category) }),
+    [lead, stats]
+  )
+  const quality = useMemo(() => dataQuality(lead, leads), [lead, leads])
+  const current = TABS.some((t) => t.key === tab) ? tab : 'contact'
 
   async function remove() {
     try {
       await del.mutateAsync(lead.id)
       toast.success('اتمسح')
-      onClose()
+      onBack()
     } catch (e) {
       toast.error(e.message)
     }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex" dir="rtl">
-      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-      <aside className="relative mr-auto ml-0 h-full w-full max-w-2xl bg-gray-50 shadow-2xl overflow-y-auto">
-        <header className="sticky top-0 z-10 bg-white border-b border-gray-100 px-4 py-3 flex items-start gap-3">
+    <div className="space-y-4" dir="rtl">
+      <button type="button" onClick={onBack} className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-500 hover:text-gray-900">
+        <HiOutlineArrowRight className="w-4 h-4" /> رجوع للقايمة
+      </button>
+
+      <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+        <div className="flex flex-wrap items-start gap-4">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-lg font-bold text-gray-900 truncate">{lead.name}</h2>
+              <h1 className="text-2xl font-bold text-gray-900">{lead.name}</h1>
               <ScoreBadge score={total} />
               <StageBadge stage={lead.stage} />
+              <QualityBadge quality={quality} />
             </div>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-sm text-gray-500 mt-1">
               {categoryLabel(lead.category)}
               {lead.specialty ? ` · ${lead.specialty}` : ''}
               {lead.area || lead.city ? ` · ${[lead.area, lead.city].filter(Boolean).join('، ')}` : ''}
-              {` · ${sourceLabel(lead.source)}`}
+              {` · جه من: ${sourceLabel(lead.source)}`}
             </p>
+            {quality.level === 'suspect' && (
+              <p className="mt-2 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5 inline-block">⚠️ {quality.reasons.join(' · ')}</p>
+            )}
           </div>
-          <Btn tone="ghost" onClick={() => setEditing((v) => !v)} title="تعديل البيانات"><HiOutlinePencilSquare className="w-5 h-5" /></Btn>
-          <Btn tone="ghost" onClick={onClose} title="إغلاق"><HiOutlineXMark className="w-5 h-5" /></Btn>
-        </header>
-
-        <div className="p-4 space-y-4">
-          {editing ? (
-            <Card title="تعديل البيانات">
-              <LeadForm lead={lead} leads={leads} partners={partners} onSaved={() => setEditing(false)} onCancel={() => setEditing(false)} />
-            </Card>
-          ) : (
-            <ContactRow lead={lead} />
-          )}
-
-          <Recommendation recommended={recommended} />
-          <AccountCard lead={lead} />
-          <Composer lead={lead} recommended={recommended} />
-          <OutcomeLogger lead={lead} angle={recommended.key} />
-          <CallScript lead={lead} angle={recommended.key} />
-          <Research lead={lead} />
-
-          <Card title="ليه التقييم ده؟">
-            <div className="space-y-3">
-              {Object.entries(parts).map(([key, part]) => (
-                <ScoreBar key={key} label={`${PART_LABELS[key]} (وزن ${settings?.weights?.[key] ?? '—'})`} score={part.score} reasons={part.reasons} />
-              ))}
-            </div>
-          </Card>
-
-          <PreviewEditor lead={lead} />
-          <Timeline lead={lead} />
-
-          <div className="flex justify-between items-center pt-2 pb-8">
-            <span className="text-[11px] text-gray-400">كود التتبع: <span dir="ltr" className="font-mono">{lead.ref_code}</span> · اتضاف {formatDateTime(lead.created_at)}</span>
-            <Btn tone="danger" onClick={() => setConfirmDelete(true)}><HiOutlineTrash className="w-4 h-4" /> مسح</Btn>
+          <div className="flex flex-wrap items-center gap-2">
+            {lead.phone && (
+              <a href={telLink(lead.phone)} className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-accent-500 text-white text-sm font-bold hover:bg-accent-600">
+                <HiOutlinePhone className="w-4 h-4" /> اتصال · <span dir="ltr" className="font-mono">{displayPhone(lead.phone)}</span>
+              </a>
+            )}
+            <Btn onClick={() => setEditing((v) => !v)}><HiOutlinePencilSquare className="w-4 h-4" /> تعديل</Btn>
           </div>
         </div>
-      </aside>
+        {editing && (
+          <div className="mt-5 pt-5 border-t border-gray-100">
+            <LeadForm lead={lead} leads={leads} partners={partners} onSaved={() => setEditing(false)} onCancel={() => setEditing(false)} />
+          </div>
+        )}
+      </section>
+
+      <Recommendation recommended={recommended} />
+
+      <nav className="flex gap-1 overflow-x-auto bg-white rounded-xl border border-gray-100 p-1">
+        {TABS.map((t) => (
+          <button key={t.key} type="button" onClick={() => onTab(t.key)}
+            className={`flex-1 min-w-max px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors ${current === t.key ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>
+            {t.label}
+          </button>
+        ))}
+      </nav>
+
+      {current === 'contact' && (
+        <div className="grid lg:grid-cols-2 gap-4 items-start">
+          <Composer lead={lead} recommended={recommended} />
+          <OutcomeLogger lead={lead} angle={recommended.key} />
+        </div>
+      )}
+      {current === 'script' && <CallScript lead={lead} angle={recommended.key} defaultOpen />}
+      {current === 'info' && (
+        <div className="grid lg:grid-cols-2 gap-4 items-start">
+          <div className="space-y-4">
+            <ContactRow lead={lead} />
+            <AccountCard lead={lead} />
+          </div>
+          <div className="space-y-4">
+            <Research lead={lead} />
+            <Card title="ليه التقييم ده؟">
+              <div className="space-y-3">
+                {Object.entries(parts).map(([key, part]) => (
+                  <ScoreBar key={key} label={`${PART_LABELS[key]} (وزن ${settings?.weights?.[key] ?? '—'})`} score={part.score} reasons={part.reasons} />
+                ))}
+              </div>
+            </Card>
+          </div>
+        </div>
+      )}
+      {current === 'demo' && <PreviewEditor lead={lead} />}
+      {current === 'history' && <Timeline lead={lead} />}
+
+      <div className="flex justify-between items-center pt-2 pb-8">
+        <span className="text-[11px] text-gray-400">كود التتبع: <span dir="ltr" className="font-mono">{lead.ref_code}</span> · اتضاف {formatDateTime(lead.created_at)}</span>
+        <Btn tone="danger" onClick={() => setConfirmDelete(true)}><HiOutlineTrash className="w-4 h-4" /> مسح</Btn>
+      </div>
 
       <ConfirmDialog
         open={confirmDelete}
@@ -158,17 +200,23 @@ function ContactRow({ lead }) {
   )
 }
 
+const BASIS = {
+  evidence: '📌 ليه؟ من بيانات العيادة نفسها:',
+  results: '📊 ليه؟ من نتايجك الفعلية:',
+  default: 'ℹ️',
+}
+
 function Recommendation({ recommended }) {
   return (
-    <div className="rounded-xl border border-violet-200 bg-violet-50 p-4">
-      <p className="text-[11px] font-bold text-violet-500">🤖 توصية النظام — مش حقيقة، اقتراح</p>
-      <p className="mt-1 font-bold text-violet-900">ابدأ بزاوية: {recommended.label}</p>
-      <p className="text-sm text-violet-800 mt-1 leading-relaxed">{recommended.pitch}</p>
-      <p className="text-[11px] text-violet-600 mt-2">
-        {recommended.basis === 'evidence' ? '📌 على أساس: ' : 'ℹ️ '}
-        {recommended.because}
+    <section className="rounded-2xl border border-violet-200 bg-gradient-to-l from-violet-50 to-white p-5">
+      <p className="text-xs font-bold text-violet-600">ابدأ المكالمة بالكلام ده</p>
+      <p className="mt-1 text-lg font-bold text-violet-950">{recommended.label}</p>
+      <p className="text-[15px] text-violet-900 mt-1.5 leading-relaxed">«{recommended.pitch}»</p>
+      <p className="text-xs text-violet-700 mt-3 leading-relaxed">
+        <b>{BASIS[recommended.basis]}</b> {recommended.because}
       </p>
-    </div>
+      {recommended.track && <p className="text-xs text-violet-700 mt-1">📊 {recommended.track}</p>}
+    </section>
   )
 }
 
@@ -315,8 +363,8 @@ function OutcomeLogger({ lead, angle }) {
   )
 }
 
-function CallScript({ lead, angle }) {
-  const [open, setOpen] = useState(false)
+function CallScript({ lead, angle, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen)
   return (
     <Card title="📞 سكريبت المكالمة" actions={<Btn tone="ghost" onClick={() => setOpen((v) => !v)}>{open ? 'إخفاء' : 'عرض'}</Btn>}>
       {!open ? (

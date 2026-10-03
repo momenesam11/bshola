@@ -72,12 +72,51 @@ const CATEGORY_DEFAULT = {
   clinic: 'self_booking_24_7',
 }
 
+const POSITIVE_STAGES = ['interested', 'demo', 'trial', 'paid']
+const MIN_TRIES = 3
+
 /**
- * @returns {{key: string, label: string, pitch: string, basis: 'evidence'|'default', because: string}}
+ * What each angle has actually produced so far, per business category:
+ * leads contacted with it (sales_angle is set on first contact) and how many
+ * of those went on to show interest. This is what makes the recommendation
+ * learn from real results instead of staying a fixed rule.
+ *
+ * @returns {Record<string, Record<string, {tried: number, positive: number}>>} category → angle → counts
  */
-export function chooseAngle(lead) {
+export function angleStats(leads = []) {
+  const stats = {}
+  for (const l of leads) {
+    if (!l.sales_angle || !l.last_contacted_at || l.is_test) continue
+    const byAngle = (stats[l.category] ??= {})
+    const row = (byAngle[l.sales_angle] ??= { tried: 0, positive: 0 })
+    row.tried += 1
+    if (POSITIVE_STAGES.includes(l.stage) || l.paid_at) row.positive += 1
+  }
+  return stats
+}
+
+const rateText = (row, categoryLabel) =>
+  `جابت اهتمام من ${row.positive} من ${row.tried} ${categoryLabel} كلّمتهم بيها`
+
+/**
+ * The angle to open with, and why.
+ *
+ * 1. Evidence about THIS lead (a review complaint, a form they filled, their
+ *    trial ending…) decides first — and its quote is the "why".
+ * 2. Without evidence, the angle that has converted best for this kind of
+ *    clinic in your own results (once it has been tried enough) wins.
+ * 3. Otherwise the per-category default, said plainly.
+ * When there are results for the chosen angle they're attached as `track`.
+ *
+ * @param {object} lead
+ * @param {{stats?: ReturnType<typeof angleStats>, categoryLabel?: string}} [opts]
+ * @returns {{key: string, label: string, pitch: string, basis: 'evidence'|'results'|'default', because: string, track: string|null}}
+ */
+export function chooseAngle(lead, { stats = {}, categoryLabel = 'عيادة' } = {}) {
   const signals = Array.isArray(lead?.signals) ? lead.signals : []
   const types = new Set(signals.map((s) => s.type))
+  const forCategory = stats[lead?.category] ?? {}
+  const trackFor = (key) => (forCategory[key]?.tried >= MIN_TRIES ? rateText(forCategory[key], categoryLabel) : null)
 
   for (const rule of RULES) {
     if (!rule.when(lead, types)) continue
@@ -86,7 +125,21 @@ export function chooseAngle(lead) {
       .filter((s) => ruleTypes(rule.angle).includes(s.type))
       .sort((a, b) => (a.kind === 'fact' ? -1 : 1) - (b.kind === 'fact' ? -1 : 1))
     const because = related[0]?.evidence ?? sourceReason(lead)
-    return { key: rule.angle, ...SALES_ANGLES[rule.angle], basis: 'evidence', because }
+    return { key: rule.angle, ...SALES_ANGLES[rule.angle], basis: 'evidence', because, track: trackFor(rule.angle) }
+  }
+
+  const best = Object.entries(forCategory)
+    .filter(([key, row]) => SALES_ANGLES[key] && row.tried >= MIN_TRIES && row.positive > 0)
+    .sort(([, a], [, b]) => b.positive / b.tried - a.positive / a.tried || b.tried - a.tried)[0]
+  if (best) {
+    const [key, row] = best
+    return {
+      key,
+      ...SALES_ANGLES[key],
+      basis: 'results',
+      because: `أحسن زاوية مع ${categoryLabel} لحد دلوقتي: ${rateText(row, categoryLabel)}`,
+      track: null,
+    }
   }
 
   const key = CATEGORY_DEFAULT[lead?.category] ?? 'self_booking_24_7'
@@ -94,9 +147,10 @@ export function chooseAngle(lead) {
     key,
     ...SALES_ANGLES[key],
     basis: 'default',
-    because: signals.length
-      ? 'المعلومات المسجّلة مش بتحدد مشكلة بعينها — دي الزاوية الأنسب لنوع العيادة ده. اسأل في المكالمة وسجّل اللي تعرفه.'
-      : 'مفيش إشارات مسجّلة لسه — دي الزاوية الأنسب لنوع العيادة ده. اسأل في المكالمة وسجّل اللي تعرفه.',
+    because: types.has('inbound_contact_form') || types.has('inbound_loss_calculator')
+      ? 'هو اللي طلب يكلّمنا — ابدأ بسؤاله محتاج إيه بالظبط، ودي أقرب زاوية لنوع عيادته لحد ما تعرف.'
+      : 'لسه مفيش معلومة عن العيادة دي ولا نتايج كفاية — دي أنسب بداية لنوعها. اسأل في المكالمة وسجّل اللي تعرفه، والتوصية هتتحسن.',
+    track: trackFor(key),
   }
 }
 

@@ -234,3 +234,42 @@ export function usePartnerDashboard(token) {
     retry: false,
   })
 }
+
+// ── Daily automatic discovery (migration 036) ──────────────────────────────
+
+/**
+ * Once a Cairo day, the first time the growth screen opens with discovery
+ * on: run the next few Google Places searches, keep open clinics that have a
+ * phone, and import the new ones (duplicates are skipped by the database).
+ * Each search counts against the daily Places cap like a manual one.
+ *
+ * @returns {Promise<{ran: boolean, searched?: number, added?: number, skipped?: number}>}
+ */
+export async function runAutoDiscover(settings) {
+  const { discoveryQueries, nextBatch, placeToRow, cairoToday } = await import('../lib/growth/discover')
+  const today = cairoToday()
+  if (!settings?.auto_discover_enabled || settings.auto_discover_last_run === today) return { ran: false }
+
+  const list = discoveryQueries(settings.auto_discover_categories ?? [], settings.auto_discover_areas ?? [])
+  const { batch, cursor } = nextBatch(list, settings.auto_discover_cursor ?? 0, settings.auto_discover_per_day ?? 4)
+  // Claim today first, so a second open tab doesn't run the same searches.
+  await callGrowth('save_settings', { settings: { auto_discover_last_run: today, auto_discover_cursor: cursor } })
+
+  const rows = []
+  let searched = 0
+  for (const item of batch) {
+    try {
+      const res = await callGrowth('places_search', { query: item.query })
+      searched += 1
+      for (const place of res.places ?? []) {
+        const row = placeToRow(place, item)
+        if (row) rows.push(row)
+      }
+    } catch {
+      break // out of quota or Places unavailable — keep what we have
+    }
+  }
+  if (!rows.length) return { ran: true, searched, added: 0, skipped: 0 }
+  const { result } = await callGrowth('import', { rows: rows.slice(0, 1000), source: 'google_maps_api' })
+  return { ran: true, searched, added: result.inserted, skipped: result.skipped }
+}

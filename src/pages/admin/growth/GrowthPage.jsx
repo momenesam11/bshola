@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { Link, useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { HiOutlineArrowPath, HiOutlineArrowRight } from 'react-icons/hi2'
 import { hasAdminToken } from '../../../hooks/useAdmin'
-import { useGrowthData, useSyncPlatform } from '../../../hooks/useGrowth'
+import { useQueryClient } from '@tanstack/react-query'
+import { useGrowthData, useSyncPlatform, runAutoDiscover } from '../../../hooks/useGrowth'
 import { buildQueue } from '../../../lib/growth/scoring'
 import PasswordGate from '../../../components/admin/AdminPasswordGate'
 import QueuePanel from './QueuePanel'
@@ -14,7 +15,7 @@ import PlacesPanel from './PlacesPanel'
 import PartnersPanel from './PartnersPanel'
 import NumbersPanel from './NumbersPanel'
 import SettingsPanel from './SettingsPanel'
-import LeadDrawer from './LeadDrawer'
+import LeadPage from './LeadPage'
 import { Btn } from './ui'
 
 const TABS = [
@@ -44,9 +45,25 @@ function Growth() {
   const settings = data?.settings
   const openLead = openId ? allLeads.find((l) => l.id === openId) : null
   const queueCount = useMemo(
-    () => buildQueue(leads, { weights: settings?.weights, targetAreas: settings?.target_areas }).length,
+    // Same default as the Today screen: only leads you can call.
+    () => buildQueue(leads.filter((l) => l.phone), { weights: settings?.weights, targetAreas: settings?.target_areas }).length,
     [leads, settings]
   )
+
+  // Daily automatic discovery, once per Cairo day on first open (see runAutoDiscover).
+  const qc = useQueryClient()
+  const discoverStarted = useRef(false)
+  useEffect(() => {
+    if (!data?.placesConfigured || !settings?.auto_discover_enabled || discoverStarted.current) return
+    discoverStarted.current = true
+    runAutoDiscover(settings)
+      .then((r) => {
+        if (!r.ran) return
+        toast.success(r.added ? `🤖 البحث الأوتوماتيك لقى ${r.added} عيادة جديدة` : '🤖 البحث الأوتوماتيك خلص — مفيش عيادات جديدة النهارده', { duration: 6000 })
+        qc.invalidateQueries({ queryKey: ['growth'], exact: true })
+      })
+      .catch((e) => toast.error(`البحث الأوتوماتيك: ${e.message}`))
+  }, [data?.placesConfigured, settings, qc])
 
   const update = (patch) =>
     setParams((p) => {
@@ -57,7 +74,11 @@ function Growth() {
       }
       return next
     })
-  const open = (id) => update({ lead: id })
+  // Opening a lead is a page of its own; scroll to the top like a real navigation.
+  const open = (id) => {
+    update({ lead: id, ltab: null })
+    window.scrollTo(0, 0)
+  }
 
   async function runSync() {
     try {
@@ -90,9 +111,9 @@ function Growth() {
             <button
               key={t.key}
               type="button"
-              onClick={() => update({ tab: t.key })}
+              onClick={() => update({ tab: t.key, lead: null, ltab: null })}
               className={`flex-shrink-0 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                tab === t.key ? 'bg-gray-900 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                tab === t.key && !openLead ? 'bg-gray-900 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
               }`}
             >
               {t.label}
@@ -103,7 +124,18 @@ function Growth() {
           ))}
         </nav>
 
-        {isLoading ? (
+        {openLead ? (
+          <LeadPage
+            key={openLead.id}
+            lead={openLead}
+            leads={allLeads}
+            partners={partners}
+            settings={settings}
+            tab={params.get('ltab') ?? 'contact'}
+            onTab={(t) => update({ ltab: t })}
+            onBack={() => update({ lead: null, ltab: null })}
+          />
+        ) : isLoading ? (
           <p className="text-center text-gray-400 py-16">بيحمّل…</p>
         ) : error ? (
           <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4 text-sm">
@@ -123,16 +155,6 @@ function Growth() {
         )}
       </div>
 
-      {openLead && (
-        <LeadDrawer
-          key={openLead.id}
-          lead={openLead}
-          leads={allLeads}
-          partners={partners}
-          settings={settings}
-          onClose={() => update({ lead: null })}
-        />
-      )}
     </div>
   )
 }

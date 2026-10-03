@@ -1,4 +1,5 @@
 import { STAGE_BY_KEY } from '../../../lib/growth/constants'
+import { QUALITY_STYLE } from '../../../lib/growth/quality'
 
 // Small building blocks shared by the growth screens.
 
@@ -81,5 +82,15 @@ export function EmptyState({ icon = '🗂️', title, children }) {
       <p className="font-bold text-gray-800">{title}</p>
       {children && <div className="text-sm text-gray-500 mt-1.5 max-w-md mx-auto leading-relaxed">{children}</div>}
     </div>
+  )
+}
+
+/** ✅ real / ⚪ unknown / ⚠️ needs review / 🧪 test — see lib/growth/quality.js */
+export function QualityBadge({ quality, compact = false }) {
+  const style = QUALITY_STYLE[quality.level]
+  return (
+    <span title={quality.reasons.join(' · ')} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-bold whitespace-nowrap ${style.tone}`}>
+      {style.icon}{!compact && ` ${quality.label}`}
+    </span>
   )
 }

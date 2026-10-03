@@ -241,7 +241,11 @@ serve(async (req) => {
 
       case 'save_settings': {
         const { settings } = body as { settings?: Record<string, unknown> }
-        const fields = pick(settings, ['weights', 'target_areas', 'places_daily_cap', 'qualify_min_appointments', 'qualify_min_clients'])
+        const fields = pick(settings, [
+          'weights', 'target_areas', 'places_daily_cap', 'qualify_min_appointments', 'qualify_min_clients',
+          'auto_discover_enabled', 'auto_discover_categories', 'auto_discover_areas', 'auto_discover_per_day',
+          'auto_discover_cursor', 'auto_discover_last_run',
+        ])
         const { data, error } = await supabase.from('growth_settings').update(fields).eq('id', 1).select().single()
         if (error) return dbError(error)
         return json({ success: true, settings: data })
