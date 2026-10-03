@@ -3,10 +3,9 @@
 // Runs on a schedule (.github/workflows/growth-daily.yml) — nobody has to
 // open the dashboard. Each run:
 //   1. OpenStreetMap: every clinic in Cairo & Giza with a phone (free, no key)
-//   2. TomTom Search:  clinic type × area searches   (if TOMTOM_API_KEY is set)
-//   3. Google Places:  the next slice of the type × area rotation, with review
+//   2. Google Places:  the next slice of the type × area rotation, with review
 //      pain signals (if GOOGLE_PLACES_API_KEY is set and auto-discovery is on)
-//   4. growth_sync_platform(): new sign-ups, trials, payments, qualification
+//   3. growth_sync_platform(): new sign-ups, trials, payments, qualification
 // Everything goes through growth_import_leads(), which skips anything already
 // in the list (same phone / place / name+area), so re-running is harmless.
 //
@@ -18,9 +17,8 @@
 import { createClient } from '@supabase/supabase-js'
 import { fetchOsmClinics } from '../src/lib/growth/osm.js'
 import { discoveryQueries, nextBatch, placeToRow, cairoToday } from '../src/lib/growth/discover.js'
-import { normalizePhone } from '../src/lib/growth/phone.js'
 
-const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, GOOGLE_PLACES_API_KEY, TOMTOM_API_KEY } = process.env
+const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, GOOGLE_PLACES_API_KEY } = process.env
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
   console.error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required')
   process.exit(1)
@@ -48,49 +46,7 @@ async function runOsm() {
   return { found: rows.length, ...res }
 }
 
-// ── 2. TomTom ───────────────────────────────────────────────────────────────
-// Fuzzy POI search, restricted to Egypt. Free tier has a daily request
-// allowance; one request per type × area.
-async function tomtomSearch(query) {
-  const url = new URL(`https://api.tomtom.com/search/2/search/${encodeURIComponent(query)}.json`)
-  url.search = new URLSearchParams({ key: TOMTOM_API_KEY, countrySet: 'EG', idxSet: 'POI', limit: '100', language: 'ar' }).toString()
-  const res = await fetch(url)
-  if (!res.ok) throw new Error(`TomTom ${res.status}: ${(await res.text()).slice(0, 200)}`)
-  return (await res.json()).results ?? []
-}
-
-async function runTomTom(settings) {
-  if (!TOMTOM_API_KEY) return { skipped: 'no TOMTOM_API_KEY' }
-  const list = discoveryQueries(settings.auto_discover_categories ?? ['dental', 'derma'], settings.auto_discover_areas ?? []).slice(0, 100)
-  const rows = []
-  for (const item of list) {
-    let results = []
-    try {
-      results = await tomtomSearch(item.query)
-    } catch (e) {
-      log('tomtom search failed, stopping:', e.message)
-      break
-    }
-    for (const r of results) {
-      const phone = normalizePhone(r.poi?.phone)
-      if (!r.poi?.name || !phone) continue
-      rows.push({
-        name: r.poi.name,
-        phone,
-        category: item.category,
-        area: r.address?.municipalitySubdivision || item.area,
-        city: r.address?.municipality || 'القاهرة',
-        address: r.address?.freeformAddress,
-        website: r.poi.url ? (r.poi.url.startsWith('http') ? r.poi.url : `https://${r.poi.url}`) : undefined,
-        source_detail: `TomTom: ${item.query}`,
-      })
-    }
-  }
-  const res = rows.length ? await importRows(rows, 'import') : { inserted: 0, skipped: 0 }
-  return { searches: list.length, found: rows.length, ...res }
-}
-
-// ── 3. Google Places ────────────────────────────────────────────────────────
+// ── 2. Google Places ────────────────────────────────────────────────────────
 const PLACES_FIELDS = [
   'places.id', 'places.displayName', 'places.formattedAddress', 'places.nationalPhoneNumber',
   'places.internationalPhoneNumber', 'places.websiteUri', 'places.rating', 'places.userRatingCount',
@@ -159,7 +115,7 @@ async function main() {
   if (error) throw new Error(`can't read growth_settings: ${error.message}`)
 
   const summary = {}
-  for (const [name, fn] of [['openstreetmap', runOsm], ['tomtom', runTomTom], ['google', runGoogle]]) {
+  for (const [name, fn] of [['openstreetmap', runOsm], ['google', runGoogle]]) {
     try {
       summary[name] = await fn(settings)
     } catch (e) {
