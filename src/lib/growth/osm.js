@@ -9,7 +9,13 @@
 
 import { normalizePhone } from './phone'
 
-export const OVERPASS_URL = 'https://overpass-api.de/api/interpreter'
+// The public Overpass servers are community-run and sometimes busy (504/429),
+// so a request falls through to the next mirror.
+export const OVERPASS_URLS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.private.coffee/api/interpreter',
+  'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+]
 export const OSM_ATTRIBUTION = '© OpenStreetMap contributors'
 
 // Greater Cairo + Giza, including New Cairo, 6th of October and Sheikh Zayed.
@@ -74,11 +80,27 @@ export function osmToRows(elements = []) {
   return rows
 }
 
-export async function fetchOsmClinics(bbox = CAIRO_GIZA_BBOX) {
-  const res = await fetch(`${OVERPASS_URL}?data=${encodeURIComponent(overpassQuery(bbox))}`, {
-    headers: { Accept: 'application/json' },
-  })
-  if (!res.ok) throw new Error(`OpenStreetMap مش بيرد دلوقتي (${res.status}) — جرّب كمان شوية`)
-  const data = await res.json()
-  return osmToRows(data.elements ?? [])
+/**
+ * @param {{userAgent?: string}} [opts] - Overpass rejects requests without a
+ *   descriptive User-Agent; browsers send their own, the daily script passes one.
+ */
+export async function fetchOsmClinics(bbox = CAIRO_GIZA_BBOX, { userAgent } = {}) {
+  const query = encodeURIComponent(overpassQuery(bbox))
+  let lastError = null
+  for (const url of OVERPASS_URLS) {
+    try {
+      const res = await fetch(`${url}?data=${query}`, {
+        headers: { Accept: 'application/json', ...(userAgent ? { 'User-Agent': userAgent } : {}) },
+      })
+      if (!res.ok) {
+        lastError = new Error(`${new URL(url).host} ردّ ${res.status}`)
+        continue
+      }
+      const data = await res.json()
+      return osmToRows(data.elements ?? [])
+    } catch (e) {
+      lastError = e
+    }
+  }
+  throw new Error(`OpenStreetMap مش بيرد دلوقتي (${lastError?.message ?? 'خطأ'}) — جرّب كمان شوية`)
 }

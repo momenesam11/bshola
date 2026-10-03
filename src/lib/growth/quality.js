@@ -50,6 +50,9 @@ export function dataQuality(lead, allLeads = []) {
     const where = lead.google_maps_url?.includes('openstreetmap.org') ? 'OpenStreetMap' : 'خرائط جوجل'
     return { level: 'real', label: 'حقيقية', reasons: [`موجودة على ${where}`] }
   }
+  if ((lead.source_detail ?? '').startsWith('TomTom')) {
+    return { level: 'real', label: 'حقيقية', reasons: ['موجودة على خرايط TomTom'] }
+  }
   if (lead.stage === 'paid') return { level: 'real', label: 'حقيقية', reasons: ['دفع اشتراك'] }
   return { level: 'unknown', label: 'مش متأكدين', reasons: ['مفيش دليل لسه — اتأكد في أول مكالمة'] }
 }

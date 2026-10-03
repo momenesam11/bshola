@@ -1,0 +1,35 @@
+# Hands-off lead discovery for /admin/growth — see scripts/growth-daily.mjs.
+# Every morning: OpenStreetMap (free), TomTom and Google Places (when their
+# keys are set), then the platform sync. Can also be started by hand from
+# GitHub → Actions → "Growth — daily leads" → Run workflow.
+#
+# Secrets (GitHub → Settings → Secrets and variables → Actions):
+#   SUPABASE_URL                required
+#   SUPABASE_SERVICE_ROLE_KEY   required — Supabase → Settings → API → service_role
+#   GOOGLE_PLACES_API_KEY       optional
+#   TOMTOM_API_KEY              optional
+
+name: Growth — daily leads
+
+on:
+  schedule:
+    - cron: '0 4 * * *' # 04:00 UTC = 06:00/07:00 Cairo
+  workflow_dispatch:
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx tsx scripts/growth-daily.mjs
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GOOGLE_PLACES_API_KEY: ${{ secrets.GOOGLE_PLACES_API_KEY }}
+          TOMTOM_API_KEY: ${{ secrets.TOMTOM_API_KEY }}
