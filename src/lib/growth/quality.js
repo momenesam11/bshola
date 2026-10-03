@@ -25,14 +25,14 @@ function junkPhone(phone) {
  * @returns {{ level: 'test'|'real'|'suspect'|'unknown', label: string, reasons: string[] }}
  */
 export function dataQuality(lead, allLeads = []) {
-  if (lead.is_test) return { level: 'test', label: 'حساب تجربة', reasons: ['إنت علّمته حساب تجربة'] }
+  if (lead.is_test) return { level: 'test', label: 'حساب تيست', reasons: ['إنت علّمته حساب تيست'] }
   // Your own call beats any heuristic.
   if (lead.qualified_by === 'admin') return { level: 'real', label: 'حقيقية', reasons: ['إنت أكّدته'] }
 
   const reasons = []
   if (lead.phone && lead.phone === SUPPORT_WHATSAPP) reasons.push('ده رقمك إنت')
   if (lead.email && lead.email.toLowerCase() === SUPPORT_EMAIL.toLowerCase()) reasons.push('ده إيميلك إنت')
-  if (TEST_WORDS.test(` ${lead.name ?? ''} `) || TEST_WORDS.test(` ${lead.email ?? ''} `)) reasons.push('الاسم أو الإيميل شكله تجربة')
+  if (TEST_WORDS.test(` ${lead.name ?? ''} `) || TEST_WORDS.test(` ${lead.email ?? ''} `)) reasons.push('الاسم أو الإيميل فيه «تجربة» أو «test»')
   if (lead.email && DISPOSABLE.test(lead.email)) reasons.push('إيميل مؤقت')
   if (junkPhone(lead.phone)) reasons.push('الرقم شكله مش حقيقي')
   if (lead.name && /^[^\s@]+@[^\s@]+$/.test(lead.name.trim())) reasons.push('مفيش اسم عيادة — إيميل بس')
@@ -54,8 +54,8 @@ export function dataQuality(lead, allLeads = []) {
 }
 
 export const QUALITY_STYLE = {
-  real: { icon: '✅', tone: 'bg-accent-50 text-accent-700 border-accent-200' },
-  unknown: { icon: '❔', tone: 'bg-paper text-ink-soft border-rule' },
-  suspect: { icon: '⚠️', tone: 'bg-amber-50 text-amber-800 border-amber-200' },
-  test: { icon: '🧪', tone: 'bg-gray-100 text-gray-500 border-gray-200' },
+  real: { tone: 'bg-accent-50 text-accent-700 border-accent-200' },
+  unknown: { tone: 'bg-paper text-ink-soft border-rule' },
+  suspect: { tone: 'bg-amber-50 text-amber-800 border-amber-200' },
+  test: { tone: 'bg-gray-100 text-gray-500 border-gray-200' },
 }

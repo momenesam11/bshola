@@ -8,7 +8,7 @@ export const STAGES = [
   { key: 'interested', label: 'مهتم', color: 'bg-accent-50 text-accent-700' },
   { key: 'demo', label: 'ديمو', color: 'bg-accent-100 text-accent-800' },
   { key: 'trial', label: 'في التجربة', color: 'bg-accent-100 text-accent-800' },
-  { key: 'paid', label: 'دفع 💎', color: 'bg-accent-600 text-white' },
+  { key: 'paid', label: 'دفع', color: 'bg-accent-600 text-white' },
   { key: 'lost', label: 'ضاع', color: 'bg-gray-100 text-gray-500' },
   { key: 'do_not_contact', label: 'ماتكلّمهوش', color: 'bg-gray-200 text-gray-600' },
 ]
@@ -51,15 +51,15 @@ export const CATEGORIES = [
 export const CATEGORY_BY_KEY = Object.fromEntries(CATEGORIES.map((c) => [c.key, c]))
 
 export const OUTCOMES = [
-  { key: 'no_answer', label: 'مردّش', icon: '📵' },
-  { key: 'sent', label: 'اتبعتت رسالة', icon: '💬' },
-  { key: 'replied', label: 'ردّ', icon: '↩️' },
-  { key: 'interested', label: 'مهتم', icon: '🔥' },
-  { key: 'demo_booked', label: 'حجز ديمو', icon: '📅' },
-  { key: 'call_later', label: 'كلّمني بعدين', icon: '⏰' },
-  { key: 'not_interested', label: 'مش مهتم', icon: '👎' },
-  { key: 'wrong_number', label: 'رقم غلط', icon: '❌' },
-  { key: 'do_not_contact', label: 'ماتكلّمنيش تاني', icon: '🚫' },
+  { key: 'no_answer', label: 'مردّش' },
+  { key: 'sent', label: 'اتبعتت رسالة' },
+  { key: 'replied', label: 'ردّ' },
+  { key: 'interested', label: 'مهتم' },
+  { key: 'demo_booked', label: 'حجز ديمو' },
+  { key: 'call_later', label: 'كلّمني بعدين' },
+  { key: 'not_interested', label: 'مش مهتم' },
+  { key: 'wrong_number', label: 'رقم غلط' },
+  { key: 'do_not_contact', label: 'ماتكلّمنيش تاني' },
 ]
 export const OUTCOME_BY_KEY = Object.fromEntries(OUTCOMES.map((o) => [o.key, o]))
 

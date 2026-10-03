@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { Link, useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { HiOutlineArrowPath, HiOutlineArrowRight } from 'react-icons/hi2'
+import { HiOutlineArrowPath, HiOutlineArrowRight, HiOutlineChartBar, HiOutlineCog6Tooth, HiOutlineMap, HiOutlinePhone, HiOutlinePlus, HiOutlineQueueList, HiOutlineRocketLaunch, HiOutlineUserGroup } from 'react-icons/hi2'
 import { hasAdminToken } from '../../../hooks/useAdmin'
 import { useQueryClient } from '@tanstack/react-query'
 import { useGrowthData, useSyncPlatform, runAutoDiscover } from '../../../hooks/useGrowth'
@@ -19,13 +19,13 @@ import LeadPage from './LeadPage'
 import { Btn } from './ui'
 
 const TABS = [
-  { key: 'today', label: '📞 النهارده' },
-  { key: 'leads', label: '🗂️ كل العملاء' },
-  { key: 'add', label: '➕ إضافة' },
-  { key: 'maps', label: '🗺️ خرائط جوجل' },
-  { key: 'partners', label: '🤝 الشركاء والترشيحات' },
-  { key: 'numbers', label: '📊 الأرقام' },
-  { key: 'settings', label: '⚙️ الإعدادات' },
+  { key: 'today', label: 'النهارده', icon: HiOutlinePhone },
+  { key: 'leads', label: 'كل العملاء', icon: HiOutlineQueueList },
+  { key: 'add', label: 'إضافة', icon: HiOutlinePlus },
+  { key: 'maps', label: 'خرائط جوجل', icon: HiOutlineMap },
+  { key: 'partners', label: 'الشركاء والترشيحات', icon: HiOutlineUserGroup },
+  { key: 'numbers', label: 'الأرقام', icon: HiOutlineChartBar },
+  { key: 'settings', label: 'الإعدادات', icon: HiOutlineCog6Tooth },
 ]
 
 function Growth() {
@@ -59,7 +59,7 @@ function Growth() {
     runAutoDiscover(settings)
       .then((r) => {
         if (!r.ran) return
-        toast.success(r.added ? `🤖 البحث الأوتوماتيك لقى ${r.added} عيادة جديدة` : '🤖 البحث الأوتوماتيك خلص — مفيش عيادات جديدة النهارده', { duration: 6000 })
+        toast.success(r.added ? `البحث الأوتوماتيك لقى ${r.added} عيادة جديدة` : 'البحث الأوتوماتيك خلص — مفيش عيادات جديدة النهارده', { duration: 6000 })
         qc.invalidateQueries({ queryKey: ['growth'], exact: true })
       })
       .catch((e) => toast.error(`البحث الأوتوماتيك: ${e.message}`))
@@ -99,7 +99,7 @@ function Growth() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <Link to="/admin" className="text-gray-400 hover:text-ink-soft" title="لوحة التحكم"><HiOutlineArrowRight className="w-5 h-5" /></Link>
-            <h1 className="text-2xl font-bold text-ink">🚀 العملاء المحتملين</h1>
+            <h1 className="flex items-center gap-2 text-2xl font-bold text-ink"><HiOutlineRocketLaunch className="w-7 h-7 text-accent-600" aria-hidden="true" /> العملاء المحتملين</h1>
           </div>
           <Btn onClick={runSync} disabled={sync.isPending} title="يجيب التسجيلات الجديدة ويحدّث التجارب والدفع">
             <HiOutlineArrowPath className={`w-4 h-4 ${sync.isPending ? 'animate-spin' : ''}`} /> تحديث من النظام
@@ -112,10 +112,11 @@ function Growth() {
               key={t.key}
               type="button"
               onClick={() => update({ tab: t.key, lead: null, ltab: null })}
-              className={`flex-shrink-0 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+              className={`flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
                 tab === t.key && !openLead ? 'bg-ink text-white' : 'bg-white text-ink-soft border border-rule hover:bg-paper'
               }`}
             >
+              <t.icon className="w-4 h-4" aria-hidden="true" />
               {t.label}
               {t.key === 'today' && queueCount > 0 && (
                 <span className={`mr-1.5 text-xs px-1.5 rounded-full ${tab === t.key ? 'bg-white/20' : 'bg-red-100 text-red-700'}`}>{queueCount}</span>

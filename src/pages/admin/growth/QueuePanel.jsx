@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import toast from 'react-hot-toast'
-import { HiOutlinePhone, HiOutlineChevronLeft } from 'react-icons/hi2'
+import { HiOutlineBeaker, HiOutlineBellAlert, HiOutlineCheck, HiOutlineCheckBadge, HiOutlineCheckCircle, HiOutlineChevronLeft, HiOutlineClipboardDocumentList, HiOutlineEnvelope, HiOutlineExclamationTriangle, HiOutlineFire, HiOutlineLightBulb, HiOutlinePhone, HiOutlineShieldExclamation, HiOutlineTrash } from 'react-icons/hi2'
 import { FaWhatsapp } from 'react-icons/fa'
 import { buildQueue } from '../../../lib/growth/scoring'
 import { chooseAngle, angleStats } from '../../../lib/growth/angles'
@@ -8,13 +8,13 @@ import { openingMessage } from '../../../lib/growth/messages'
 import { dataQuality } from '../../../lib/growth/quality'
 import { displayPhone, telLink, whatsappLink } from '../../../lib/growth/phone'
 import { useLogActivity, useSaveLead, useQualifyLead, useDeleteLead } from '../../../hooks/useGrowth'
-import { Btn, Card, EmptyState, QualityBadge, ScoreBadge, StageBadge } from './ui'
+import { Btn, Card, EmptyState, QualityBadge, QUALITY_ICON, ScoreBadge, StageBadge } from './ui'
 import { categoryLabel, formatDateTime, sourceLabel } from './format'
 
 const BUCKETS = [
-  { key: 0, title: '🔥 طلبوا يتكلّموا معانا', hint: 'كلّمهم الأول — دول جايين لوحدهم', tone: 'border-accent-300 bg-accent-50/60' },
-  { key: 1, title: '⏰ متابعات النهارده', hint: 'وعدتهم تكلّمهم النهارده', tone: 'border-rule bg-white' },
-  { key: 2, title: '📋 عيادات جديدة — الأعلى تقييماً', hint: 'لسه ماتكلّمتش معاهم', tone: 'border-rule bg-white' },
+  { key: 0, icon: HiOutlineFire, title: 'طلبوا يتكلّموا معانا', hint: 'كلّمهم الأول — دول جايين لوحدهم', tone: 'border-accent-300 bg-accent-50/60' },
+  { key: 1, icon: HiOutlineBellAlert, title: 'متابعات النهارده', hint: 'وعدتهم تكلّمهم النهارده', tone: 'border-rule bg-white' },
+  { key: 2, icon: HiOutlineClipboardDocumentList, title: 'عيادات جديدة — الأعلى تقييماً', hint: 'لسه ماتكلّمتش معاهم', tone: 'border-rule bg-white' },
 ]
 
 const CATEGORY_FILTERS = [
@@ -76,11 +76,11 @@ export default function QueuePanel({ leads, settings, onOpen }) {
     <div className="space-y-4">
       {/* Today at a glance */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Stat label="عليك النهارده" value={queue.length} tone="text-ink" />
-        <Stat label="🔥 طلبوا يكلّموك" value={inbound} tone="text-accent-700" />
-        <Stat label="✅ اتكلّمت معاهم النهارده" value={doneToday} tone="text-accent-600" />
+        <Stat icon={HiOutlinePhone} label="عليك النهارده" value={queue.length} tone="text-ink" />
+        <Stat icon={HiOutlineFire} label="طلبوا يكلّموك" value={inbound} tone="text-accent-700" />
+        <Stat icon={HiOutlineCheckCircle} label="اتكلّمت معاهم النهارده" value={doneToday} tone="text-accent-600" />
         <button type="button" onClick={() => setReviewOpen((v) => !v)} className="text-right">
-          <Stat label="⚠️ محتاجين مراجعة" value={suspects.length} tone="text-amber-600" hint={suspects.length ? 'اضغط تراجعهم' : null} />
+          <Stat icon={HiOutlineExclamationTriangle} label="محتاجين مراجعة" value={suspects.length} tone="text-amber-600" hint={suspects.length ? 'اضغط تراجعهم' : null} />
         </button>
       </div>
       {total > 0 && (
@@ -96,8 +96,8 @@ export default function QueuePanel({ leads, settings, onOpen }) {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-2">
-        <Chip on={phoneOnly} onClick={() => setPhoneOnly(!phoneOnly)}>📞 عندهم رقم بس</Chip>
-        <Chip on={realOnly} onClick={() => setRealOnly(!realOnly)}>✅ المتأكَّد منهم بس</Chip>
+        <Chip on={phoneOnly} onClick={() => setPhoneOnly(!phoneOnly)}><HiOutlinePhone className="w-3.5 h-3.5" aria-hidden="true" /> عندهم رقم بس</Chip>
+        <Chip on={realOnly} onClick={() => setRealOnly(!realOnly)}><HiOutlineCheckBadge className="w-3.5 h-3.5" aria-hidden="true" /> المتأكَّد منهم بس</Chip>
         <span className="w-px h-5 bg-gray-200 mx-1" />
         {CATEGORY_FILTERS.map((c) => (
           <Chip key={c.key} on={category === c.key} onClick={() => setCategory(c.key)}>{c.label}</Chip>
@@ -108,7 +108,7 @@ export default function QueuePanel({ leads, settings, onOpen }) {
 
       {queue.length === 0 ? (
         <Card>
-          <EmptyState icon="🎉" title="مفيش حد مستني مكالمة دلوقتي">
+          <EmptyState icon={HiOutlineCheckCircle} title="مفيش حد مستني مكالمة دلوقتي">
             ضيف عيادات من «إضافة» أو شغّل «خرائط جوجل»، أو دوس «تحديث من النظام» يجيب اللي سجّلوا وماكمّلوش.
             {phoneOnly && ' (فلتر «عندهم رقم بس» شغال — شيله تشوف اللي معاهم إيميل بس.)'}
           </EmptyState>
@@ -122,7 +122,7 @@ export default function QueuePanel({ leads, settings, onOpen }) {
           return (
             <section key={bucket.key} className={`rounded-2xl border p-4 ${bucket.tone}`}>
               <header className="flex items-baseline justify-between gap-2 mb-3">
-                <h2 className="font-bold text-ink">{bucket.title} <span className="text-gray-400 font-normal">({items.length})</span></h2>
+                <h2 className="flex items-center gap-1.5 font-bold text-ink"><bucket.icon className="w-5 h-5 text-accent-600" aria-hidden="true" />{bucket.title} <span className="text-gray-400 font-normal">({items.length})</span></h2>
                 <span className="text-xs text-ink-soft">{bucket.hint}</span>
               </header>
               <ul className="space-y-2">
@@ -139,10 +139,10 @@ export default function QueuePanel({ leads, settings, onOpen }) {
   )
 }
 
-function Stat({ label, value, tone, hint }) {
+function Stat({ icon: Icon, label, value, tone, hint }) {
   return (
     <div className="bg-white rounded-xl border border-rule shadow-sm p-4 h-full">
-      <p className="text-xs text-ink-soft">{label}</p>
+      <p className="flex items-center gap-1.5 text-xs text-ink-soft">{Icon && <Icon className="w-4 h-4" aria-hidden="true" />}{label}</p>
       <p className={`text-3xl font-bold mt-1 tabular-nums ${tone}`}>{value}</p>
       {hint && <p className="text-[12.5px] text-amber-600 mt-0.5">{hint}</p>}
     </div>
@@ -152,7 +152,7 @@ function Stat({ label, value, tone, hint }) {
 function Chip({ on, onClick, children }) {
   return (
     <button type="button" onClick={onClick}
-      className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${on ? 'bg-ink text-white border-ink' : 'bg-white text-ink-soft border-rule hover:border-gray-400'}`}>
+      className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${on ? 'bg-ink text-white border-ink' : 'bg-white text-ink-soft border-rule hover:border-gray-400'}`}>
       {children}
     </button>
   )
@@ -185,10 +185,10 @@ function QueueRow({ lead, score, quality, stats, showDue, onOpen }) {
           </div>
           <p className="text-xs text-ink-soft mt-0.5">
             {categoryLabel(lead.category)} · {lead.area || lead.city || 'منطقة مش معروفة'} · {sourceLabel(lead.source)}
-            {showDue && lead.next_follow_up_at ? ` · ⏰ ${formatDateTime(lead.next_follow_up_at)}` : ''}
+            {showDue && lead.next_follow_up_at ? ` · متابعة ${formatDateTime(lead.next_follow_up_at)}` : ''}
           </p>
           <p className="text-xs text-accent-700 mt-1">
-            📌 ابدأ بـ «{angle.label}»{angle.basis !== 'default' ? ` — ${angle.because}` : ''}
+            <HiOutlineLightBulb className="inline-block w-4 h-4 align-[-3px] ml-1" aria-hidden="true" />ابدأ بـ «{angle.label}»{angle.basis !== 'default' ? ` — ${angle.because}` : ''}
           </p>
         </button>
         <div className="flex items-center gap-1.5 w-full sm:w-auto">
@@ -203,7 +203,7 @@ function QueueRow({ lead, score, quality, stats, showDue, onOpen }) {
               </button>
             </>
           ) : (
-            <span className="text-xs text-amber-700 px-2">✉️ إيميل بس</span>
+            <span className="text-xs text-amber-700 px-2 inline-flex items-center gap-1"><HiOutlineEnvelope className="w-4 h-4" aria-hidden="true" /> إيميل بس</span>
           )}
           <button type="button" onClick={() => onOpen(lead.id)} className="inline-flex items-center gap-0.5 px-3 py-2 rounded-lg border border-rule text-sm font-semibold text-ink-soft hover:bg-paper">
             التفاصيل <HiOutlineChevronLeft className="w-4 h-4" />
@@ -231,7 +231,7 @@ function ReviewPanel({ suspects, quality, onOpen, onClose }) {
   }
 
   return (
-    <Card title="🧹 راجع البيانات — الحاجات دي شكلها مش طبيعي" actions={<Btn tone="ghost" onClick={onClose}>إخفاء</Btn>}>
+    <Card icon={HiOutlineShieldExclamation} title="راجع البيانات — الحاجات دي شكلها مش طبيعي" actions={<Btn tone="ghost" onClick={onClose}>إخفاء</Btn>}>
       {suspects.length === 0 ? (
         <p className="text-sm text-ink-soft">كله تمام — مفيش حاجة محتاجة مراجعة.</p>
       ) : (
@@ -240,35 +240,35 @@ function ReviewPanel({ suspects, quality, onOpen, onClose }) {
             <li key={l.id} className="py-3 flex flex-wrap items-center gap-3">
               <button type="button" onClick={() => onOpen(l.id)} className="min-w-0 flex-1 text-right">
                 <p className="font-semibold text-ink">{l.name}</p>
-                <p className="text-xs text-amber-700">⚠️ {quality.get(l.id)?.reasons.join(' · ')}</p>
+                <p className="text-xs text-amber-700"><HiOutlineExclamationTriangle className="inline-block w-4 h-4 align-[-3px] ml-1" aria-hidden="true" />{quality.get(l.id)?.reasons.join(' · ')}</p>
                 <p className="text-[12.5px] text-gray-400">{sourceLabel(l.source)}{l.phone ? ` · ${displayPhone(l.phone)}` : ''}{l.email ? ` · ${l.email}` : ''}</p>
               </button>
               <div className="flex gap-1.5">
-                <Btn disabled={busy} onClick={() => run(() => save.mutateAsync({ id: l.id, lead: { is_test: true } }), 'اتعلّم تجربة')}>🧪 تجربة</Btn>
-                <Btn disabled={busy} onClick={() => run(() => qualify.mutateAsync({ leadId: l.id, manual: true }), 'اتعلّم حقيقي')}>✔️ حقيقي</Btn>
-                <Btn tone="danger" disabled={busy} onClick={() => run(() => del.mutateAsync(l.id), 'اتمسح')}>🗑️</Btn>
+                <Btn disabled={busy} onClick={() => run(() => save.mutateAsync({ id: l.id, lead: { is_test: true } }), 'اتخفى — حساب تيست')}><HiOutlineBeaker className="w-4 h-4" aria-hidden="true" /> تيست بتاعي — اخفيه</Btn>
+                <Btn disabled={busy} onClick={() => run(() => qualify.mutateAsync({ leadId: l.id, manual: true }), 'اتعلّمت عيادة حقيقية')}><HiOutlineCheck className="w-4 h-4" aria-hidden="true" /> عيادة حقيقية</Btn>
+                <Btn tone="danger" disabled={busy} onClick={() => run(() => del.mutateAsync(l.id), 'اتمسح')} aria-label="مسح"><HiOutlineTrash className="w-4 h-4" aria-hidden="true" /></Btn>
               </div>
             </li>
           ))}
         </ul>
       )}
-      <p className="text-[12.5px] text-gray-400 mt-3">«حقيقي» بيعلّمه عيادة متأكَّدة (ولو جه من شريك، مكافأته بتتحسب). «تجربة» بيخفيه من كل الأرقام.</p>
+      <p className="text-[12.5px] text-gray-400 mt-3">«تيست بتاعي» = حساب إنت عملته وإنت بتجرّب النظام، بيستخبى من القايمة والأرقام والعمولات (مش بيتمسح). «عيادة حقيقية» = إنت متأكد إنها عيادة بجد، فالتحذير بيتشال، ولو جاية من مندوب مكافأته بتتحسب.</p>
     </Card>
   )
 }
 
-/** What the ✅ / ❔ / ⚠️ marks on each clinic mean. */
+/** What the verified / not-sure / looks-wrong marks on each clinic mean. */
 function QualityLegend() {
   return (
     <div className="grid sm:grid-cols-3 gap-2 text-xs leading-relaxed">
       <p className="rounded-lg bg-accent-50 border border-accent-200 text-ink px-3 py-2">
-        <b>✅ متأكدين إنها عيادة حقيقية</b> — لقيناها على خرائط جوجل، أو عندها حجوزات من مرضى حقيقيين، أو إنت كلّمتها وأكّدت.
+        <b className="inline-flex items-center gap-1">{(() => { const Q = QUALITY_ICON.real; return <Q className="w-4 h-4 text-accent-600" aria-hidden="true" /> })()} متأكدين إنها عيادة حقيقية</b> — لقيناها على خرائط جوجل، أو عندها حجوزات من مرضى حقيقيين، أو إنت كلّمتها وأكّدت.
       </p>
       <p className="rounded-lg bg-paper border border-rule text-ink px-3 py-2">
-        <b>❔ لسه مش متأكدين</b> — مفيش حاجة غلط، بس مفيش دليل لسه (مثلاً سيبت رقمها في الفورم). اتأكد في أول مكالمة.
+        <b className="inline-flex items-center gap-1">{(() => { const Q = QUALITY_ICON.unknown; return <Q className="w-4 h-4 text-ink-soft" aria-hidden="true" /> })()} لسه مش متأكدين</b> — مفيش حاجة غلط، بس مفيش دليل لسه (مثلاً سيبت رقمها في الفورم). اتأكد في أول مكالمة.
       </p>
       <p className="rounded-lg bg-amber-50 border border-amber-200 text-ink px-3 py-2">
-        <b>⚠️ شكلها غلط</b> — رقمك إنت، أو اسم فيه «تجربة»، أو رقم متكرر الأرقام… راجعها من «محتاجين مراجعة».
+        <b className="inline-flex items-center gap-1">{(() => { const Q = QUALITY_ICON.suspect; return <Q className="w-4 h-4 text-amber-600" aria-hidden="true" /> })()} شكلها غلط</b> — رقمك إنت، أو اسم فيه «تجربة» أو «test»، أو رقم متكرر الأرقام… راجعها من «محتاجين مراجعة».
       </p>
     </div>
   )

@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react'
 import { funnel, conversionBy, labelers, headline } from '../../../lib/growth/analytics'
 import { ACTIVITY_KINDS, OUTCOME_BY_KEY } from '../../../lib/growth/constants'
 import { useActivityStats } from '../../../hooks/useGrowth'
-import { Card } from './ui'
+import { Card, OutcomeIcon } from './ui'
+import { HiOutlineBolt, HiOutlineBuildingOffice2, HiOutlineFunnel, HiOutlineLightBulb, HiOutlineMapPin } from 'react-icons/hi2'
 
 function Stat({ label, value, hint }) {
   return (
@@ -14,9 +15,9 @@ function Stat({ label, value, hint }) {
   )
 }
 
-function ConversionTable({ title, rows }) {
+function ConversionTable({ title, icon, rows }) {
   return (
-    <Card title={title}>
+    <Card icon={icon} title={title}>
       {rows.length === 0 ? (
         <p className="text-sm text-gray-400">مفيش بيانات لسه</p>
       ) : (
@@ -84,7 +85,7 @@ export default function NumbersPanel({ leads }) {
       </div>
 
       <div className="grid lg:grid-cols-2 gap-4">
-        <Card title="📉 القمع">
+        <Card icon={HiOutlineFunnel} title="القمع">
           <div className="space-y-2.5">
             {steps.map((s) => (
               <div key={s.key}>
@@ -102,7 +103,7 @@ export default function NumbersPanel({ leads }) {
           </div>
         </Card>
 
-        <Card title="💪 مجهودك (آخر 30 يوم)">
+        <Card icon={HiOutlineBolt} title="مجهودك (آخر 30 يوم)">
           <div className="grid grid-cols-3 gap-3 text-center">
             <div><p className="text-2xl font-bold tabular-nums">{effort.calls30}</p><p className="text-xs text-ink-soft">{ACTIVITY_KINDS.call}</p></div>
             <div><p className="text-2xl font-bold tabular-nums">{effort.whatsapp30}</p><p className="text-xs text-ink-soft">{ACTIVITY_KINDS.whatsapp}</p></div>
@@ -111,17 +112,17 @@ export default function NumbersPanel({ leads }) {
           {effort.outcomes.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-4">
               {effort.outcomes.map(([k, n]) => (
-                <span key={k} className="text-xs bg-gray-100 rounded-full px-2.5 py-1">{OUTCOME_BY_KEY[k]?.icon} {OUTCOME_BY_KEY[k]?.label}: <b>{n}</b></span>
+                <span key={k} className="text-xs bg-gray-100 rounded-full px-2.5 py-1"><OutcomeIcon outcome={k} className="w-3.5 h-3.5 inline-block align-[-2px]" /> {OUTCOME_BY_KEY[k]?.label}: <b>{n}</b></span>
               ))}
             </div>
           )}
         </Card>
       </div>
 
-      <ConversionTable title="📍 حسب المصدر — أنهي مصدر بيجيب فلوس؟" rows={conversionBy(leads, 'source', labelers.source)} />
+      <ConversionTable icon={HiOutlineMapPin} title="حسب المصدر — أنهي مصدر بيجيب فلوس؟" rows={conversionBy(leads, 'source', labelers.source)} />
       <div className="grid lg:grid-cols-2 gap-4">
-        <ConversionTable title="🏥 حسب نوع العيادة" rows={conversionBy(leads, 'category', labelers.category)} />
-        <ConversionTable title="💡 حسب زاوية البيع" rows={conversionBy(leads.filter((l) => l.sales_angle), 'sales_angle', labelers.sales_angle)} />
+        <ConversionTable icon={HiOutlineBuildingOffice2} title="حسب نوع العيادة" rows={conversionBy(leads, 'category', labelers.category)} />
+        <ConversionTable icon={HiOutlineLightBulb} title="حسب زاوية البيع" rows={conversionBy(leads.filter((l) => l.sales_angle), 'sales_angle', labelers.sales_angle)} />
       </div>
       <p className="text-[12.5px] text-gray-400">الأرقام دي بتتحسب من القايمة نفسها. التجربة والدفع بيتحدّثوا لوحدهم كل ليلة (أو من زرار «تحديث من النظام»).</p>
     </div>

@@ -6,6 +6,7 @@ import { findDuplicate } from '../../../lib/growth/dedupe'
 import { useSaveLead } from '../../../hooks/useGrowth'
 import { Btn, Field } from './ui'
 import { inputClass } from './format'
+import { HiOutlineExclamationTriangle } from 'react-icons/hi2'
 
 const EMPTY = {
   name: '', category: 'dental', specialty: '', contact_person: '', phone: '', email: '',
@@ -60,7 +61,7 @@ export default function LeadForm({ lead, leads, partners, onSaved, onCancel }) {
     <form onSubmit={submit} className="space-y-4">
       {duplicate && (
         <div className="bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-lg px-3 py-2">
-          ⚠️ شكله موجود قبل كده: <b>{duplicate.name}</b>
+          <HiOutlineExclamationTriangle className="inline-block w-4 h-4 align-[-3px] ml-1" aria-hidden="true" />شكله موجود قبل كده: <b>{duplicate.name}</b>
         </div>
       )}
       <div className="grid sm:grid-cols-2 gap-3">

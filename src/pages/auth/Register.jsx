@@ -11,6 +11,7 @@ import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import AuthLayout from '../../components/auth/AuthLayout'
 import GoogleButton from '../../components/auth/GoogleButton'
+import { HiOutlineGift } from 'react-icons/hi2'
 
 export default function Register() {
   const navigate = useNavigate()
@@ -88,7 +89,7 @@ export default function Register() {
       <div className="mb-8">
         {refCode && (
           <p className="mb-4 inline-flex items-center gap-1.5 text-xs font-semibold text-accent-700 bg-accent-50 border border-accent-100 rounded-lg px-3 py-1.5">
-            🎁 جاي بترشيح — هيتسجّل مع حسابك
+            <HiOutlineGift className="w-4 h-4" aria-hidden="true" /> جاي بترشيح — هيتسجّل مع حسابك
           </p>
         )}
         <h2 className="text-2xl font-bold text-gray-900">إنشاء حساب جديد</h2>

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { HiOutlineMagnifyingGlass } from 'react-icons/hi2'
+import { HiOutlineArrowDownTray, HiOutlineBeaker, HiOutlineEnvelope, HiOutlineMagnifyingGlass } from 'react-icons/hi2'
 import { STAGES, SOURCES, CATEGORIES } from '../../../lib/growth/constants'
 import { scoreLead } from '../../../lib/growth/scoring'
 import { leadsToCsv } from '../../../lib/growth/csv'
@@ -73,12 +73,12 @@ export default function LeadsPanel({ leads, settings, onOpen }) {
           {testCount > 0 && (
             <label className="text-xs text-ink-soft flex items-center gap-1.5 cursor-pointer">
               <input type="checkbox" checked={showTests} onChange={(e) => setShowTests(e.target.checked)} className="accent-gray-700" />
-              اعرض حسابات التجربة ({testCount})
+              اعرض حسابات التيست ({testCount})
             </label>
           )}
         </div>
         <Btn tone="ghost" onClick={() => downloadCsv(`beshola-leads-${new Date().toISOString().slice(0, 10)}.csv`, leadsToCsv(rows.map((r) => r.lead)))}>
-          ⬇️ تصدير Excel
+          <HiOutlineArrowDownTray className="w-4 h-4" aria-hidden="true" /> تصدير Excel
         </Btn>
       </div>
 
@@ -103,12 +103,12 @@ export default function LeadsPanel({ leads, settings, onOpen }) {
                 <tr key={lead.id} onClick={() => onOpen(lead.id)} className="border-b border-gray-50 hover:bg-paper cursor-pointer">
                   <td className="px-4 py-2.5"><ScoreBadge score={score} /></td>
                   <td className="px-2 py-2.5">
-                    <div className="font-semibold text-ink">{lead.is_test && '🧪 '}{lead.name}</div>
+                    <div className="font-semibold text-ink">{lead.is_test && <HiOutlineBeaker className="inline-block w-4 h-4 align-[-3px] ml-1" aria-hidden="true" />}{lead.name}</div>
                     <div className="text-[12.5px] text-gray-400">{categoryLabel(lead.category)} · {lead.area || lead.city || '—'}</div>
                   </td>
                   <td className="px-2 py-2.5"><StageBadge stage={lead.stage} /></td>
                   <td className="px-2 py-2.5 text-xs text-ink-soft">{sourceLabel(lead.source)}</td>
-                  <td className="px-2 py-2.5 text-xs font-mono text-ink-soft whitespace-nowrap" dir="ltr">{displayPhone(lead.phone) || (lead.email ? <span className="text-amber-700 font-sans">✉️ إيميل بس</span> : '—')}</td>
+                  <td className="px-2 py-2.5 text-xs font-mono text-ink-soft whitespace-nowrap" dir="ltr">{displayPhone(lead.phone) || (lead.email ? <span className="text-amber-700 font-sans"><HiOutlineEnvelope className="inline-block w-4 h-4 align-[-3px] ml-1" aria-hidden="true" />إيميل بس</span> : '—')}</td>
                   <td className="px-2 py-2.5 text-xs text-ink-soft whitespace-nowrap">{formatDateTime(lead.next_follow_up_at)}</td>
                   <td className="px-2 py-2.5 text-xs text-gray-400 whitespace-nowrap">{formatDate(lead.created_at)}</td>
                 </tr>

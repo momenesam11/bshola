@@ -9,6 +9,7 @@ import { partnerCommissions, referralRewards } from '../../../lib/growth/analyti
 import { useSavePartner, useSetCommissionStatus } from '../../../hooks/useGrowth'
 import { Btn, Card, EmptyState, Field, StageBadge } from './ui'
 import { copyText, formatDate, inputClass } from './format'
+import { HiOutlineBanknotes, HiOutlineChartBar, HiOutlineCheck, HiOutlineEye, HiOutlineGift, HiOutlineLink, HiOutlinePlus, HiOutlineUserGroup } from 'react-icons/hi2'
 
 const EMPTY = { name: '', phone: '', kind: 'medical_rep', signup_bonus_egp: '', commission_pct: '', notes: '' }
 
@@ -62,9 +63,9 @@ export default function PartnersPanel({ leads, partners, commissions = [], onOpe
       <HowItWorks />
 
       <div className="grid lg:grid-cols-[2fr_1fr] gap-4 items-start">
-        <Card title="🤝 الشركاء">
+        <Card icon={HiOutlineUserGroup} title="الشركاء">
           {rows.length === 0 ? (
-            <EmptyState icon="🤝" title="مفيش شركاء لسه">
+            <EmptyState icon={HiOutlineUserGroup} title="مفيش شركاء لسه">
               مندوبين الأدوية وموزّعين خامات الأسنان وشركات تجهيز العيادات بيدخلوا عيادات كل يوم. ضيف واحد من الفورم، وابعتله لينكه ولوحته.
             </EmptyState>
           ) : (
@@ -85,14 +86,14 @@ export default function PartnersPanel({ leads, partners, commissions = [], onOpe
                     </div>
                     <div className="grid grid-cols-4 gap-2 mt-2 text-center text-xs">
                       <div className="bg-gray-50 rounded-lg py-1.5"><b className="block text-sm">{r.registered}</b>سجّلوا</div>
-                      <div className="bg-gray-50 rounded-lg py-1.5"><b className="block text-sm">{r.qualified}</b>حقيقية ✅</div>
+                      <div className="bg-gray-50 rounded-lg py-1.5"><b className="block text-sm">{r.qualified}</b>حقيقية</div>
                       <div className="bg-gray-50 rounded-lg py-1.5"><b className="block text-sm">{r.paid}</b>اشتركوا</div>
                       <div className="bg-amber-50 rounded-lg py-1.5"><b className="block text-sm">{egp(r.pending + r.approved)}</b>مستحق ليه</div>
                     </div>
                     <div className="flex flex-wrap gap-2 mt-2">
-                      <Btn tone="ghost" className="!py-1 text-xs" onClick={() => copyText(link, 'لينك التسجيل اتنسخ')}>🔗 لينك التسجيل</Btn>
-                      <Btn tone="ghost" className="!py-1 text-xs" onClick={() => copyText(dashboard, 'لينك لوحته اتنسخ')}>📊 لينك لوحته</Btn>
-                      <a href={`/partner/${p.access_token}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center text-xs font-semibold text-accent-700 hover:underline px-2">👁️ شوف لوحته</a>
+                      <Btn tone="ghost" className="!py-1 text-xs" onClick={() => copyText(link, 'لينك التسجيل اتنسخ')}><HiOutlineLink className="w-4 h-4" aria-hidden="true" /> لينك التسجيل</Btn>
+                      <Btn tone="ghost" className="!py-1 text-xs" onClick={() => copyText(dashboard, 'لينك لوحته اتنسخ')}><HiOutlineChartBar className="w-4 h-4" aria-hidden="true" /> لينك لوحته</Btn>
+                      <a href={`/partner/${p.access_token}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center text-xs font-semibold text-accent-700 hover:underline px-2 gap-1"><HiOutlineEye className="w-4 h-4" aria-hidden="true" /> شوف لوحته</a>
                       {p.phone && (
                         <a href={whatsappLink(p.phone, partnerShareMessage(p, link, dashboard))} target="_blank" rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 text-xs font-semibold text-accent-700 hover:bg-accent-50 px-2 py-1 rounded-lg">
@@ -108,7 +109,7 @@ export default function PartnersPanel({ leads, partners, commissions = [], onOpe
           )}
         </Card>
 
-        <Card title="➕ شريك جديد">
+        <Card icon={HiOutlinePlus} title="شريك جديد">
           <form onSubmit={add} className="space-y-3">
             <Field label="الاسم *"><input className={inputClass} value={form.name} onChange={set('name')} /></Field>
             <Field label="الموبايل"><input className={inputClass} dir="ltr" value={form.phone} onChange={set('phone')} /></Field>
@@ -131,7 +132,7 @@ export default function PartnersPanel({ leads, partners, commissions = [], onOpe
 
       <CommissionsCard commissions={commissions} partners={partners} leads={leads} onOpen={onOpen} />
 
-      <Card title="🎁 ترشيحات العملاء — مين يستحق شهر ببلاش">
+      <Card icon={HiOutlineGift} title="ترشيحات العملاء — مين يستحق شهر ببلاش">
         {rewards.length === 0 ? (
           <p className="text-sm text-ink-soft leading-relaxed">
             لما عيادة يرشّحها عميل حالي (من لينك «رشّح زميل» في إعداداته) <b>تدفع اشتراك</b>، هتظهر هنا عشان تدّي اللي رشّحها الشهر المجاني من لوحة الأدمن.
@@ -191,7 +192,8 @@ function CommissionsCard({ commissions, partners, leads, onOpen }) {
 
   return (
     <Card
-      title="💰 العمولات"
+      icon={HiOutlineBanknotes}
+      title="العمولات"
       actions={
         <div className="flex gap-1">
           {[['open', 'محتاجة قرار'], ['all', 'الكل']].map(([k, label]) => (
@@ -236,7 +238,7 @@ function CommissionsCard({ commissions, partners, leads, onOpen }) {
                         <Btn tone="ghost" className="!py-1 text-xs text-red-600" onClick={() => change(c, 'rejected')}>رفض</Btn>
                       </>
                     )}
-                    {c.status === 'approved' && <Btn tone="ghost" className="!py-1 text-xs text-accent-700" onClick={() => change(c, 'paid')}>✅ دفعتله</Btn>}
+                    {c.status === 'approved' && <Btn tone="ghost" className="!py-1 text-xs text-accent-700" onClick={() => change(c, 'paid')}><HiOutlineCheck className="w-4 h-4" aria-hidden="true" /> دفعتله</Btn>}
                   </td>
                 </tr>
               ))}

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import toast from 'react-hot-toast'
-import { HiOutlineXMark, HiOutlinePhone, HiOutlineTrash, HiOutlinePencilSquare, HiOutlineArrowTopRightOnSquare, HiOutlineArrowRight } from 'react-icons/hi2'
+import { HiOutlineArrowRight, HiOutlineArrowTopRightOnSquare, HiOutlineBeaker, HiOutlineChartBar, HiOutlineChatBubbleLeftRight, HiOutlineCheckBadge, HiOutlineCheckCircle, HiOutlineClipboardDocumentCheck, HiOutlineClock, HiOutlineEnvelope, HiOutlineExclamationTriangle, HiOutlineEye, HiOutlineIdentification, HiOutlineInformationCircle, HiOutlineLightBulb, HiOutlineMagnifyingGlass, HiOutlinePencilSquare, HiOutlinePhone, HiOutlineSparkles, HiOutlineTrash, HiOutlineXMark } from 'react-icons/hi2'
 import { FaWhatsapp } from 'react-icons/fa'
 import { STAGES, OUTCOMES, ACTIVITY_KINDS, SIGNAL_LABELS, OUTCOME_BY_KEY } from '../../../lib/growth/constants'
 import { scoreLead } from '../../../lib/growth/scoring'
@@ -13,17 +13,17 @@ import { defaultPreview, PREVIEW_COLORS } from '../../../lib/growth/preview'
 import { useLeadActivities, useLogActivity, useSaveLead, useDeleteLead, useQualifyLead, useQualifyStatus } from '../../../hooks/useGrowth'
 import ConfirmDialog from '../../../components/ui/ConfirmDialog'
 import LeadForm from './LeadForm'
-import { Btn, Card, Field, QualityBadge, ScoreBadge, ScoreBar, StageBadge } from './ui'
+import { Btn, Card, Field, OutcomeIcon, QualityBadge, ScoreBadge, ScoreBar, StageBadge } from './ui'
 import { categoryLabel, copyText, formatDateTime, fromLocalInput, inputClass, sourceLabel } from './format'
 
 const PART_LABELS = { fit: 'مناسب لينا قد إيه', intent: 'نيّة الشراء', pain: 'المشكلة واضحة', activity: 'نشاط المكان', contactability: 'سهل نوصله' }
 
 const TABS = [
-  { key: 'contact', label: '💬 التواصل' },
-  { key: 'script', label: '📞 السكريبت' },
-  { key: 'info', label: '🔎 المعلومات' },
-  { key: 'demo', label: '⭐ الصفحة التجريبية' },
-  { key: 'history', label: '🕓 السجل' },
+  { key: 'contact', label: 'التواصل', icon: HiOutlineChatBubbleLeftRight },
+  { key: 'script', label: 'السكريبت', icon: HiOutlinePhone },
+  { key: 'info', label: 'المعلومات', icon: HiOutlineMagnifyingGlass },
+  { key: 'demo', label: 'الصفحة التجريبية', icon: HiOutlineSparkles },
+  { key: 'history', label: 'السجل', icon: HiOutlineClock },
 ]
 
 /**
@@ -79,7 +79,7 @@ export default function LeadPage({ lead, leads, partners, settings, onBack, tab 
               {` · جه من: ${sourceLabel(lead.source)}`}
             </p>
             {quality.level === 'suspect' && (
-              <p className="mt-2 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5 inline-block">⚠️ {quality.reasons.join(' · ')}</p>
+              <p className="mt-2 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5 inline-block"><HiOutlineExclamationTriangle className="inline-block w-4 h-4 align-[-3px] ml-1" aria-hidden="true" />{quality.reasons.join(' · ')}</p>
             )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -103,7 +103,8 @@ export default function LeadPage({ lead, leads, partners, settings, onBack, tab 
       <nav className="flex gap-1 overflow-x-auto bg-white rounded-xl border border-rule p-1">
         {TABS.map((t) => (
           <button key={t.key} type="button" onClick={() => onTab(t.key)}
-            className={`flex-1 min-w-max px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors ${current === t.key ? 'bg-ink text-white' : 'text-ink-soft hover:bg-paper'}`}>
+            className={`flex-1 min-w-max inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors ${current === t.key ? 'bg-ink text-white' : 'text-ink-soft hover:bg-paper'}`}>
+            <t.icon className="w-4 h-4" aria-hidden="true" />
             {t.label}
           </button>
         ))}
@@ -201,9 +202,9 @@ function ContactRow({ lead }) {
 }
 
 const BASIS = {
-  evidence: '📌 ليه؟ من بيانات العيادة نفسها:',
-  results: '📊 ليه؟ من نتايجك الفعلية:',
-  default: 'ℹ️',
+  evidence: { icon: HiOutlineLightBulb, text: 'ليه؟ من بيانات العيادة نفسها:' },
+  results: { icon: HiOutlineChartBar, text: 'ليه؟ من نتايجك الفعلية:' },
+  default: { icon: HiOutlineInformationCircle, text: '' },
 }
 
 function Recommendation({ recommended }) {
@@ -212,10 +213,13 @@ function Recommendation({ recommended }) {
       <p className="text-xs font-bold text-accent-700">ابدأ المكالمة بالكلام ده</p>
       <p className="mt-1 text-lg font-bold text-ink">{recommended.label}</p>
       <p className="text-[15px] text-ink mt-1.5 leading-relaxed">«{recommended.pitch}»</p>
-      <p className="text-xs text-accent-700 mt-3 leading-relaxed">
-        <b>{BASIS[recommended.basis]}</b> {recommended.because}
+      <p className="flex items-start gap-1.5 text-xs text-accent-700 mt-3 leading-relaxed">
+        {(() => { const B = BASIS[recommended.basis].icon; return <B className="w-4 h-4 flex-shrink-0" aria-hidden="true" /> })()}
+        <span><b>{BASIS[recommended.basis].text}</b> {recommended.because}</span>
       </p>
-      {recommended.track && <p className="text-xs text-accent-700 mt-1">📊 {recommended.track}</p>}
+      {recommended.track && (
+        <p className="flex items-center gap-1.5 text-xs text-accent-700 mt-1"><HiOutlineChartBar className="w-4 h-4" aria-hidden="true" /> {recommended.track}</p>
+      )}
     </section>
   )
 }
@@ -258,7 +262,7 @@ function Composer({ lead, recommended }) {
   }
 
   return (
-    <Card title="💬 رسالة واتساب" actions={
+    <Card icon={HiOutlineChatBubbleLeftRight} title="رسالة واتساب" actions={
       <div className="flex gap-1">
         {[['opener', 'أول رسالة'], ['follow1', 'متابعة 1'], ['follow2', 'متابعة أخيرة']].map(([k, label]) => (
           <button key={k} type="button" onClick={() => setVariant(k)}
@@ -282,13 +286,13 @@ function Composer({ lead, recommended }) {
             <FaWhatsapp className="w-4 h-4" /> افتح الواتساب وابعت
           </Btn>
         ) : lead.email ? (
-          <Btn tone="primary" onClick={sendEmail} disabled={log.isPending}>✉️ مفيش رقم — ابعت إيميل</Btn>
+          <Btn tone="primary" onClick={sendEmail} disabled={log.isPending}><HiOutlineEnvelope className="w-4 h-4" aria-hidden="true" /> مفيش رقم — ابعت إيميل</Btn>
         ) : null}
         <Btn onClick={() => copyText(text)}>نسخ</Btn>
       </div>
       {!lead.phone && (
         <p className="text-[12.5px] text-amber-700 mt-2">
-          مفيش رقم للعميل ده (غالباً سجّل قبل ما نبدأ نحفظ الرقم وقت التسجيل). ابعتله إيميل يطلب رقمه، ولما تعرفه ضيفه من ✏️ فوق.
+          مفيش رقم للعميل ده (غالباً سجّل قبل ما نبدأ نحفظ الرقم وقت التسجيل). ابعتله إيميل يطلب رقمه، ولما تعرفه ضيفه من «تعديل» فوق.
         </p>
       )}
       <p className="text-[12.5px] text-gray-400 mt-2">الرسالة بتتفتح في الواتساب بتاعك وإنت اللي بتضغط إرسال — النظام مش بيبعت حاجة لوحده.</p>
@@ -327,7 +331,7 @@ function OutcomeLogger({ lead, angle }) {
   }
 
   return (
-    <Card title="📝 حصل إيه؟">
+    <Card icon={HiOutlineClipboardDocumentCheck} title="حصل إيه؟">
       <div className="flex gap-1.5 mb-3">
         {['call', 'whatsapp', 'visit'].map((k) => (
           <button key={k} type="button" onClick={() => setKind(k)}
@@ -340,7 +344,7 @@ function OutcomeLogger({ lead, angle }) {
         {OUTCOMES.map((o) => (
           <button key={o.key} type="button" onClick={() => setOutcome(outcome === o.key ? null : o.key)}
             className={`text-xs px-2 py-2 rounded-lg border font-semibold transition-colors ${outcome === o.key ? 'border-accent-500 bg-accent-50 text-accent-800' : 'border-rule text-ink-soft hover:bg-paper'}`}>
-            {o.icon} {o.label}
+            <OutcomeIcon outcome={o.key} /> {o.label}
           </button>
         ))}
       </div>
@@ -366,7 +370,7 @@ function OutcomeLogger({ lead, angle }) {
 function CallScript({ lead, angle, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <Card title="📞 سكريبت المكالمة" actions={<Btn tone="ghost" onClick={() => setOpen((v) => !v)}>{open ? 'إخفاء' : 'عرض'}</Btn>}>
+    <Card icon={HiOutlinePhone} title="سكريبت المكالمة" actions={<Btn tone="ghost" onClick={() => setOpen((v) => !v)}>{open ? 'إخفاء' : 'عرض'}</Btn>}>
       {!open ? (
         <p className="text-sm text-ink-soft">{CALL_SCRIPT.opener(lead)}</p>
       ) : (
@@ -444,10 +448,10 @@ function Research({ lead }) {
   }
 
   return (
-    <Card title="🔎 اللي نعرفه عنهم">
-      <p className="text-[12.5px] font-bold text-ink-soft mb-1.5">✅ حقائق (شفناها)</p>
+    <Card icon={HiOutlineMagnifyingGlass} title="اللي نعرفه عنهم">
+      <p className="text-[12.5px] font-bold text-ink-soft mb-1.5 flex items-center gap-1"><HiOutlineCheckCircle className="w-4 h-4 text-accent-600" aria-hidden="true" /> حقائق (شفناها)</p>
       <SignalList items={facts} empty="مفيش حقائق مسجّلة لسه" onRemove={removeSignal} />
-      <p className="text-[12.5px] font-bold text-ink-soft mt-4 mb-1.5">💭 استنتاجات (ممكن تكون غلط — اتأكد في المكالمة)</p>
+      <p className="text-[12.5px] font-bold text-ink-soft mt-4 mb-1.5 flex items-center gap-1"><HiOutlineLightBulb className="w-4 h-4 text-ink-soft" aria-hidden="true" /> استنتاجات (ممكن تكون غلط — اتأكد في المكالمة)</p>
       <SignalList items={inferences} empty="مفيش استنتاجات" onRemove={removeSignal} />
       <div className="mt-4 pt-4 border-t border-rule grid sm:grid-cols-[1fr_auto] gap-2">
         <div className="grid grid-cols-2 gap-2">
@@ -476,7 +480,7 @@ function SignalList({ items, empty, onRemove }) {
             <div className="min-w-0 flex-1">
               <p className="font-semibold text-ink">{SIGNAL_LABELS[s.type] ?? s.type}</p>
               <p className="text-ink-soft text-xs mt-0.5 leading-relaxed">{s.evidence}</p>
-              {s.source_url && <a href={s.source_url} target="_blank" rel="noopener noreferrer" className="text-[12.5px] text-accent-700 hover:underline">المصدر ↗</a>}
+              {s.source_url && <a href={s.source_url} target="_blank" rel="noopener noreferrer" className="text-[12.5px] text-accent-700 hover:underline inline-flex items-center gap-0.5">المصدر <HiOutlineArrowTopRightOnSquare className="w-3 h-3" aria-hidden="true" /></a>}
             </div>
             <button type="button" onClick={() => onRemove(s.type)} className="text-gray-300 hover:text-red-500" title="شيل"><HiOutlineXMark className="w-4 h-4" /></button>
           </li>
@@ -511,7 +515,7 @@ function PreviewEditor({ lead }) {
   }
 
   return (
-    <Card title="⭐ صفحة حجز تجريبية باسمهم">
+    <Card icon={HiOutlineSparkles} title="صفحة حجز تجريبية باسمهم">
       <p className="text-xs text-ink-soft mb-3 leading-relaxed">
         صفحة توضيحية فيها اسم {lead.name} وخدماتهم، مكتوب عليها بوضوح إنها مثال. لما يدوسوا «فعّل صفحتي» بيسجّلوا ويتحسبوا عليك.
       </p>
@@ -521,7 +525,7 @@ function PreviewEditor({ lead }) {
           <span className="text-xs text-ink-soft font-mono truncate" dir="ltr">{link}</span>
           {/* Relative, so it also opens on localhost / preview builds; the
               copied link is always the real domain the clinic will get. */}
-          <a href={`/demo/${lead.ref_code}`} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-accent-700 hover:underline">👁️ افتحها</a>
+          <a href={`/demo/${lead.ref_code}`} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-accent-700 hover:underline inline-flex items-center gap-1"><HiOutlineEye className="w-4 h-4" aria-hidden="true" /> افتحها</a>
           <Btn tone="ghost" className="!py-1" onClick={() => copyText(link)}>نسخ اللينك</Btn>
         </div>
       )}
@@ -566,7 +570,7 @@ function PreviewEditor({ lead }) {
 function Timeline({ lead }) {
   const { data: activities = [], isLoading } = useLeadActivities(lead.id)
   return (
-    <Card title="🕓 سجل التواصل">
+    <Card icon={HiOutlineClock} title="سجل التواصل">
       {isLoading ? (
         <p className="text-sm text-gray-400">بيحمّل…</p>
       ) : activities.length === 0 ? (
@@ -577,7 +581,7 @@ function Timeline({ lead }) {
             <li key={a.id} className="text-sm border-r-2 border-rule pr-3">
               <div className="flex flex-wrap items-center gap-2 text-xs text-ink-soft">
                 <b className="text-ink">{ACTIVITY_KINDS[a.kind] ?? a.kind}</b>
-                {a.outcome && <span className="px-1.5 py-0.5 rounded bg-gray-100">{OUTCOME_BY_KEY[a.outcome]?.icon} {OUTCOME_BY_KEY[a.outcome]?.label}</span>}
+                {a.outcome && <span className="px-1.5 py-0.5 rounded bg-gray-100"><OutcomeIcon outcome={a.outcome} className="w-3.5 h-3.5" /> {OUTCOME_BY_KEY[a.outcome]?.label}</span>}
                 {a.sales_angle && <span className="text-accent-700">{SALES_ANGLES[a.sales_angle]?.label}</span>}
                 <span>{formatDateTime(a.created_at)}</span>
               </div>
@@ -602,7 +606,7 @@ function AccountCard({ lead }) {
   async function toggleTest() {
     try {
       await save.mutateAsync({ id: lead.id, lead: { is_test: !lead.is_test } })
-      toast.success(lead.is_test ? 'رجع عميل عادي' : 'اتعلّم حساب تجربة — اختفى من القايمة والأرقام')
+      toast.success(lead.is_test ? 'رجع عميل عادي' : 'اتعلّم حساب تيست — اختفى من القايمة والأرقام')
     } catch (e) {
       toast.error(e.message)
     }
@@ -618,17 +622,17 @@ function AccountCard({ lead }) {
   }
 
   return (
-    <Card title="🧾 الحساب">
+    <Card icon={HiOutlineIdentification} title="الحساب">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="text-sm">
           {lead.is_test ? (
-            <span className="font-bold text-ink-soft">🧪 حساب تجربة — مش بيظهر في القايمة ولا الأرقام ولا العمولات</span>
+            <span className="font-bold text-ink-soft inline-flex items-center gap-1"><HiOutlineBeaker className="w-4 h-4" aria-hidden="true" /> حساب تيست — مستخبي من القايمة والأرقام والعمولات</span>
           ) : (
             <span className="text-ink-soft">عميل حقيقي</span>
           )}
         </div>
         <Btn tone="ghost" onClick={toggleTest} disabled={save.isPending}>
-          {lead.is_test ? 'رجّعه عميل عادي' : '🧪 ده حساب تجربة'}
+          {lead.is_test ? 'رجّعه عميل عادي' : <><HiOutlineBeaker className="w-4 h-4" aria-hidden="true" /> ده حساب تيست بتاعي</>}
         </Btn>
       </div>
 
@@ -636,21 +640,21 @@ function AccountCard({ lead }) {
         <div className="mt-3 pt-3 border-t border-rule text-sm">
           {lead.qualified_at ? (
             <p className="text-accent-700 font-semibold">
-              ✅ عيادة حقيقية — {lead.qualified_by === 'admin' ? 'إنت أكّدتها' : 'عندها حجوزات من عملاء حقيقيين'} ({formatDateTime(lead.qualified_at)})
+              <HiOutlineCheckBadge className="inline-block w-4 h-4 align-[-3px] ml-1" aria-hidden="true" />عيادة حقيقية — {lead.qualified_by === 'admin' ? 'إنت أكّدتها' : 'عندها حجوزات من عملاء حقيقيين'} ({formatDateTime(lead.qualified_at)})
             </p>
           ) : (
             <>
               <p className="text-ink-soft">
-                ⏳ لسه مااتأكدناش إنها عيادة حقيقية.
+                <HiOutlineClock className="inline-block w-4 h-4 align-[-3px] ml-1" aria-hidden="true" />لسه مااتأكدناش إنها عيادة حقيقية.
                 {check && (
                   <span className="text-ink-soft">
                     {' '}حجوزات: <b>{check.appointments}/{check.need_appointments}</b> · عملاء مختلفين: <b>{check.clients}/{check.need_clients}</b>
-                    {check.shared_owner_phone && <b className="text-red-600"> · رقم صاحبها مستخدم في حساب تاني ⚠️</b>}
+                    {check.shared_owner_phone && <b className="text-red-600"> · رقم صاحبها مستخدم في حساب تاني</b>}
                   </span>
                 )}
               </p>
               <p className="text-[12.5px] text-gray-400 mt-1">بتتأكد لوحدها لما توصل للعدد ده (كل ليلة)، أو أكّدها بإيدك بعد ما تكلّمهم.</p>
-              <Btn className="mt-2" onClick={manualQualify} disabled={qualify.isPending}>✅ كلّمتهم — عيادة حقيقية</Btn>
+              <Btn className="mt-2" onClick={manualQualify} disabled={qualify.isPending}><HiOutlineCheckBadge className="w-4 h-4" aria-hidden="true" /> كلّمتهم — عيادة حقيقية</Btn>
             </>
           )}
         </div>

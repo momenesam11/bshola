@@ -7,12 +7,13 @@ import LeadForm from './LeadForm'
 import { Btn, Card, Field } from './ui'
 import { downloadCsv, inputClass } from './format'
 import { MANUAL_SOURCES, SOURCE_BY_KEY } from '../../../lib/growth/constants'
+import { HiOutlineArrowDownTray, HiOutlineArrowUpTray, HiOutlineDocumentText, HiOutlineMap, HiOutlinePlus } from 'react-icons/hi2'
 
 /** Add one lead by hand, or import a sheet. */
 export default function AddPanel({ leads, partners, onOpen }) {
   return (
     <div className="grid lg:grid-cols-2 gap-4 items-start">
-      <Card title="➕ إضافة عيادة">
+      <Card icon={HiOutlinePlus} title="إضافة عيادة">
         <LeadForm key={leads.length} leads={leads} partners={partners} onSaved={(lead) => onOpen(lead.id)} />
       </Card>
       <div className="space-y-4">
@@ -53,16 +54,16 @@ function ImportCard() {
   }
 
   return (
-    <Card title="📄 استيراد شيت (Excel / CSV)">
+    <Card icon={HiOutlineDocumentText} title="استيراد شيت (Excel / CSV)">
       <ol className="text-sm text-ink-soft list-decimal pr-5 space-y-1 mb-3">
         <li>نزّل الشيت الجاهز واملاه (أو استخدم شيت عندك فيه عمود «الاسم»).</li>
         <li>من Excel: <b>حفظ باسم ← CSV UTF-8</b>.</li>
         <li>ارفعه هنا. المتكرر (نفس الرقم أو نفس الاسم في نفس المنطقة) بيتشال لوحده.</li>
       </ol>
       <div className="flex flex-wrap gap-2 items-center">
-        <Btn onClick={() => downloadCsv('beshola-leads-template.csv', csvTemplate())}>⬇️ الشيت الجاهز</Btn>
+        <Btn onClick={() => downloadCsv('beshola-leads-template.csv', csvTemplate())}><HiOutlineArrowDownTray className="w-4 h-4" aria-hidden="true" /> الشيت الجاهز</Btn>
         <label className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold bg-ink text-white cursor-pointer hover:bg-ink-deep">
-          ⬆️ ارفع CSV
+          <HiOutlineArrowUpTray className="w-4 h-4" aria-hidden="true" /> ارفع CSV
           <input type="file" accept=".csv,text/csv" className="hidden" onChange={onFile} />
         </label>
       </div>
@@ -90,7 +91,7 @@ function ImportCard() {
 
 function HowToCard() {
   return (
-    <Card title="🗺️ إزاي تجمع عيادات من خرائط جوجل بإيدك">
+    <Card icon={HiOutlineMap} title="إزاي تجمع عيادات من خرائط جوجل بإيدك">
       <ol className="text-sm text-ink-soft list-decimal pr-5 space-y-1.5 leading-relaxed">
         <li>افتح <b>maps.google.com</b> ودوّر مثلاً: <b>«عيادة أسنان مدينة نصر»</b>.</li>
         <li>افتح كل عيادة وانسخ: الاسم، الرقم، لينك الخريطة، عدد التقييمات.</li>

@@ -17,13 +17,13 @@ import { SUPPORT_WHATSAPP } from '../../lib/support'
 const STATUS = {
   lead: { label: 'لسه ماسجّلتش', tone: 'bg-slate-100 text-slate-600' },
   registered: { label: 'سجّلت — مستنيين نتأكد إنها حقيقية', tone: 'bg-amber-50 text-amber-700' },
-  qualified: { label: 'عيادة حقيقية ✅', tone: 'bg-accent-50 text-accent-700' },
-  paid: { label: 'اشتركت 💎', tone: 'bg-accent-100 text-accent-800' },
+  qualified: { label: 'عيادة حقيقية', tone: 'bg-accent-50 text-accent-700' },
+  paid: { label: 'اشتركت', tone: 'bg-accent-100 text-accent-800' },
 }
 const MONEY_STATUS = {
   pending: 'بتتراجع',
   approved: 'متوافق عليها — هتتدفع',
-  paid: 'اتدفعت ✅',
+  paid: 'اتدفعت',
 }
 const KIND = { signup_bonus: 'مكافأة عيادة حقيقية', subscription: 'نسبة الاشتراك' }
 
@@ -79,7 +79,7 @@ export default function PartnerDashboardPage() {
       <header className="bg-ink text-white">
         <div className="max-w-3xl mx-auto px-5 py-6">
           <p className="text-white/60 text-sm">لوحة الشريك</p>
-          <h1 className="text-2xl font-extrabold mt-1">أهلاً {partner.name} 👋</h1>
+          <h1 className="text-2xl font-extrabold mt-1">أهلاً {partner.name}</h1>
           <p className="text-white/80 text-sm mt-2 leading-relaxed">
             {Number(partner.signup_bonus_egp) > 0 && <>ليك <b>{egp(partner.signup_bonus_egp)}</b> لكل عيادة حقيقية تسجّل من لينكك. </>}
             {Number(partner.commission_pct) > 0 && <>و<b>{Number(partner.commission_pct)}%</b> من أول اشتراك ليها.</>}
@@ -105,7 +105,7 @@ export default function PartnerDashboardPage() {
         </section>
 
         <section className="grid grid-cols-3 gap-3 text-center">
-          {[['سجّلوا', counts.registered], ['حقيقية ✅', counts.qualified], ['اشتركوا', counts.paid]].map(([label, n]) => (
+          {[['سجّلوا', counts.registered], ['حقيقية', counts.qualified], ['اشتركوا', counts.paid]].map(([label, n]) => (
             <div key={label} className="rounded-2xl bg-white border border-rule py-4">
               <p className="text-2xl font-extrabold tabular-nums">{n}</p>
               <p className="text-xs text-ink-soft mt-1">{label}</p>
@@ -141,7 +141,7 @@ export default function PartnerDashboardPage() {
         <section className="rounded-2xl bg-white border border-rule p-5">
           <p className="text-sm font-bold mb-3">العيادات اللي جت من لينكك</p>
           {clinics.length === 0 ? (
-            <p className="text-sm text-ink-soft">لسه مفيش — ابعت لينكك لأول دكتور 💪</p>
+            <p className="text-sm text-ink-soft">لسه مفيش — ابعت لينكك لأول دكتور.</p>
           ) : (
             <ul className="divide-y divide-slate-100">
               {clinics.map((c, i) => (

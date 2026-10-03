@@ -8,6 +8,7 @@ import { SIGNAL_LABELS } from '../../../lib/growth/constants'
 import { usePlacesSearch, useImportLeads } from '../../../hooks/useGrowth'
 import { Btn, Card, EmptyState } from './ui'
 import { inputClass } from './format'
+import { HiOutlineExclamationCircle, HiOutlineKey, HiOutlineLightBulb, HiOutlineMap } from 'react-icons/hi2'
 
 const KINDS = [
   { key: 'dental', label: 'عيادة أسنان' },
@@ -47,7 +48,7 @@ export default function PlacesPanel({ leads, configured }) {
   if (!configured) {
     return (
       <Card>
-        <EmptyState icon="🔑" title="البحث الأوتوماتيك في خرائط جوجل محتاج مفتاح Google Places">
+        <EmptyState icon={HiOutlineKey} title="البحث الأوتوماتيك في خرائط جوجل محتاج مفتاح Google Places">
           الخطوات في ملف <b>docs/growth-engine.md</b>. لحد ما تضيفه، اجمع العيادات بإيدك من تاب «إضافة» (فيه شرح).
         </EmptyState>
       </Card>
@@ -109,7 +110,7 @@ export default function PlacesPanel({ leads, configured }) {
 
   return (
     <div className="space-y-4">
-      <Card title="🗺️ دوّر في خرائط جوجل">
+      <Card icon={HiOutlineMap} title="دوّر في خرائط جوجل">
         <div className="grid sm:grid-cols-[1fr_1fr_auto] gap-2">
           <select className={inputClass} value={kind} onChange={(e) => setKind(e.target.value)} disabled={!!custom.trim()}>
             {KINDS.map((k) => <option key={k.label} value={k.label}>{k.label}</option>)}
@@ -158,7 +159,7 @@ export default function PlacesPanel({ leads, configured }) {
                     <ul className="mt-1.5 space-y-1">
                       {p.signals.map((s) => (
                         <li key={s.type} className={`text-[12.5px] leading-relaxed ${s.kind === 'fact' ? 'text-red-700' : 'text-ink-soft'}`}>
-                          {s.kind === 'fact' ? '🔴' : '💭'} <b>{SIGNAL_LABELS[s.type]}</b> — {s.evidence}
+                          {s.kind === 'fact' ? <HiOutlineExclamationCircle className="inline-block w-4 h-4 align-[-3px] ml-1" aria-hidden="true" /> : <HiOutlineLightBulb className="inline-block w-4 h-4 align-[-3px] ml-1" aria-hidden="true" />}<b>{SIGNAL_LABELS[s.type]}</b> — {s.evidence}
                         </li>
                       ))}
                     </ul>

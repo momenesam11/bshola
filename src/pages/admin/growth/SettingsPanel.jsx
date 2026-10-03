@@ -5,6 +5,7 @@ import { DISCOVERY_CATEGORIES, discoveryQueries } from '../../../lib/growth/disc
 import { useSaveSettings } from '../../../hooks/useGrowth'
 import { Btn, Card, Field } from './ui'
 import { inputClass } from './format'
+import { HiOutlineCheckBadge, HiOutlineCpuChip, HiOutlineMap, HiOutlineMapPin, HiOutlineScale } from 'react-icons/hi2'
 
 const WEIGHT_LABELS = {
   fit: ['مناسب لينا', 'نوع النشاط والمنطقة'],
@@ -51,7 +52,7 @@ export default function SettingsPanel({ settings, placesConfigured }) {
 
   return (
     <div className="grid lg:grid-cols-2 gap-4 items-start">
-      <Card title="⚖️ أوزان التقييم">
+      <Card icon={HiOutlineScale} title="أوزان التقييم">
         <p className="text-xs text-ink-soft mb-4">كل جزء بياخد درجة من 100، والوزن بيحدد أهميته في الترتيب. المجموع دلوقتي {total}.</p>
         <div className="space-y-4">
           {Object.entries(WEIGHT_LABELS).map(([key, [label, hint]]) => (
@@ -69,12 +70,12 @@ export default function SettingsPanel({ settings, placesConfigured }) {
       </Card>
 
       <div className="space-y-4">
-        <Card title="📍 المناطق المستهدفة">
+        <Card icon={HiOutlineMapPin} title="المناطق المستهدفة">
           <Field label="افصل بينهم بفاصلة" hint="العملاء برّه المناطق دي بياخدوا تقييم «مناسب لينا» أقل">
             <textarea className={`${inputClass} min-h-[70px]`} value={areas} onChange={(e) => setAreas(e.target.value)} />
           </Field>
         </Card>
-        <Card title="🤖 البحث الأوتوماتيك اليومي">
+        <Card icon={HiOutlineCpuChip} title="البحث الأوتوماتيك اليومي">
           <label className="flex items-center gap-2 text-sm font-semibold cursor-pointer">
             <input type="checkbox" checked={autoOn} onChange={(e) => setAutoOn(e.target.checked)} className="w-4 h-4 accent-accent-600" />
             كل يوم، أول ما أفتح الصفحة، دوّر لوحدك وضيف عيادات جديدة
@@ -104,15 +105,15 @@ export default function SettingsPanel({ settings, placesConfigured }) {
             {settings?.auto_discover_last_run && <p className="text-[12.5px] text-gray-400">آخر مرة اشتغل: {settings.auto_discover_last_run}</p>}
           </div>
         </Card>
-        <Card title="🗺️ خرائط جوجل">
+        <Card icon={HiOutlineMap} title="خرائط جوجل">
           <p className={`text-sm mb-3 ${placesConfigured ? 'text-accent-700' : 'text-amber-700'}`}>
-            {placesConfigured ? '✅ مفتاح Google Places متضاف' : '⚠️ مفتاح Google Places مش متضاف — الخطوات في docs/growth-engine.md'}
+            {placesConfigured ? 'مفتاح Google Places متضاف' : 'مفتاح Google Places مش متضاف — الخطوات في docs/growth-engine.md'}
           </p>
           <Field label="أقصى عدد بحث في اليوم" hint={`النهارده: ${settings?.places_calls_date ? settings.places_calls_count : 0} بحث. 0 = إيقاف البحث خالص.`}>
             <input type="number" min="0" max="5000" className={inputClass} value={cap} onChange={(e) => setCap(e.target.value)} />
           </Field>
         </Card>
-        <Card title="✅ إمتى العيادة تتحسب «حقيقية»؟">
+        <Card icon={HiOutlineCheckBadge} title="إمتى العيادة تتحسب «حقيقية»؟">
           <p className="text-xs text-ink-soft mb-3 leading-relaxed">
             عشان مكافأة الشريك ماتتصرفش على تسجيل وهمي: العيادة لازم يجيلها العدد ده من الحجوزات من عملاء مختلفين
             (مش رقم صاحبها، ورقم صاحبها مش مستخدم في حساب تاني). أو تأكّدها إنت بإيدك من صفحتها.

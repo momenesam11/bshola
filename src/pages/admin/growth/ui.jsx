@@ -1,14 +1,20 @@
 import { STAGE_BY_KEY } from '../../../lib/growth/constants'
 import { QUALITY_STYLE } from '../../../lib/growth/quality'
+import { HiOutlineArrowUturnLeft, HiOutlineBeaker, HiOutlineCalendarDays, HiOutlineChatBubbleLeft, HiOutlineCheckBadge, HiOutlineClock, HiOutlineExclamationTriangle, HiOutlineFire, HiOutlineHandThumbDown, HiOutlineInboxStack, HiOutlineNoSymbol, HiOutlinePhoneXMark, HiOutlineQuestionMarkCircle, HiOutlineXCircle } from 'react-icons/hi2'
 
 // Small building blocks shared by the growth screens.
 
-export function Card({ title, actions, children, className = '' }) {
+export function Card({ title, icon: Icon, actions, children, className = '' }) {
   return (
     <section className={`bg-white rounded-xl border border-rule shadow-sm ${className}`}>
       {(title || actions) && (
         <header className="flex items-center justify-between gap-3 px-4 pt-4">
-          {title && <h2 className="text-sm font-bold text-ink">{title}</h2>}
+          {title && (
+            <h2 className="flex items-center gap-1.5 text-sm font-bold text-ink">
+              {Icon && <Icon className="w-[18px] h-[18px] text-accent-600" aria-hidden="true" />}
+              {title}
+            </h2>
+          )}
           {actions}
         </header>
       )}
@@ -75,22 +81,49 @@ export function Field({ label, children, hint }) {
   )
 }
 
-export function EmptyState({ icon = '🗂️', title, children }) {
+export function EmptyState({ icon: Icon = HiOutlineInboxStack, title, children }) {
   return (
     <div className="text-center py-12 px-4">
-      <div className="text-3xl mb-2">{icon}</div>
+      <Icon className="w-10 h-10 mx-auto mb-2 text-accent-500" aria-hidden="true" />
       <p className="font-bold text-ink">{title}</p>
       {children && <div className="text-sm text-ink-soft mt-1.5 max-w-md mx-auto leading-relaxed">{children}</div>}
     </div>
   )
 }
 
-/** ✅ real / ⚪ unknown / ⚠️ needs review / 🧪 test — see lib/growth/quality.js */
+const QUALITY_ICON = {
+  real: HiOutlineCheckBadge,
+  unknown: HiOutlineQuestionMarkCircle,
+  suspect: HiOutlineExclamationTriangle,
+  test: HiOutlineBeaker,
+}
+
+/** Verified / not sure / looks wrong / test — see lib/growth/quality.js */
 export function QualityBadge({ quality, compact = false }) {
   const style = QUALITY_STYLE[quality.level]
+  const Icon = QUALITY_ICON[quality.level]
   return (
     <span title={quality.reasons.join(' · ')} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[12.5px] font-bold whitespace-nowrap ${style.tone}`}>
-      {style.icon}{!compact && ` ${quality.label}`}
+      <Icon className="w-3.5 h-3.5" aria-hidden="true" />{!compact && quality.label}
     </span>
   )
+}
+
+export { QUALITY_ICON }
+
+const OUTCOME_ICON = {
+  no_answer: HiOutlinePhoneXMark,
+  sent: HiOutlineChatBubbleLeft,
+  replied: HiOutlineArrowUturnLeft,
+  interested: HiOutlineFire,
+  demo_booked: HiOutlineCalendarDays,
+  call_later: HiOutlineClock,
+  not_interested: HiOutlineHandThumbDown,
+  wrong_number: HiOutlineXCircle,
+  do_not_contact: HiOutlineNoSymbol,
+}
+
+export function OutcomeIcon({ outcome, className = 'w-4 h-4' }) {
+  const Icon = OUTCOME_ICON[outcome]
+  return Icon ? <Icon className={className} aria-hidden="true" /> : null
 }
