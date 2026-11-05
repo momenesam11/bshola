@@ -92,24 +92,24 @@ function StepProgress({ step }) {
  * concrete example (the demo has to show *something*), while TrustStrip and
  * the vertical chips right below the hero make clear it isn't clinic-only.
  */
-function PhoneHeader() {
+function PhoneHeader({ name, specialty, initials, color }) {
   return (
     <div className="relative">
       <div
         className="h-14"
-        style={{ background: `linear-gradient(135deg, ${TEAL}, ${NAVY})` }}
+        style={{ background: `linear-gradient(135deg, ${color}, ${NAVY})` }}
       />
       <div className="absolute -bottom-6 inset-x-0 px-3">
         <div className="bg-white rounded-2xl shadow-md border border-slate-100 px-3 py-2.5 flex items-center gap-2.5">
           <div
             className="w-9 h-9 rounded-xl flex items-center justify-center text-white text-[12px] font-bold leading-none flex-shrink-0"
-            style={{ backgroundColor: TEAL }}
+            style={{ backgroundColor: color }}
           >
-            عأ
+            {initials}
           </div>
           <div className="min-w-0">
-            <p className="text-[12px] font-bold text-slate-900 truncate">عيادة د. أحمد</p>
-            <p className="text-[10px] text-slate-400 truncate">أسنان وتقويم</p>
+            <p className="text-[12px] font-bold text-slate-900 truncate">{name}</p>
+            <p className="text-[10px] text-slate-400 truncate">{specialty}</p>
           </div>
         </div>
       </div>
@@ -117,7 +117,18 @@ function PhoneHeader() {
   )
 }
 
-export default function BookingPhoneDemo() {
+/**
+ * Props let the same phone show a specific clinic — used by the personalised
+ * demo page (/demo/:code, DemoPage.jsx). Defaults are the landing page's
+ * generic example.
+ */
+export default function BookingPhoneDemo({
+  name = 'عيادة د. أحمد',
+  specialty = 'أسنان وتقويم',
+  initials = 'عأ',
+  services = SERVICES,
+  color = TEAL,
+} = {}) {
   // Computed once at mount via a lazy initializer rather than set inside an
   // effect — an effect that calls setState unconditionally on every mount
   // triggers an avoidable extra render.
@@ -180,7 +191,7 @@ export default function BookingPhoneDemo() {
           </div>
 
           <div className="pt-5">
-            <PhoneHeader />
+            <PhoneHeader name={name} specialty={specialty} initials={initials} color={color} />
 
             <div className="pt-8">
               <StepProgress step={step} />
@@ -189,7 +200,7 @@ export default function BookingPhoneDemo() {
               <div className="px-4 pb-4 h-[260px]">
                 {step === 0 && (
                   <ul className="space-y-2">
-                    {SERVICES.map((svc, i) => (
+                    {services.slice(0, 3).map((svc, i) => (
                       <li
                         key={svc.name}
                         className="relative flex items-center justify-between gap-2 rounded-xl border border-slate-100 px-3 py-2.5"
@@ -200,9 +211,11 @@ export default function BookingPhoneDemo() {
                           <p className="text-[10px] text-slate-400 tabular-nums">{svc.duration}</p>
                         </div>
                         <div className="flex items-center gap-1.5">
-                          <span className="text-[11px] font-bold tabular-nums" style={{ color: TEAL }}>
-                            {svc.price} ج
-                          </span>
+                          {svc.price != null && svc.price !== '' && (
+                            <span className="text-[11px] font-bold tabular-nums" style={{ color }}>
+                              {svc.price} ج
+                            </span>
+                          )}
                           <HiOutlineChevronLeft className="w-3.5 h-3.5 text-slate-300" />
                         </div>
                       </li>
@@ -245,7 +258,7 @@ export default function BookingPhoneDemo() {
                     </p>
                     <dl className="mt-3 w-full rounded-xl bg-slate-50 border border-slate-100 p-2.5 space-y-1.5 text-right">
                       {[
-                        ['الخدمة', 'كشف'],
+                        ['الخدمة', services[0]?.name ?? 'كشف'],
                         ['التاريخ', 'الخميس 18 سبتمبر'],
                         ['الوقت', '11:00 ص'],
                       ].map(([k, v]) => (

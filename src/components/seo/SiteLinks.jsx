@@ -77,6 +77,11 @@ export default function SiteLinks({ className = '' }) {
             </Link>
           </li>
           <li>
+            <Link to="/tools/no-show-calculator" className="text-xs text-slate-300 hover:text-accent transition-colors">
+              حاسبة خسارة الغياب في العيادة
+            </Link>
+          </li>
+          <li>
             <Link to="/register" className="text-xs text-slate-300 hover:text-accent transition-colors">
               ابدأ تجربة 14 يوم مجاناً
             </Link>

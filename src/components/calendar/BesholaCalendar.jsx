@@ -183,7 +183,7 @@ function DateStrip({ date, onSelect }) {
                   : 'bg-white border border-slate-100 text-slate-600'
             }`}
           >
-            <span className="text-[11px] font-medium opacity-80 leading-none">{AR_DAYS_SHORT[day.getDay()]}</span>
+            <span className="text-[12.5px] font-medium opacity-80 leading-none">{AR_DAYS_SHORT[day.getDay()]}</span>
             <span className="text-base font-bold leading-none">{format(day, 'd')}</span>
           </button>
         )
@@ -413,7 +413,7 @@ function WeekView({ businessId, branchId, date, onApptClick, onSlotClick, onDayC
                         className={`px-2 py-1 rounded-lg text-xs cursor-pointer hover:opacity-80 transition-opacity border truncate ${STATUS_LIGHT[appt.status]} ${branchColor ? `border-r-4 ${branchColor.border}` : ''}`}
                       >
                         <span className="font-medium">{appt.client_name}</span>
-                        <span className="text-[10px] block opacity-70">
+                        <span className="text-[11.5px] block opacity-70">
                           {appt.appointment_time?.slice(0, 5)}
                           {showBranch && appt.branches?.name && ` · ${appt.branches.name}`}
                         </span>
@@ -494,7 +494,7 @@ function MonthView({ businessId, branchId, date, onApptClick, onDayClick, showBr
                     <div
                       key={appt.id}
                       onClick={e => { e.stopPropagation(); onApptClick(appt) }}
-                      className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] truncate cursor-pointer hover:opacity-80 ${STATUS_LIGHT[appt.status]} ${branchColor ? `border-r-2 ${branchColor.border}` : ''}`}
+                      className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[11.5px] truncate cursor-pointer hover:opacity-80 ${STATUS_LIGHT[appt.status]} ${branchColor ? `border-r-2 ${branchColor.border}` : ''}`}
                     >
                       <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${STATUS_BG[appt.status]}`} />
                       <span className="truncate">{appt.client_name}</span>
@@ -504,7 +504,7 @@ function MonthView({ businessId, branchId, date, onApptClick, onDayClick, showBr
                 {overflow > 0 && (
                   <button
                     onClick={e => { e.stopPropagation(); setPopoverDay(day) }}
-                    className="text-[10px] text-primary-600 font-medium px-1"
+                    className="text-[11.5px] text-primary-600 font-medium px-1"
                   >
                     +{overflow} أخرى
                   </button>

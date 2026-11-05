@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { FaWhatsapp } from 'react-icons/fa'
 import Reveal from './Reveal'
+import LeadCaptureForm from './LeadCaptureForm'
 import { SUPPORT_WHATSAPP } from '../../lib/support'
 
 /** Closing call-to-action, shared by the homepage and every standalone marketing page. */
@@ -31,6 +32,13 @@ export default function FinalCta({
             <FaWhatsapp className="w-5 h-5 text-accent-400" aria-hidden="true" />
             اسألنا على واتساب
           </a>
+        </div>
+
+        {/* For the visitor who won't sign up alone but will take a call —
+            lands at the top of the admin's call list (/admin/growth). */}
+        <div className="mt-10 max-w-xl mx-auto">
+          <p className="text-[14px] text-white/80 mb-3">أو سيب رقمك ونكلّمك نجهّزلك الصفحة بنفسنا:</p>
+          <LeadCaptureForm />
         </div>
       </Reveal>
     </section>

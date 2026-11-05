@@ -131,7 +131,7 @@ export default function AppointmentList() {
             <HiOutlineAdjustmentsHorizontal className="w-4 h-4" />
             <span className="hidden sm:block">فلاتر أكتر</span>
             {extraFilterCount > 0 && (
-              <span className="w-5 h-5 flex items-center justify-center rounded-full bg-accent-500 text-white text-[11px] font-bold">
+              <span className="w-5 h-5 flex items-center justify-center rounded-full bg-accent-500 text-white text-[12.5px] font-bold">
                 {extraFilterCount}
               </span>
             )}

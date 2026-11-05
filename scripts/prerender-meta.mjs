@@ -18,7 +18,7 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { ALL_MARKETING_PAGES } from '../src/content/marketingPages.js'
 import { LEGAL_PAGES } from '../src/content/legalPages.js'
-import { HOME_META, PRODUCT_META, FAQ_META } from '../src/content/pageMeta.js'
+import { HOME_META, PRODUCT_META, FAQ_META, CALCULATOR_META } from '../src/content/pageMeta.js'
 import { SITE_NAME, absoluteUrl } from '../src/lib/seo.js'
 
 const distDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'dist')
@@ -28,6 +28,7 @@ const routes = [
   { ...HOME_META, ogType: 'website' },
   { ...PRODUCT_META, ogType: 'website' },
   { ...FAQ_META, ogType: 'website' },
+  { ...CALCULATOR_META, ogType: 'website' },
   ...ALL_MARKETING_PAGES.map((p) => ({
     path: `/${p.slug}`,
     title: p.title,

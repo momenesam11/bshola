@@ -30,6 +30,7 @@ const UNTRACKED_PREFIXES = [
   '/reports',
   '/settings',
   '/admin',
+  '/partner',
 ]
 
 const enabled = import.meta.env.PROD && typeof window !== 'undefined'

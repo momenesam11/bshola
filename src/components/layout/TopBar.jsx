@@ -59,7 +59,7 @@ function NotificationBell({ business }) {
       >
         <HiOutlineBell className="w-[18px] h-[18px]" />
         {unreadCount > 0 && (
-          <span className="absolute top-1 left-1 min-w-[16px] h-4 px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
+          <span className="absolute top-1 left-1 min-w-[16px] h-4 px-1 bg-red-500 text-white text-[11.5px] font-bold rounded-full flex items-center justify-center leading-none">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
@@ -96,7 +96,7 @@ function NotificationBell({ business }) {
                     <span className="flex-1 min-w-0">
                       <span className={`block text-sm truncate ${!n.is_read ? 'font-bold text-slate-900' : 'font-medium text-slate-700'}`}>{n.title}</span>
                       {n.body && <span className="block text-xs text-slate-500 truncate mt-0.5">{n.body}</span>}
-                      <span className="block text-[11px] text-slate-400 mt-1">
+                      <span className="block text-[12.5px] text-slate-400 mt-1">
                         {formatDistanceToNow(new Date(n.created_at), { addSuffix: true, locale: ar })}
                       </span>
                     </span>

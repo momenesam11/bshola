@@ -27,6 +27,7 @@ import confetti from 'canvas-confetti'
 import toast from 'react-hot-toast'
 import { supabase } from '../../lib/supabase'
 import { trackEvent } from '../../lib/tracking'
+import { attributeSignup } from '../../hooks/useGrowth'
 import { phoneSchema } from '../../lib/validators'
 import { DEFAULT_REMINDER_TEMPLATE, MEDICAL_TYPES } from '../../utils/constants'
 import { useCreateBusiness, useUpsertService, uploadBusinessAsset } from '../../hooks/useBusiness'
@@ -477,15 +478,15 @@ function MiniBookingPreview({ name, brandColor, logoPreview, coverPreview, bio, 
       </div>
       <div className="px-3 pt-6 pb-3 space-y-1">
         <p className="font-bold text-slate-900 text-xs truncate">{name || 'اسم البيزنس'}</p>
-        {specialty && <p className="text-[10px] text-slate-500 truncate">{specialty}</p>}
+        {specialty && <p className="text-[11.5px] text-slate-500 truncate">{specialty}</p>}
         {yearsExperience > 0 && (
-          <span className="inline-block text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ background: `${brandColor}22`, color: brandColor }}>
+          <span className="inline-block text-[11.5px] px-1.5 py-0.5 rounded-full font-medium" style={{ background: `${brandColor}22`, color: brandColor }}>
             {yearsExperience} سنة خبرة
           </span>
         )}
-        {bio && <p className="text-[10px] text-slate-400 line-clamp-2 mt-1">{bio}</p>}
-        {welcomeMessage && <p className="text-[10px] italic text-slate-400 border-r-2 pr-1 mt-1" style={{ borderColor: brandColor }}>{welcomeMessage}</p>}
-        <button className="w-full mt-2 py-1.5 rounded-lg text-white text-[10px] font-bold" style={{ background: brandColor }}>احجز الآن</button>
+        {bio && <p className="text-[11.5px] text-slate-400 line-clamp-2 mt-1">{bio}</p>}
+        {welcomeMessage && <p className="text-[11.5px] italic text-slate-400 border-r-2 pr-1 mt-1" style={{ borderColor: brandColor }}>{welcomeMessage}</p>}
+        <button className="w-full mt-2 py-1.5 rounded-lg text-white text-[11.5px] font-bold" style={{ background: brandColor }}>احجز الآن</button>
         {cancellationPolicy && <p className="text-[9px] text-slate-300 text-center">{cancellationPolicy}</p>}
       </div>
     </div>
@@ -732,6 +733,8 @@ function ShareKitScreen({ businessName, slug }) {
     confetti({ particleCount: 120, spread: 80, origin: { y: 0.4 }, colors: ['#10B981', '#6366F1', '#F59E0B', '#EF4444'] })
     // The real conversion: a business with a working booking link.
     trackEvent('start_trial')
+    // Credit whichever lead/partner/referral link brought them (migration 032).
+    attributeSignup()
   }, [])
 
   return (
