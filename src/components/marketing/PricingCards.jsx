@@ -17,9 +17,9 @@ import { SUPPORT_WHATSAPP } from '../../lib/support'
  * and are presented as one feature list plus three terms, not as three tiers
  * with tick-marks withheld.
  *
- * "بدلاً من" here is always the monthly plan times the term: a price we really
- * charge, never an invented one. The price lock is a promise in the terms too
- * (legalPages.js, MARKETING_CLAIMS.md §7).
+ * "بدلاً من" is the price new subscribers will pay after the launch (PLANS in
+ * lib/seo.js), never an invented one. The price lock is a promise in the terms
+ * too (legalPages.js, MARKETING_CLAIMS.md §7).
  */
 
 const INCLUDED = [
@@ -37,20 +37,17 @@ const INCLUDED = [
 ]
 
 export default function PricingCards({ id }) {
-  const monthly = PLANS.find((p) => p.months === 1)
-
   return (
     <Section id={id} tone="paper">
       <SectionHead
         title="أسعار الإطلاق: اللي يشترك دلوقتي سعره يفضل ثابت"
-        lead="الأسعار دي قليلة عشان عايزين عيادات كتير تجرّب معانا. ممكن تزيد قدام للمشتركين الجداد، بس اللي مشترك يفضل بسعره طول ما بيجدد. كل الباقات بتفتح النظام بالكامل، ومفيش عمولة على أي حجز."
+        lead="الأسعار دي أقل عشان عايزين عيادات كتير تبدأ معانا. بعد فترة الإطلاق هتبقى الأسعار المتشطّبة للجداد، بس اللي مشترك يفضل بسعره طول ما بيجدد. كل الباقات بتفتح النظام بالكامل، ومفيش عمولة على أي حجز."
       />
 
       <div className="mt-9 grid sm:grid-cols-3 gap-4">
         {PLANS.map((plan, i) => {
           const perMonth = Math.round(plan.price / plan.months)
           const isBest = plan.months === 6
-          const fullPrice = monthly ? monthly.price * plan.months : plan.price
 
           return (
             <Reveal
@@ -75,11 +72,9 @@ export default function PricingCards({ id }) {
                 <span className="text-[14px] font-semibold text-ink-soft"> جنيه</span>
               </p>
 
-              {fullPrice > plan.price && (
-                <p className="mt-2 text-[13px] font-semibold text-accent-700 tabular-nums">
-                  بدلاً من <s>{fullPrice.toLocaleString('en-EG')}</s> جنيه · توفّر {(fullPrice - plan.price).toLocaleString('en-EG')} جنيه
-                </p>
-              )}
+              <p className="mt-2 text-[13px] font-semibold text-accent-700 tabular-nums">
+                بدلاً من <s>{plan.regularPrice.toLocaleString('en-EG')}</s> جنيه بعد الإطلاق · وفّر 25%
+              </p>
 
               <p className="mt-2 text-[13px] text-ink-soft tabular-nums">
                 {plan.months === 1
@@ -139,6 +134,17 @@ export default function PricingCards({ id }) {
         </p>
         {/* Pricing is where hesitation peaks — "which term fits my business"
             is exactly the question worth a real answer instead of a guess. */}
+        <p className="mt-4 text-[13.5px] leading-[1.8] text-ink">
+          <b>تفضّل تدفع مرة واحدة؟</b> فيه اشتراك مدى الحياة لأول 20 عيادة بس.{' '}
+          <a
+            href={`https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent('مرحباً، عايز أعرف تفاصيل الاشتراك مدى الحياة')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-bold text-accent-700 hover:text-accent-800 underline"
+          >
+            اسأل عليه على واتساب
+          </a>
+        </p>
         <a
           href={`https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent('مرحباً، عايز أساعد أختار الباقة المناسبة لبيزنسي')}`}
           target="_blank"

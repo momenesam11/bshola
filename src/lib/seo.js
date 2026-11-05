@@ -21,9 +21,11 @@ export const absoluteUrl = (path = '/') =>
 // Plans mirrored from the pricing section of the landing page. Kept here so
 // the Offer schema Google reads and the prices users see share one source.
 export const PLANS = [
-  { name: 'باقة الشهر الواحد', price: 299, months: 1 },
-  { name: 'باقة الـ 3 شهور', price: 749, months: 3 },
-  { name: 'باقة الـ 6 شهور', price: 1200, months: 6 },
+  // price: today's launch price. regularPrice: what new subscribers will pay once
+  // the launch ends. It's a real plan, so raise to these when it does.
+  { name: 'باقة الشهر الواحد', price: 299, regularPrice: 399, months: 1 },
+  { name: 'باقة الـ 3 شهور', price: 749, regularPrice: 999, months: 3 },
+  { name: 'باقة الـ 6 شهور', price: 1200, regularPrice: 1599, months: 6 },
 ]
 
 export function organizationSchema() {
