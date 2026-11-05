@@ -29,7 +29,7 @@ function OvertureCard({ pool, settings, runs }) {
   const last = runs.find((r) => r.finished_at && r.summary?.overture)?.summary?.overture
   const working = health.state === 'ok'
   return (
-    <Card icon={HiOutlineCpuChip} title="المخزن بيتملى لوحده: Overture Maps (مجاني)">
+    <Card icon={HiOutlineCpuChip} title="Overture Maps: عيادات حقيقية ببلاش">
       <p className="text-sm text-ink-soft leading-relaxed">
         خريطة مفتوحة فيها عيادات حقيقية برقم وصفحة فيسبوك، مسموح تخزينها، ومن غير مفتاح ولا كارت. في القاهرة والجيزة فيها حوالي <b className="text-ink">4,900 عيادة</b> بعد الفلترة
         (أسنان 2,500 · جلدية 340 · تخصصات تانية 2,000)، و94% منهم موبايل عليه واتساب غالباً.
@@ -37,19 +37,22 @@ function OvertureCard({ pool, settings, runs }) {
       <div className="grid grid-cols-3 gap-2 mt-3 text-center">
         <Mini value={pool.ready.toLocaleString('en-EG')} label="جاهزين في المخزن" />
         <Mini value={pool.resting.toLocaleString('en-EG')} label="راحة لسه اتعرضوا" />
-        <Mini value={settings?.pool_target ?? 300} label="بيتملى لما يقل عن" />
+        <Mini value={settings?.pool_target ?? 300} label="الحجم المستهدف" />
       </div>
-      <p className={`text-sm mt-3 flex items-start gap-1.5 ${working ? 'text-accent-700' : 'text-amber-800'}`}>
-        {working
-          ? <HiOutlineCheckCircle className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
-          : <HiOutlineExclamationTriangle className="w-5 h-5 flex-shrink-0" aria-hidden="true" />}
-        <span>
-          {working
-            ? `آخر تشغيل ${formatDateTime(health.last.finished_at)}${last?.inserted ? `: ضاف ${last.inserted} عيادة` : ''}.`
-            : 'التشغيل الأوتوماتيك مش شغال لسه، فالمخزن مش هيتملى لوحده.'}{' '}
-          <a href={REPO_ACTIONS} target="_blank" rel="noopener noreferrer" className="font-semibold underline">شغّله أو شوف السجل على GitHub</a>
-        </span>
-      </p>
+      {working ? (
+        <p className="text-sm mt-3 flex items-start gap-1.5 text-accent-700">
+          <HiOutlineCheckCircle className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+          <span>
+            آخر تشغيل {formatDateTime(health.last.finished_at)}{last?.inserted ? `: ضاف ${last.inserted} عيادة` : ''}.{' '}
+            <a href={REPO_ACTIONS} target="_blank" rel="noopener noreferrer" className="font-semibold underline">السجل على GitHub</a>
+          </span>
+        </p>
+      ) : (
+        <p className="text-sm mt-3 flex items-start gap-1.5 text-ink-soft">
+          <HiOutlineExclamationTriangle className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+          <span>المخزن مش بيتملى لوحده: لما يقل، زوّد دفعة من ملفات العيادات.</span>
+        </p>
+      )}
       <p className="text-[12.5px] text-ink-soft mt-2">البيانات: {OVERTURE_ATTRIBUTION}. الرقم من صفحة العيادة العامة، ومش متأكدين منه غير لما تكلّمهم، فـ«رقم غلط» بيقفلها.</p>
     </Card>
   )

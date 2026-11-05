@@ -127,7 +127,10 @@ function AutomationStrip({ runs, pool, settings, onTab }) {
   const health = useMemo(() => automationHealth(runs), [runs])
   const added = health.last ? Object.values(health.last.summary ?? {}).reduce((n, s) => n + (Number(s?.inserted) || 0), 0) : 0
   const status = {
-    never: { tone: 'border-amber-200 bg-amber-50', icon: HiOutlineExclamationTriangle, iconTone: 'text-amber-600', title: 'التجديد الأوتوماتيك لسه ماشتغلش', body: 'القايمة بتتعمل دلوقتي لما تفتح الصفحة بس، والمخزن مش بيتملى لوحده. الخطوات في docs/growth-engine.md.' },
+    // No morning job is a normal way to run this: the list is made on first open.
+    never: pool.ready > 0
+      ? { tone: 'border-rule bg-white', icon: HiOutlineCpuChip, iconTone: 'text-accent-600', title: 'القايمة بتتجدد كل يوم أول ما تفتح الصفحة', body: 'العيادات الجديدة بتيجي من المخزن، ولما يقل زوّد دفعة من ملفات العيادات.' }
+      : { tone: 'border-amber-200 bg-amber-50', icon: HiOutlineExclamationTriangle, iconTone: 'text-amber-600', title: 'المخزن فاضي', body: 'زوّد دفعة من ملفات العيادات، أو ضيف عيادات من «إضافة».' },
     stale: { tone: 'border-amber-200 bg-amber-50', icon: HiOutlineExclamationTriangle, iconTone: 'text-amber-600', title: `التجديد الأوتوماتيك واقف من ${health.hours} ساعة`, body: 'افتح GitHub ← Actions ← Growth — daily leads وشوف السبب، أو دوس Run workflow.' },
     failed: { tone: 'border-red-200 bg-red-50', icon: HiOutlineExclamationTriangle, iconTone: 'text-red-600', title: 'آخر تجديد أوتوماتيك فيه خطوة فشلت', body: Object.entries(health.last?.summary ?? {}).filter(([, s]) => s?.error).map(([k, s]) => `${k}: ${s.error}`).join(' · ') },
     ok: { tone: 'border-rule bg-white', icon: HiOutlineCpuChip, iconTone: 'text-accent-600', title: `القايمة اتجددت لوحدها ${health.last ? formatDateTime(health.last.finished_at) : ''}`, body: added ? `ضاف ${added} عيادة جديدة للمخزن.` : 'مكانش محتاج يضيف عيادات جديدة.' },
