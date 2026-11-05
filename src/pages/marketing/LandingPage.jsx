@@ -14,6 +14,7 @@ import FeatureTeaser from '../../components/marketing/FeatureTeaser'
 import PricingCards from '../../components/marketing/PricingCards'
 import FAQ from '../../components/marketing/FAQ'
 import { FAQS } from '../../content/faqs'
+import { GUIDES } from '../../content/guides'
 import { VERTICALS } from '../../content/verticals'
 import { LANDING_VIDEOS } from '../../content/landingVideos'
 import {
@@ -86,13 +87,13 @@ function Hero() {
               instant render. */}
           <div className="lg:col-span-7">
             <h1 className="animate-fadeIn motion-reduce:animate-none text-[28px] sm:text-[38px] lg:text-[44px] font-extrabold leading-[1.18] tracking-[-0.01em] text-balance">
-              نظام حجز مواعيد عربي، وعملاؤك يحجزوا بنفسهم من لينك واحد
+              برنامج حجز مواعيد وإدارة عيادات، ومرضاك يحجزوا بنفسهم من لينك واحد
             </h1>
 
             <p className="animate-fadeIn motion-reduce:animate-none [animation-delay:90ms] [animation-fill-mode:backwards] mt-5 text-[15.5px] sm:text-[17px] leading-[1.85] text-white/90 max-w-[58ch]">
-              وقت الريسبشن كله بيضيع في تأكيد مواعيد على التليفون والواتساب — سواء عيادة أو
-              صالون أو جيم أو أي بيزنس شغال بمواعيد. بسهولة ينقل ده لصفحة حجز شغالة 24 ساعة،
-              ويجهّزلك تذكير كل مواعيد بكرا تبعته بضغطة زر.
+              وقت الريسبشن كله بيضيع في تأكيد مواعيد على التليفون والواتساب. بسهولة ينقل ده لصفحة
+              حجز باسم عيادتك شغالة 24 ساعة، ويجهّزلك تذكير كل مواعيد بكرا تبعته بضغطة زر من رقمك،
+              ومعاه ملف لكل مريض. وبيشتغل كمان للصالونات والجيم وأي نشاط بمواعيد.
             </p>
 
             <div className="animate-fadeIn motion-reduce:animate-none [animation-delay:170ms] [animation-fill-mode:backwards] mt-8 flex flex-col sm:flex-row gap-3">
@@ -240,6 +241,36 @@ function Problem() {
   )
 }
 
+const FEATURED_GUIDES = [
+  'guides/choose-clinic-management-software-egypt',
+  'guides/reduce-patient-no-shows',
+  'guides/whatsapp-appointment-reminder-templates',
+]
+
+/** The home page has the most authority on the site; this passes it to the guides. */
+function GuidesTeaser() {
+  return (
+    <Section id="guides" tone="paper">
+      <SectionHead title="لسه بتقارن؟ ابدأ من هنا" />
+      <ul className="mt-8 border-t border-rule">
+        {FEATURED_GUIDES.map((slug) => {
+          const guide = GUIDES.find((g) => g.slug === slug)
+          return (
+            <li key={slug} className="border-b border-rule">
+              <Link to={`/${slug}`} className="block py-4 text-[15.5px] font-bold text-ink hover:underline">
+                {guide.h1}
+              </Link>
+            </li>
+          )
+        })}
+      </ul>
+      <Link to="/guides" className="inline-block mt-5 text-[14px] font-bold text-accent-700 hover:underline">
+        كل الأدلة
+      </Link>
+    </Section>
+  )
+}
+
 export default function LandingPage() {
   // Structured data matches exactly what's rendered: only the booking video
   // is on this page (the other two live on /product), and only the first
@@ -294,6 +325,7 @@ export default function LandingPage() {
         <FeatureTeaser id="features" />
         <PricingCards id="pricing" />
         <FAQ id="faq" limit={HOME_FAQ_COUNT} />
+        <GuidesTeaser />
         <FinalCta />
       </main>
 

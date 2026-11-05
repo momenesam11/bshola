@@ -1,5 +1,5 @@
 import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
+import { createRoot, hydrateRoot } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import './index.css'
 import App from './App.jsx'
@@ -26,10 +26,16 @@ supabase.auth.onAuthStateChange((_event, session) => {
   }
 })
 
-createRoot(document.getElementById('root')).render(
+const app = (
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <App />
     </QueryClientProvider>
-  </StrictMode>,
+  </StrictMode>
 )
+
+// Public pages arrive already rendered (scripts/prerender.mjs), so React takes
+// over the existing HTML instead of repainting it. App pages arrive empty.
+const root = document.getElementById('root')
+if (root.hasChildNodes()) hydrateRoot(root, app)
+else createRoot(root).render(app)

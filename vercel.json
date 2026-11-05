@@ -1,12 +1,35 @@
 {
   "cleanUrls": true,
-  "rewrites": [{ "source": "/(.*)", "destination": "/" }],
+  "rewrites": [
+    { "source": "/login", "destination": "/app" },
+    { "source": "/register", "destination": "/app" },
+    { "source": "/forgot-password", "destination": "/app" },
+    { "source": "/reset-password", "destination": "/app" },
+    { "source": "/auth/:path*", "destination": "/app" },
+    { "source": "/book/:path*", "destination": "/app" },
+    { "source": "/admin/:path*", "destination": "/app" },
+    { "source": "/demo/:path*", "destination": "/app" },
+    { "source": "/partner/:path*", "destination": "/app" },
+    { "source": "/onboarding", "destination": "/app" },
+    { "source": "/dashboard", "destination": "/app" },
+    { "source": "/appointments", "destination": "/app" },
+    { "source": "/reports", "destination": "/app" },
+    { "source": "/settings/:path*", "destination": "/app" },
+    { "source": "/crm", "destination": "/app" },
+    { "source": "/patients/:path*", "destination": "/app" }
+  ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "X-Frame-Options", "value": "DENY" }
+      ]
+    },
+    {
+      "source": "/app",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex" }
       ]
     },
     {

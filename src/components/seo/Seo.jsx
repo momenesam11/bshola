@@ -10,6 +10,10 @@ import { DEFAULT_OG_IMAGE, SITE_LOCALE, SITE_NAME, absoluteUrl } from '../../lib
 //
 // The static tags stay in index.html on purpose: scrapers that don't run JS
 // (WhatsApp, Facebook link previews) read only the raw HTML.
+//
+// Prerendered pages (scripts/prerender.mjs) carry React's own tags instead, and
+// have none of these: the data-static-head attribute keeps them from being
+// mistaken for leftovers and deleted.
 const DUPLICATED_STATIC_TAGS = [
   'link[rel="canonical"]',
   'meta[name="description"]',
@@ -33,7 +37,7 @@ const DUPLICATED_STATIC_TAGS = [
 const staticHeadTags =
   typeof document === 'undefined'
     ? []
-    : DUPLICATED_STATIC_TAGS.flatMap((selector) => [...document.head.querySelectorAll(selector)])
+    : DUPLICATED_STATIC_TAGS.flatMap((selector) => [...document.head.querySelectorAll(`${selector}[data-static-head]`)])
 
 /** Drops the index.html copies once a route has rendered its own head tags. */
 function useStaticHeadTagCleanup() {

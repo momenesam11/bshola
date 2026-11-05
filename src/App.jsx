@@ -39,6 +39,7 @@ import LandingPage from './pages/marketing/LandingPage'
 import ProductPage from './pages/marketing/ProductPage'
 import FaqPage from './pages/marketing/FaqPage'
 import LossCalculatorPage from './pages/marketing/LossCalculatorPage'
+import GuidesPage from './pages/marketing/GuidesPage'
 import SolutionPage from './pages/marketing/SolutionPage'
 import NotFound from './pages/marketing/NotFound'
 import LegalPage from './pages/marketing/LegalPage'
@@ -140,10 +141,10 @@ function PublicRoute({ children }) {
   return children
 }
 
-export default function App() {
+/** Everything inside the router. The build renders this too (entry-server.jsx). */
+export function AppRoutes() {
   return (
-    <HelmetProvider>
-    <BrowserRouter>
+    <>
         <ScrollToTop />
         <RouteTracker />
         <Toaster
@@ -215,6 +216,7 @@ export default function App() {
               homepage itself short — see LandingPage.jsx's file comment. */}
           <Route path="/product" element={<ProductPage />} />
           <Route path="/faq" element={<FaqPage />} />
+          <Route path="/guides" element={<GuidesPage />} />
           <Route path="/tools/no-show-calculator" element={<LossCalculatorPage />} />
 
           {/* Default */}
@@ -225,6 +227,15 @@ export default function App() {
         </Routes>
         </Suspense>
         <Analytics />
+    </>
+  )
+}
+
+export default function App() {
+  return (
+    <HelmetProvider>
+      <BrowserRouter>
+        <AppRoutes />
       </BrowserRouter>
     </HelmetProvider>
   )
