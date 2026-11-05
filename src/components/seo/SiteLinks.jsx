@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { MARKETING_PAGES } from '../../content/marketingPages'
+import { GUIDES } from '../../content/guides'
 
 /**
  * The site's internal link hub, rendered in the footer of every public page.
@@ -14,7 +15,7 @@ export default function SiteLinks({ className = '' }) {
   const features = MARKETING_PAGES.filter((p) => p.group === 'features')
 
   return (
-    <div className={`grid grid-cols-2 md:grid-cols-3 gap-8 text-right ${className}`}>
+    <div className={`grid grid-cols-2 md:grid-cols-4 gap-8 text-right ${className}`}>
       <nav aria-labelledby="footer-solutions">
         <h3 id="footer-solutions" className="text-sm font-bold mb-4 text-white">
           حلول حسب نوع النشاط
@@ -48,6 +49,26 @@ export default function SiteLinks({ className = '' }) {
               </Link>
             </li>
           ))}
+        </ul>
+      </nav>
+
+      <nav aria-labelledby="footer-guides">
+        <h3 id="footer-guides" className="text-sm font-bold mb-4 text-white">
+          أدلة لأصحاب العيادات
+        </h3>
+        <ul className="space-y-2.5">
+          {GUIDES.map((g) => (
+            <li key={g.slug}>
+              <Link to={`/${g.slug}`} className="text-xs text-slate-300 hover:text-accent transition-colors leading-relaxed">
+                {g.keyword}
+              </Link>
+            </li>
+          ))}
+          <li>
+            <Link to="/guides" className="text-xs font-bold text-white hover:text-accent transition-colors">
+              كل الأدلة
+            </Link>
+          </li>
         </ul>
       </nav>
 

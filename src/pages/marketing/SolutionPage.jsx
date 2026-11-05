@@ -7,6 +7,7 @@ import Nav from '../../components/marketing/Nav'
 import Footer from '../../components/marketing/Footer'
 import { pageBySlug } from '../../content/marketingPages'
 import {
+  articleSchema,
   breadcrumbSchema,
   faqSchema,
   organizationSchema,
@@ -35,7 +36,7 @@ export default function SolutionPage({ slug }) {
 
   const path = `/${page.slug}`
   const crumbs = [{ name: 'الرئيسية', path: '/' }]
-  if (page.group !== 'pricing') crumbs.push({ name: page.groupLabel, path: '/' })
+  if (page.group !== 'pricing') crumbs.push({ name: page.groupLabel, path: page.isGuide ? '/guides' : '/' })
   crumbs.push({ name: page.h1 })
 
   return (
@@ -47,7 +48,9 @@ export default function SolutionPage({ slug }) {
         ogType="article"
         schemas={[
           organizationSchema(),
-          softwareApplicationSchema(),
+          page.isGuide
+            ? articleSchema({ title: page.title, description: page.description, path, published: page.published, updated: page.updated })
+            : softwareApplicationSchema(),
           faqSchema(page.faqs),
           breadcrumbSchema(crumbs),
         ]}
@@ -65,7 +68,9 @@ export default function SolutionPage({ slug }) {
               </Link>
             </li>
             <li aria-hidden="true">/</li>
-            <li className="text-slate-500 font-semibold">{page.groupLabel}</li>
+            <li className="text-slate-500 font-semibold">
+              {page.isGuide ? <Link to="/guides" className="hover:text-accent transition-colors">{page.groupLabel}</Link> : page.groupLabel}
+            </li>
             <li aria-hidden="true">/</li>
             <li className="text-[#0F2C4E] font-bold">{page.keyword}</li>
           </ol>
@@ -75,6 +80,11 @@ export default function SolutionPage({ slug }) {
         <section className="pt-6 pb-12 border-b border-slate-100">
           <h1 className="text-3xl sm:text-4xl font-black leading-tight mb-5">{page.h1}</h1>
           <p className="text-base sm:text-lg text-slate-600 leading-relaxed max-w-3xl mb-8">{page.intro}</p>
+          {page.isGuide && (
+            <p className="text-xs text-slate-500 -mt-5 mb-8">
+              من فريق بسهولة · آخر تحديث <time dateTime={page.updated}>{new Date(page.updated).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}</time>
+            </p>
+          )}
           <div className="flex flex-col sm:flex-row gap-3">
             <Link
               to="/register"
@@ -148,6 +158,15 @@ export default function SolutionPage({ slug }) {
           <section className="py-12">
             <h2 className="text-2xl font-black mb-6">اقرأ أيضاً</h2>
             <div className="grid sm:grid-cols-2 gap-3">
+              {page.isGuide && (
+                <Link
+                  to="/tools/no-show-calculator"
+                  className="flex items-center justify-between gap-3 border border-slate-200 hover:border-accent rounded-2xl px-5 py-4 transition-colors group"
+                >
+                  <span className="text-sm font-bold group-hover:text-accent transition-colors">حاسبة خسارة الغياب في العيادة</span>
+                  <HiOutlineArrowLeft className="w-4 h-4 text-slate-400 group-hover:text-accent transition-colors" />
+                </Link>
+              )}
               {page.related.map((relatedSlug) => {
                 const target = pageBySlug(relatedSlug)
                 if (!target) return null

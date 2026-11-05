@@ -8,6 +8,8 @@
 // `keyword` is the head term the page targets; `title`/`description` are written
 // to sit under the SERP length limits (~60 / ~155 chars) in Arabic.
 
+import { GUIDES } from './guides.js'
+
 const TRIAL = 'جرّب 14 يوم مجاناً بدون بطاقة بنكية.'
 
 export const MARKETING_PAGES = [
@@ -17,10 +19,10 @@ export const MARKETING_PAGES = [
     group: 'solutions',
     groupLabel: 'الحلول',
     keyword: 'نظام إدارة عيادات',
-    title: 'نظام إدارة عيادات وحجز مواعيد المرضى أونلاين',
+    title: 'برنامج إدارة عيادات وحجز مواعيد المرضى في مصر',
     description:
       'نظام إدارة عيادات عربي بالكامل: حجز مواعيد المرضى أونلاين، ملف مريض إلكتروني، وتذكير واتساب من رقمك بضغطة زر. ' + TRIAL,
-    h1: 'نظام إدارة عيادات وحجز مواعيد المرضى',
+    h1: 'برنامج إدارة عيادات وحجز مواعيد المرضى',
     intro:
       'بسهولة هو نظام إدارة عيادات ونظام حجز مواعيد مصمم للعيادات العربية. يستبدل دفتر المواعيد الورقي وردود الواتساب اليدوية بصفحة حجز أونلاين يحجز منها المريض بنفسه، وملف مريض إلكتروني يجمع كل الزيارات والملاحظات، وتذكير بالموعد على الواتساب ترسله بضغطة زر قبل الحضور.',
     sections: [
@@ -66,7 +68,7 @@ export const MARKETING_PAGES = [
         a: 'يبدأ من 299 جنيه شهرياً بكل المميزات مفتوحة وحجوزات غير محدودة، مع 14 يوم تجربة مجانية بدون بطاقة بنكية.',
       },
     ],
-    related: ['features/whatsapp-reminders', 'features/online-booking', 'solutions/dental-clinics', 'pricing'],
+    related: ['guides/choose-clinic-management-software-egypt', 'guides/reduce-patient-no-shows', 'features/whatsapp-reminders', 'features/online-booking', 'solutions/dental-clinics', 'pricing'],
   },
   {
     slug: 'solutions/dental-clinics',
@@ -556,6 +558,6 @@ export const PRICING_PAGE = {
   related: ['solutions/clinics', 'solutions/salons', 'features/whatsapp-reminders'],
 }
 
-export const ALL_MARKETING_PAGES = [...MARKETING_PAGES, PRICING_PAGE]
+export const ALL_MARKETING_PAGES = [...MARKETING_PAGES, ...GUIDES, PRICING_PAGE]
 
 export const pageBySlug = (slug) => ALL_MARKETING_PAGES.find((p) => p.slug === slug)

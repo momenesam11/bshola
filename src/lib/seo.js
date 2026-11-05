@@ -30,9 +30,15 @@ export function organizationSchema() {
     '@type': 'Organization',
     '@id': `${SITE_URL}/#organization`,
     name: SITE_NAME,
-    alternateName: 'Beshola',
+    // «بسهولة» is also an everyday word; these tell Google it's a product name.
+    alternateName: ['Beshola', 'بسهولة لحجز المواعيد', 'beshola.co'],
     url: SITE_URL,
     logo: `${SITE_URL}/logo.png`,
+    sameAs: [
+      'https://www.facebook.com/profile.php?id=61590803084934',
+      'https://www.instagram.com/beshola.co',
+      'https://www.tiktok.com/@beshola.co',
+    ],
     description:
       'بسهولة نظام حجز مواعيد وإدارة عملاء عربي بالكامل للعيادات والصالونات ومراكز اللياقة والمراكز التعليمية.',
     areaServed: [
@@ -122,6 +128,24 @@ export function faqSchema(faqs = []) {
 }
 
 // items: [{ name, path }] — path omitted on the current (last) crumb.
+/** A guide: who wrote it and when, which Google uses to judge freshness. */
+export function articleSchema({ title, description, path, published, updated }) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: title,
+    description,
+    inLanguage: 'ar',
+    url: absoluteUrl(path),
+    mainEntityOfPage: absoluteUrl(path),
+    datePublished: published,
+    dateModified: updated,
+    image: DEFAULT_OG_IMAGE,
+    author: { '@id': `${SITE_URL}/#organization` },
+    publisher: { '@id': `${SITE_URL}/#organization` },
+  }
+}
+
 export function breadcrumbSchema(items = []) {
   if (!items.length) return null
   return {

@@ -16,6 +16,7 @@ Disallow: /onboarding
 Disallow: /admin
 Disallow: /demo/
 Disallow: /partner
+Disallow: /app
 Disallow: /login
 Disallow: /register
 Disallow: /forgot-password
