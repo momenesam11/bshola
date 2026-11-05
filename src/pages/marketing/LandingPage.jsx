@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
-import { HiOutlineCheck } from 'react-icons/hi2'
+import { HiOutlineAcademicCap, HiOutlineArrowTopRightOnSquare, HiOutlineChatBubbleLeftRight, HiOutlineCheck, HiOutlineGlobeAlt, HiOutlineWrenchScrewdriver } from 'react-icons/hi2'
+import { FaWhatsapp } from 'react-icons/fa'
 
 import Seo from '../../components/seo/Seo'
 import { HOME_META } from '../../content/pageMeta'
@@ -24,6 +25,7 @@ import {
   videoObjectSchema,
   websiteSchema,
 } from '../../lib/seo'
+import { DEMO_BOOKING_PATH, SUPPORT_WHATSAPP } from '../../lib/support'
 
 /**
  * Landing page.
@@ -55,6 +57,13 @@ const FACTS = [
   { label: 'بدون عمولة على أي حجز', detail: 'اشتراك ثابت بالجنيه' },
   { label: 'عربي واتجاه RTL من الأساس', detail: 'مش ترجمة فوق واجهة إنجليزية' },
   { label: '14 يوم تجربة', detail: 'من غير بطاقة بنكية' },
+  { label: 'تدريب ودعم وصيانة', detail: 'من غير رسوم زيادة' },
+]
+
+const INCLUDED_SERVICE = [
+  { Icon: HiOutlineAcademicCap, title: 'تدريب مجاني', desc: 'بنعلّمك إنت والموظفة النظام خطوة بخطوة لحد ما تبدأوا تشتغلوا عليه.' },
+  { Icon: HiOutlineChatBubbleLeftRight, title: 'دعم فني', desc: 'عندك سؤال أو مشكلة؟ كلمنا على واتساب أو التليفون، بالعامية ومن غير تذاكر.' },
+  { Icon: HiOutlineWrenchScrewdriver, title: 'صيانة وتحديثات', desc: 'الصيانة والتحديثات علينا، وكل جديد بيوصلك من غير رسوم زيادة.' },
 ]
 
 const PROBLEMS = [
@@ -104,10 +113,13 @@ function Hero() {
                 ابدأ تجربتك المجانية
               </Link>
               <a
-                href="#how-patients-book"
-                className="inline-flex items-center justify-center border border-white/25 hover:border-white/60 text-white text-[15px] font-semibold px-7 py-4 rounded-xl transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-400"
+                href={DEMO_BOOKING_PATH}
+                target="_blank"
+                rel="noopener"
+                className="inline-flex items-center justify-center gap-2 border border-white/25 hover:border-white/60 text-white text-[15px] font-semibold px-7 py-4 rounded-xl transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-400"
               >
-                شوف إزاي بيشتغل
+                جرّب الحجز بنفسك
+                <HiOutlineArrowTopRightOnSquare className="w-4 h-4" aria-hidden="true" />
               </a>
             </div>
 
@@ -119,7 +131,8 @@ function Hero() {
           <div className="animate-fadeIn motion-reduce:animate-none [animation-delay:140ms] [animation-fill-mode:backwards] lg:col-span-5">
             <BookingPhoneDemo />
             <p className="mt-4 text-center text-[11.5px] text-white/45 leading-relaxed max-w-[280px] mx-auto">
-              دي صفحة الحجز الحقيقية زي ما عميلك بيشوفها · الأسماء والأسعار للعرض بس
+              دي صفحة الحجز الحقيقية زي ما عميلك بيشوفها · الأسماء والأسعار للعرض بس ·{' '}
+              <a href="#how-patients-book" className="underline hover:text-white">شوف إزاي بيشتغل</a>
             </p>
           </div>
         </div>
@@ -156,7 +169,7 @@ function TrustStrip() {
           </div>
 
           <div className="pt-6 border-t border-rule">
-            <ul className="grid sm:grid-cols-3 gap-x-10 gap-y-4">
+            <ul className="grid sm:grid-cols-2 lg:grid-cols-4 gap-x-10 gap-y-4">
               {FACTS.map((fact, i) => (
                 <Reveal as="li" key={fact.label} delay={i * 90} className="flex items-start gap-2">
                   <HiOutlineCheck
@@ -237,6 +250,52 @@ function Problem() {
       >
         كل عميل ما جاش = حجز ضايع ووقت ضايع.
       </Reveal>
+    </Section>
+  )
+}
+
+/** What comes with every subscription, beyond the software. */
+function IncludedService() {
+  return (
+    <Section id="included" tone="paper">
+      <SectionHead title="مش هنسيبك مع النظام لوحدك" lead="كل ده جوه الاشتراك، في كل الباقات." />
+      <div className="mt-8 grid sm:grid-cols-3 gap-x-10 gap-y-7">
+        {INCLUDED_SERVICE.map((item, i) => (
+          <Reveal key={item.title} delay={i * 80}>
+            <item.Icon className="w-6 h-6 text-accent-600" aria-hidden="true" />
+            <h3 className="mt-3 text-[16px] font-bold text-ink">{item.title}</h3>
+            <p className="mt-1.5 text-[14px] leading-[1.8] text-ink-soft">{item.desc}</p>
+          </Reveal>
+        ))}
+      </div>
+    </Section>
+  )
+}
+
+/** The bundle: no fixed price yet, so the only action is to ask. */
+function ClinicWebsiteOffer() {
+  return (
+    <Section id="clinic-website" tone="surface">
+      <div className="grid lg:grid-cols-12 gap-8 items-center">
+        <div className="lg:col-span-8">
+          <HiOutlineGlobeAlt className="w-7 h-7 text-accent-600" aria-hidden="true" />
+          <SectionHead
+            title="عايز موقع خاص بعيادتك؟"
+            lead="نصممهولك كامل: موقع باسم عيادتك، بدومين خاص بيها، ومربوط باشتراك بسهولة عشان مرضاك يحجزوا منه على طول. السعر بيتحدد حسب احتياجك، فكلمنا ونديك عرض."
+          />
+        </div>
+        <div className="lg:col-span-4">
+          <a
+            href={`https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent('مرحباً، عايز عرض سعر لموقع خاص بعيادتي مع اشتراك بسهولة')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 bg-accent-500 hover:bg-accent-600 text-white text-[15px] font-bold px-6 py-4 rounded-xl transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+          >
+            <FaWhatsapp className="w-5 h-5" aria-hidden="true" />
+            اطلب عرض سعر على واتساب
+          </a>
+        </div>
+      </div>
     </Section>
   )
 }
@@ -323,7 +382,9 @@ export default function LandingPage() {
         />
 
         <FeatureTeaser id="features" />
+        <IncludedService />
         <PricingCards id="pricing" />
+        <ClinicWebsiteOffer />
         <FAQ id="faq" limit={HOME_FAQ_COUNT} />
         <GuidesTeaser />
         <FinalCta />

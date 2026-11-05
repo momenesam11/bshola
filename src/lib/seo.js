@@ -5,6 +5,8 @@
 // The live site serves from www — the apex 308-redirects there — so every
 // canonical, og:url and sitemap entry must use www or Google is told the real
 // page is a URL that redirects away.
+import { SOCIAL_LINKS, SUPPORT_PHONE_E164 } from './support.js'
+
 export const SITE_URL = 'https://www.beshola.co'
 export const SITE_NAME = 'بسهولة'
 export const SITE_LOCALE = 'ar_EG'
@@ -35,9 +37,9 @@ export function organizationSchema() {
     url: SITE_URL,
     logo: `${SITE_URL}/logo.png`,
     sameAs: [
-      'https://www.facebook.com/profile.php?id=61590803084934',
-      'https://www.instagram.com/beshola.co',
-      'https://www.tiktok.com/@beshola.co',
+      SOCIAL_LINKS.facebook,
+      SOCIAL_LINKS.instagram,
+      SOCIAL_LINKS.tiktok,
     ],
     description:
       'بسهولة نظام حجز مواعيد وإدارة عملاء عربي بالكامل للعيادات والصالونات ومراكز اللياقة والمراكز التعليمية.',
@@ -49,7 +51,7 @@ export function organizationSchema() {
       {
         '@type': 'ContactPoint',
         contactType: 'customer support',
-        telephone: '+201021179969',
+        telephone: SUPPORT_PHONE_E164,
         availableLanguage: ['ar', 'en'],
       },
     ],

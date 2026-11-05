@@ -9,7 +9,7 @@
 //
 // Pure function of the lead (and, for duplicates, the rest of the list).
 
-import { SUPPORT_WHATSAPP, SUPPORT_EMAIL } from '../support'
+import { SUPPORT_PHONE_E164, SUPPORT_WHATSAPP, SUPPORT_EMAIL } from '../support'
 
 const TEST_WORDS = /(^|\s|_|-)(test|testing|demo|fake|asdf|qwer|xxx|تجربة|تجربه|تست|اختبار|ديمو)(\s|$|_|-|\d)/i
 const DISPOSABLE = /@(mailinator|guerrillamail|10minutemail|tempmail|temp-mail|yopmail|trashmail|sharklasers|getnada|dispostable)\./i
@@ -30,7 +30,7 @@ export function dataQuality(lead, allLeads = []) {
   if (lead.qualified_by === 'admin') return { level: 'real', label: 'حقيقية', reasons: ['إنت أكّدته'] }
 
   const reasons = []
-  if (lead.phone && lead.phone === SUPPORT_WHATSAPP) reasons.push('ده رقمك إنت')
+  if (lead.phone && [SUPPORT_WHATSAPP, SUPPORT_PHONE_E164.slice(1)].includes(lead.phone)) reasons.push('ده رقمك إنت')
   if (lead.email && lead.email.toLowerCase() === SUPPORT_EMAIL.toLowerCase()) reasons.push('ده إيميلك إنت')
   if (TEST_WORDS.test(` ${lead.name ?? ''} `) || TEST_WORDS.test(` ${lead.email ?? ''} `)) reasons.push('الاسم أو الإيميل فيه «تجربة» أو «test»')
   if (lead.email && DISPOSABLE.test(lead.email)) reasons.push('إيميل مؤقت')

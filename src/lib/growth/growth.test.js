@@ -257,6 +257,7 @@ describe('data quality', () => {
   it('flags the owner, test words, junk numbers and email-only names', async () => {
     const { dataQuality } = await import('./quality')
     expect(dataQuality(lead({ phone: '201021179969' }))).toMatchObject({ level: 'suspect', reasons: ['ده رقمك إنت'] })
+    expect(dataQuality(lead({ phone: '201558389501' }))).toMatchObject({ level: 'suspect', reasons: ['ده رقمك إنت'] })
     expect(dataQuality(lead({ name: 'عيادة تجربة' })).level).toBe('suspect')
     expect(dataQuality(lead({ name: 'test clinic' })).level).toBe('suspect')
     expect(dataQuality(lead({ phone: '201000000000' })).reasons).toContain('الرقم شكله مش حقيقي')
