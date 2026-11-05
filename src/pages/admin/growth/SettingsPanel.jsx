@@ -5,7 +5,7 @@ import { DISCOVERY_CATEGORIES, discoveryQueries } from '../../../lib/growth/disc
 import { useSaveSettings } from '../../../hooks/useGrowth'
 import { Btn, Card, Field } from './ui'
 import { inputClass } from './format'
-import { HiOutlineCheckBadge, HiOutlineCpuChip, HiOutlineMap, HiOutlineMapPin, HiOutlineScale } from 'react-icons/hi2'
+import { HiOutlineCheckBadge, HiOutlineCpuChip, HiOutlineMap, HiOutlineMapPin, HiOutlinePhone, HiOutlineScale } from 'react-icons/hi2'
 
 const WEIGHT_LABELS = {
   fit: ['مناسب لينا', 'نوع النشاط والمنطقة'],
@@ -21,6 +21,11 @@ export default function SettingsPanel({ settings, placesConfigured }) {
   const [cap, setCap] = useState(settings?.places_daily_cap ?? 100)
   const [minAppts, setMinAppts] = useState(settings?.qualify_min_appointments ?? 5)
   const [minClients, setMinClients] = useState(settings?.qualify_min_clients ?? 3)
+  const [dailyCalls, setDailyCalls] = useState(settings?.daily_new_calls ?? 30)
+  const [cooldown, setCooldown] = useState(settings?.daily_cooldown_days ?? 14)
+  const [poolTarget, setPoolTarget] = useState(settings?.pool_target ?? 300)
+  const [maxNoAnswer, setMaxNoAnswer] = useState(settings?.max_no_answer ?? 4)
+  const [monthCap, setMonthCap] = useState(settings?.places_monthly_cap ?? 900)
   const [autoOn, setAutoOn] = useState(!!settings?.auto_discover_enabled)
   const [autoCats, setAutoCats] = useState(() => settings?.auto_discover_categories ?? ['dental', 'derma'])
   const [autoAreas, setAutoAreas] = useState(() => (settings?.auto_discover_areas ?? []).join('، '))
@@ -35,6 +40,11 @@ export default function SettingsPanel({ settings, placesConfigured }) {
         weights: Object.fromEntries(Object.entries(weights).map(([k, v]) => [k, Math.max(0, Number(v) || 0)])),
         target_areas: areas.split(/[،,\n]/).map((a) => a.trim()).filter(Boolean),
         places_daily_cap: Math.max(0, Math.min(5000, parseInt(cap, 10) || 0)),
+        places_monthly_cap: Math.max(0, Math.min(100000, parseInt(monthCap, 10) || 0)),
+        daily_new_calls: Math.max(1, Math.min(500, parseInt(dailyCalls, 10) || 30)),
+        daily_cooldown_days: Math.max(1, Math.min(365, parseInt(cooldown, 10) || 14)),
+        pool_target: Math.max(0, Math.min(3000, parseInt(poolTarget, 10) || 0)),
+        max_no_answer: Math.max(1, Math.min(20, parseInt(maxNoAnswer, 10) || 4)),
         qualify_min_appointments: Math.max(1, Math.min(500, parseInt(minAppts, 10) || 5)),
         qualify_min_clients: Math.max(1, Math.min(500, parseInt(minClients, 10) || 3)),
         auto_discover_enabled: autoOn,
@@ -70,18 +80,34 @@ export default function SettingsPanel({ settings, placesConfigured }) {
       </Card>
 
       <div className="space-y-4">
+        <Card icon={HiOutlinePhone} title="قايمة المكالمات اليومية">
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="كام مكالمة في اليوم" hint="الساخنين والمتابعات الأول، والعيادات الجديدة بتكمّل الباقي.">
+              <input type="number" min="1" max="500" className={inputClass} value={dailyCalls} onChange={(e) => setDailyCalls(e.target.value)} />
+            </Field>
+            <Field label="ترجع بعد كام يوم" hint="عيادة اتعرضت وماتكلّمتش معاها ماترجعش قبل المدة دي.">
+              <input type="number" min="1" max="365" className={inputClass} value={cooldown} onChange={(e) => setCooldown(e.target.value)} />
+            </Field>
+            <Field label="حجم المخزن" hint="لما يقل عن كده، الصبح بيتملى من الخرايط لوحده. 0 = إيقاف.">
+              <input type="number" min="0" max="3000" className={inputClass} value={poolTarget} onChange={(e) => setPoolTarget(e.target.value)} />
+            </Field>
+            <Field label="تتقفل بعد كام مرة مردّش" hint="بنعيد بعد يوم، وبعد 3 أيام، وبعد أسبوع.">
+              <input type="number" min="1" max="20" className={inputClass} value={maxNoAnswer} onChange={(e) => setMaxNoAnswer(e.target.value)} />
+            </Field>
+          </div>
+        </Card>
         <Card icon={HiOutlineMapPin} title="المناطق المستهدفة">
           <Field label="افصل بينهم بفاصلة" hint="العملاء برّه المناطق دي بياخدوا تقييم «مناسب لينا» أقل">
             <textarea className={`${inputClass} min-h-[70px]`} value={areas} onChange={(e) => setAreas(e.target.value)} />
           </Field>
         </Card>
-        <Card icon={HiOutlineCpuChip} title="البحث الأوتوماتيك اليومي">
+        <Card icon={HiOutlineCpuChip} title="بحث جوجل الأوتوماتيك (اختياري)">
           <label className="flex items-center gap-2 text-sm font-semibold cursor-pointer">
             <input type="checkbox" checked={autoOn} onChange={(e) => setAutoOn(e.target.checked)} className="w-4 h-4 accent-accent-600" />
-            كل يوم، أول ما أفتح الصفحة، دوّر لوحدك وضيف عيادات جديدة
+            كل يوم الصبح، دوّر في جوجل وضيف عيادات جديدة
           </label>
           <p className="text-xs text-ink-soft mt-2 leading-relaxed">
-            بيضيف بس العيادات المفتوحة اللي ليها رقم، ومش بيكرر حد موجود، وبيقرا تقييماتها ويعلّم الشكاوى.
+            مش محتاجه عشان القايمة تتملى: الخرايط المجانية كفاية. فعّله لو عايز عيادات إضافية بتقييماتها.
             {!placesConfigured && <b className="text-amber-700"> محتاج مفتاح Google Places الأول.</b>}
           </p>
           <div className="mt-3 space-y-3">
@@ -109,9 +135,14 @@ export default function SettingsPanel({ settings, placesConfigured }) {
           <p className={`text-sm mb-3 ${placesConfigured ? 'text-accent-700' : 'text-amber-700'}`}>
             {placesConfigured ? 'مفتاح Google Places متضاف' : 'مفتاح Google Places مش متضاف — الخطوات في docs/growth-engine.md'}
           </p>
-          <Field label="أقصى عدد بحث في اليوم" hint={`النهارده: ${settings?.places_calls_date ? settings.places_calls_count : 0} بحث. 0 = إيقاف البحث خالص.`}>
-            <input type="number" min="0" max="5000" className={inputClass} value={cap} onChange={(e) => setCap(e.target.value)} />
-          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="أقصى بحث في الشهر" hint="جوجل مجاني لحد 1,000 طلب في الشهر. سيبها 900 عشان ماتدفعش.">
+              <input type="number" min="0" max="100000" className={inputClass} value={monthCap} onChange={(e) => setMonthCap(e.target.value)} />
+            </Field>
+            <Field label="أقصى بحث في اليوم" hint={`النهارده: ${settings?.places_calls_date ? settings.places_calls_count : 0} بحث.`}>
+              <input type="number" min="0" max="5000" className={inputClass} value={cap} onChange={(e) => setCap(e.target.value)} />
+            </Field>
+          </div>
         </Card>
         <Card icon={HiOutlineCheckBadge} title="إمتى العيادة تتحسب «حقيقية»؟">
           <p className="text-xs text-ink-soft mb-3 leading-relaxed">

@@ -6,17 +6,25 @@ import { findDuplicate } from '../../../lib/growth/dedupe'
 import { useSaveLead } from '../../../hooks/useGrowth'
 import { Btn, Field } from './ui'
 import { inputClass } from './format'
-import { HiOutlineExclamationTriangle } from 'react-icons/hi2'
+import { HiOutlineChevronDown, HiOutlineExclamationTriangle } from 'react-icons/hi2'
+import { AREAS } from '../../../lib/growth/regions'
 
 const EMPTY = {
   name: '', category: 'dental', specialty: '', contact_person: '', phone: '', email: '',
   city: 'القاهرة', area: '', address: '', website: '', instagram: '', facebook: '',
   google_maps_url: '', google_rating: '', google_reviews_count: '', has_online_booking: '',
-  source: 'google_maps_manual', partner_id: '', notes: '',
+  source: 'manual', partner_id: '', notes: '',
 }
 
-/** Add a lead by hand, or edit one. */
-export default function LeadForm({ lead, leads, partners, onSaved, onCancel }) {
+const AREA_NAMES = [...AREAS.cairo, ...AREAS.giza].map(([name]) => name)
+
+/**
+ * Add a lead by hand, or edit one. `quick` leads with the few fields a call
+ * needs and folds the rest away.
+ */
+export default function LeadForm({ lead, leads, partners, onSaved, onCancel, quick = false }) {
+  const [more, setMore] = useState(!quick)
+  const [today, setToday] = useState(false)
   const [form, setForm] = useState(() => {
     if (!lead) return EMPTY
     const f = { ...EMPTY }
@@ -45,13 +53,14 @@ export default function LeadForm({ lead, leads, partners, onSaved, onCancel }) {
       google_reviews_count: form.google_reviews_count === '' ? null : parseInt(form.google_reviews_count, 10),
       has_online_booking: form.has_online_booking === '' ? null : form.has_online_booking === 'true',
       partner_id: form.partner_id || null,
+      ...(today ? { next_follow_up_at: new Date().toISOString() } : {}),
     }
     // Source is only chosen when adding; an existing lead keeps where it came from.
     if (lead) delete payload.source
     try {
       const saved = await save.mutateAsync({ id: lead?.id, lead: payload })
       toast.success(lead ? 'اتحفظ' : 'اتضاف للقايمة')
-      onSaved?.(saved)
+      onSaved?.(saved, { today })
     } catch (err) {
       toast.error(err.message)
     }
@@ -74,8 +83,35 @@ export default function LeadForm({ lead, leads, partners, onSaved, onCancel }) {
           </select>
         </Field>
         <Field label="رقم التليفون" hint="موبايل أحسن — عليه واتساب">
-          <input className={inputClass} dir="ltr" value={form.phone} onChange={set('phone')} placeholder="01012345678" />
+          <input className={inputClass} dir="ltr" inputMode="tel" value={form.phone} onChange={set('phone')} placeholder="01012345678" />
         </Field>
+        <Field label="المنطقة">
+          <input className={inputClass} list="growth-areas" value={form.area} onChange={set('area')} placeholder="مدينة نصر" />
+          <datalist id="growth-areas">{AREA_NAMES.map((a) => <option key={a} value={a} />)}</datalist>
+        </Field>
+        {!lead && (
+          <Field label="جبتها منين؟">
+            <select className={inputClass} value={form.source} onChange={set('source')}>
+              {MANUAL_SOURCES.map((s) => <option key={s} value={s}>{SOURCE_BY_KEY[s].label}</option>)}
+            </select>
+          </Field>
+        )}
+        {partners.length > 0 && (
+          <Field label="عن طريق شريك؟">
+            <select className={inputClass} value={form.partner_id} onChange={set('partner_id')}>
+              <option value="">لأ</option>
+              {partners.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </Field>
+        )}
+      </div>
+      {quick && (
+        <button type="button" onClick={() => setMore((v) => !v)} aria-expanded={more} className="text-sm font-semibold text-accent-700 inline-flex items-center gap-1">
+          <HiOutlineChevronDown className={`w-4 h-4 transition-transform ${more ? 'rotate-180' : ''}`} aria-hidden="true" /> تفاصيل أكتر (اختياري)
+        </button>
+      )}
+      {more && <>
+      <div className="grid sm:grid-cols-2 gap-3">
         <Field label="اسم الدكتور / المسؤول">
           <input className={inputClass} value={form.contact_person} onChange={set('contact_person')} placeholder="د. سارة" />
         </Field>
@@ -84,9 +120,6 @@ export default function LeadForm({ lead, leads, partners, onSaved, onCancel }) {
         </Field>
         <Field label="المدينة">
           <input className={inputClass} value={form.city} onChange={set('city')} />
-        </Field>
-        <Field label="المنطقة">
-          <input className={inputClass} value={form.area} onChange={set('area')} placeholder="مدينة نصر" />
         </Field>
         <Field label="لينك خرائط جوجل">
           <input className={inputClass} dir="ltr" value={form.google_maps_url} onChange={set('google_maps_url')} />
@@ -116,28 +149,20 @@ export default function LeadForm({ lead, leads, partners, onSaved, onCancel }) {
         <Field label="الإيميل">
           <input className={inputClass} dir="ltr" type="email" value={form.email} onChange={set('email')} />
         </Field>
-        {!lead && (
-          <Field label="جبته منين؟">
-            <select className={inputClass} value={form.source} onChange={set('source')}>
-              {MANUAL_SOURCES.map((s) => <option key={s} value={s}>{SOURCE_BY_KEY[s].label}</option>)}
-            </select>
-          </Field>
-        )}
-        {partners.length > 0 && (
-          <Field label="عن طريق شريك؟">
-            <select className={inputClass} value={form.partner_id} onChange={set('partner_id')}>
-              <option value="">لأ</option>
-              {partners.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
-          </Field>
-        )}
       </div>
       <Field label="ملاحظات">
         <textarea className={`${inputClass} min-h-[70px]`} value={form.notes} onChange={set('notes')} />
       </Field>
+      </>}
+      {quick && form.phone && (
+        <label className="flex items-center gap-2 text-sm font-semibold text-ink cursor-pointer">
+          <input type="checkbox" checked={today} onChange={(e) => setToday(e.target.checked)} className="w-4 h-4 accent-accent-600" />
+          هكلّمها النهارده
+        </label>
+      )}
       <div className="flex gap-2 justify-end">
         {onCancel && <Btn onClick={onCancel}>إلغاء</Btn>}
-        <Btn tone="primary" type="submit" disabled={save.isPending}>{save.isPending ? 'بيتحفظ…' : 'حفظ'}</Btn>
+        <Btn tone="primary" type="submit" disabled={save.isPending}>{save.isPending ? 'بيتحفظ…' : lead ? 'حفظ' : 'ضيف العيادة'}</Btn>
       </div>
     </form>
   )

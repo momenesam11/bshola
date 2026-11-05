@@ -46,6 +46,9 @@ export function dataQuality(lead, allLeads = []) {
   if (lead.qualified_at) {
     return { level: 'real', label: 'حقيقية', reasons: [lead.qualified_by === 'admin' ? 'إنت أكّدته' : 'عنده حجوزات من عملاء حقيقيين'] }
   }
+  if (lead.overture_id) {
+    return { level: 'real', label: 'حقيقية', reasons: [lead.facebook ? 'موجودة على خرايط Overture وليها صفحة فيسبوك' : 'موجودة على خرايط Overture'] }
+  }
   if (lead.google_place_id || lead.google_maps_url) {
     const where = lead.google_maps_url?.includes('openstreetmap.org') ? 'OpenStreetMap' : 'خرائط جوجل'
     return { level: 'real', label: 'حقيقية', reasons: [`موجودة على ${where}`] }

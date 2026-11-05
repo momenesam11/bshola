@@ -235,6 +235,96 @@ export function usePartnerDashboard(token) {
   })
 }
 
+// ── Today's list, clean-up, payouts, rewards (migration 038) ───────────────
+
+export function useSetDailyList() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ ids, mode }) => callGrowth('set_daily_list', { ids, mode }),
+    onSuccess: ({ dailyList }) => qc.setQueryData(KEY, (old) => (old ? { ...old, dailyList } : old)),
+  })
+}
+
+export function useBulkLeads() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ ids, op, reason }) => (await callGrowth('bulk_leads', { ids, op, reason })).result,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: KEY, exact: true })
+      qc.invalidateQueries({ queryKey: [...KEY, 'archived'] })
+    },
+  })
+}
+
+export function useArchivedLeads(enabled) {
+  return useQuery({
+    queryKey: [...KEY, 'archived'],
+    queryFn: async () => (await callGrowth('archived_leads')).leads,
+    enabled: enabled && hasAdminToken(),
+  })
+}
+
+function patchPartner(qc, partner) {
+  qc.setQueryData(KEY, (old) =>
+    old ? { ...old, partners: old.partners.map((p) => (p.id === partner.id ? partner : p)) } : old)
+}
+
+/** Makes a new login PIN. The only moment it can be read: it's stored hashed. */
+export function usePartnerPin() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id) => callGrowth('partner_pin', { id }),
+    onSuccess: ({ partner }) => patchPartner(qc, partner),
+  })
+}
+
+export function useRotatePartnerToken() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (id) => (await callGrowth('rotate_partner_token', { id })).partner,
+    onSuccess: (partner) => patchPartner(qc, partner),
+  })
+}
+
+export function usePayPartner() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, note }) => (await callGrowth('pay_partner', { id, note })).result,
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEY, exact: true }),
+  })
+}
+
+export function useDecideReward() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, status, note }) => (await callGrowth('decide_reward', { id, status, note })).reward,
+    onSuccess: (reward) =>
+      qc.setQueryData(KEY, (old) =>
+        old ? { ...old, rewards: old.rewards.map((r) => (r.id === reward.id ? reward : r)) } : old),
+  })
+}
+
+/** Public: partner login with phone + PIN. Resolves to the dashboard token, or null. */
+export async function partnerLogin(phone, pin) {
+  const { data, error } = await supabase.rpc('growth_partner_login', { p_phone: phone, p_pin: pin })
+  if (error) throw new Error('حصلت مشكلة. جرّب تاني')
+  return data?.ok ? data.token : null
+}
+
+/** A signed-in customer's own referral numbers. */
+export function useMyReferrals(enabled = true) {
+  return useQuery({
+    queryKey: ['my-referrals'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('growth_my_referrals')
+      if (error) throw error
+      return data
+    },
+    enabled,
+    retry: false,
+  })
+}
+
 // ── Daily automatic discovery (migration 036) ──────────────────────────────
 
 /**

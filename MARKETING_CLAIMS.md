@@ -162,7 +162,7 @@
 | الادعاء | الدليل / المعالجة |
 |---|---|
 | حاسبة خسارة الغياب: الرقم «حسب أرقامك» | `src/pages/marketing/LossCalculatorPage.jsx` — الحساب كله من مدخلات الزائر (مواعيد × أيام × نسبة غياب × سعر). **مفيش** أي ادعاء بنسبة تقليل غياب (§8) |
-| «شهر اشتراك مجاني» لما المرشَّح يشترك | قرار تجاري — المصدر الوحيد `REFERRAL_REWARD` في `src/lib/growth/constants.js`. بيتمنح يدوي من لوحة الأدمن؛ `/admin/growth` ← الشركاء والترشيحات بيعرض مين يستحقه (`referralRewards()` في `src/lib/growth/analytics.js`) |
+| «شهر اشتراك مجاني» لما المرشَّح يشترك | قرار تجاري — المصدر الوحيد `REFERRAL_REWARD` في `src/lib/growth/constants.js`. بيتمنح بزرار من `/admin/growth` ← الشركاء ← ترشيحات العملاء، وبيضيف 30 يوم للاشتراك (`growth_decide_referral_reward()`، migration 038). الجوايز المستحقة بتتحسب في `growth_accrue_commissions()` |
 | الصفحة التجريبية `/demo/:code` «توضيحية ومش مربوطة بالعيادة» | مكتوبة 3 مرات على الصفحة (شريط فوق، تحت الموبايل، الفوتر) — `src/pages/marketing/DemoPage.jsx`. الأسعار فاضية افتراضياً (`src/lib/growth/preview.js`) عشان مانخترعش أسعار للعيادة. مش مفهرسة (`noindex` + `robots.txt`) |
 | رسايل الواتساب وسكريبت المكالمة | `src/lib/growth/messages.js` — التذكير «بضغطة زر» ومش «تلقائي»، مفيش موظفين، مفيش نسب. الاختبار `src/lib/growth/growth.test.js` («never makes a forbidden claim») بيفشل لو حد كتب «تلقائي» أو «%» أو «موظف» في أي رسالة |
 | البحث في الشكاوى بيُستخدم لاختيار الكلام بس | الرسايل مابتقتبسش التقييمات للعيادة أبداً — نفس ملف الاختبار («never quotes research back to the clinic») |

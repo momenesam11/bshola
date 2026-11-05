@@ -1,7 +1,10 @@
-# Hands-off lead discovery for /admin/growth — see scripts/growth-daily.mjs.
-# Every morning: OpenStreetMap (free), Google Places (when its key is set),
-# then the platform sync. Can also be started by hand from
+# The morning job for /admin/growth — see scripts/growth-daily.mjs.
+# Finds new clinics (free sources first), syncs sign-ups and payments, and picks
+# today's call list. Can also be started by hand from
 # GitHub → Actions → "Growth — daily leads" → Run workflow.
+#
+# GitHub runs schedules from the default branch only, and pauses them after 60
+# days with no activity in the repo. The Today screen warns you if a run is late.
 #
 # Secrets (GitHub → Settings → Secrets and variables → Actions):
 #   SUPABASE_URL                required
@@ -18,7 +21,7 @@ on:
 jobs:
   discover:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -26,6 +29,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --ignore-scripts
+      # Only this job needs DuckDB, to read Overture's open data files.
+      - run: npm i --no-save --ignore-scripts @duckdb/node-api@2.0.0-r.1
       - run: npx tsx scripts/growth-daily.mjs
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}

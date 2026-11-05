@@ -88,6 +88,44 @@ export function parseLeadsCsv(text) {
   return { rows: rows.filter((r) => r.name), error: null }
 }
 
+const ARABIC_DIGITS = '٠١٢٣٤٥٦٧٨٩'
+const latinDigits = (s) => String(s).replace(/[٠-٩]/g, (d) => ARABIC_DIGITS.indexOf(d))
+const PHONE_IN_TEXT = /\+?\d[\d\s()-]{8,}\d/
+
+/**
+ * Text pasted from WhatsApp, notes or Excel → lead rows. One clinic per line:
+ * a name and a number in any order, or tab-separated cells copied from a sheet
+ * (the cell after name and phone is taken as the area).
+ */
+export function parsePastedLeads(text) {
+  const rows = []
+  for (const rawLine of String(text ?? '').split(/\r?\n/)) {
+    const line = latinDigits(rawLine).trim()
+    if (!line) continue
+    if (/\t/.test(line) && /(^|\t)(الاسم|اسم العيادة|name)(\t|$)/i.test(line)) continue // a header row
+    const cells = line.split('\t').map((c) => c.trim()).filter(Boolean)
+    const phone = line.match(PHONE_IN_TEXT)?.[0]
+    let name
+    let area
+    if (cells.length > 1) {
+      const rest = cells.filter((c) => !PHONE_IN_TEXT.test(c))
+      name = rest[0]
+      area = rest[1]
+    } else {
+      name = (phone ? line.replace(phone, '') : line).replace(/^[\s,،:\-–—|•*]+|[\s,،:\-–—|•*]+$/g, '')
+    }
+    if (!name && !phone) continue
+    const category = categoryFromText(name)
+    rows.push({
+      name: (name || `عيادة ${phone.replace(/\D/g, '')}`).slice(0, 160),
+      ...(phone ? { phone: phone.replace(/\D/g, '') } : {}),
+      ...(area ? { area } : {}),
+      category: category === 'other' ? 'clinic' : category,
+    })
+  }
+  return rows
+}
+
 const TEMPLATE_HEADERS = ['الاسم', 'التليفون', 'النوع', 'التخصص', 'الدكتور', 'المدينة', 'المنطقة', 'لينك الخريطة', 'عدد التقييمات', 'التقييم', 'إنستجرام', 'ملاحظات']
 
 /** An empty sheet with the right headers (with BOM so Excel opens Arabic correctly). */

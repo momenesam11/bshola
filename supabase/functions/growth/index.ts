@@ -50,8 +50,29 @@ const LEAD_FIELDS = [
   'source', 'source_detail', 'partner_id', 'stage', 'lost_reason', 'sales_angle',
   'next_follow_up_at', 'signals', 'notes', 'preview', 'is_test',
 ]
-const PARTNER_FIELDS = ['name', 'phone', 'kind', 'signup_bonus_egp', 'commission_pct', 'notes', 'active']
+const PARTNER_FIELDS = ['name', 'phone', 'kind', 'signup_bonus_egp', 'commission_pct', 'notes', 'active', 'payout_method', 'payout_account']
 const COMMISSION_STATUSES = ['pending', 'approved', 'paid', 'rejected']
+
+// Supabase returns at most 1000 rows per request, however high the limit, so a
+// long list has to be read in pages or it silently comes back cut short.
+// deno-lint-ignore no-explicit-any
+async function allRows(query: () => any) {
+  const rows: unknown[] = []
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await query().range(from, from + 999)
+    if (error) return { data: null, error }
+    rows.push(...(data ?? []))
+    if ((data ?? []).length < 1000) return { data: rows, error: null }
+  }
+}
+
+// The PIN hash never leaves the database; the screen only needs to know one is set.
+function publicPartner(p: Record<string, unknown>) {
+  const { pin_hash: _h, pin_salt: _s, pin_failed: _f, ...rest } = p
+  return rest
+}
+
+const cairoToday = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Cairo' }).format(new Date())
 
 function pick(obj: Record<string, unknown> | undefined, fields: string[]) {
   const out: Record<string, unknown> = {}
@@ -137,22 +158,35 @@ serve(async (req) => {
   try {
     switch (action) {
       case 'list': {
-        const [leads, partners, settings, commissions] = await Promise.all([
-          supabase.from('growth_leads').select('*').order('created_at', { ascending: false }).limit(5000),
+        const today = cairoToday()
+        const [leads, partners, settings, commissions, daily, runs, rewards, archived] = await Promise.all([
+          allRows(() => supabase.from('growth_leads').select('*').is('archived_at', null).order('created_at', { ascending: false }).order('id')),
           supabase.from('growth_partners').select('*').order('created_at', { ascending: false }),
           supabase.from('growth_settings').select('*').eq('id', 1).maybeSingle(),
-          supabase.from('growth_commissions').select('*').order('created_at', { ascending: false }),
+          allRows(() => supabase.from('growth_commissions').select('*').order('created_at', { ascending: false }).order('id')),
+          supabase.from('growth_daily_list').select('lead_id, position').eq('day', today).order('position'),
+          supabase.from('growth_runs').select('*').order('started_at', { ascending: false }).limit(10),
+          supabase.from('growth_referral_rewards').select('*').order('created_at', { ascending: false }),
+          supabase.from('growth_leads').select('id', { count: 'exact', head: true }).not('archived_at', 'is', null),
         ])
         if (leads.error) return dbError(leads.error)
         if (partners.error) return dbError(partners.error)
         if (settings.error) return dbError(settings.error)
         if (commissions.error) return dbError(commissions.error)
+        if (daily.error) return dbError(daily.error)
+        if (runs.error) return dbError(runs.error)
+        if (rewards.error) return dbError(rewards.error)
         return json({
           success: true,
           leads: leads.data ?? [],
-          partners: partners.data ?? [],
+          partners: (partners.data ?? []).map(publicPartner),
           settings: settings.data,
           commissions: commissions.data ?? [],
+          today,
+          dailyList: (daily.data ?? []).map((d: { lead_id: string }) => d.lead_id),
+          runs: runs.data ?? [],
+          rewards: rewards.data ?? [],
+          archivedCount: archived.count ?? 0,
           placesConfigured: !!Deno.env.get('GOOGLE_PLACES_API_KEY'),
         })
       }
@@ -191,9 +225,35 @@ serve(async (req) => {
       case 'delete_lead': {
         const { id } = body as { id?: string }
         if (!id) return fail('بيانات ناقصة')
-        const { error } = await supabase.from('growth_leads').delete().eq('id', id)
+        // Hidden, not erased: the row keeps the weekly import from adding it back.
+        const { data, error } = await supabase.rpc('growth_bulk_leads', { p_ids: [id], p_op: 'archive', p_reason: 'اتمسح من الصفحة' })
         if (error) return dbError(error)
+        if (!data.done) return fail('ده عميل مسجّل أو عليه عمولة، فمش ممكن يتمسح. لو حساب تجربة علّمه «تيست»', 409)
         return json({ success: true })
+      }
+
+      case 'bulk_leads': {
+        const { ids, op, reason } = body as { ids?: string[]; op?: string; reason?: string }
+        if (!Array.isArray(ids) || !ids.length || !op) return fail('بيانات ناقصة')
+        const { data, error } = await supabase.rpc('growth_bulk_leads', { p_ids: ids, p_op: op, p_reason: reason ?? null })
+        if (error) return dbError(error)
+        return json({ success: true, result: data })
+      }
+
+      case 'archived_leads': {
+        const { data, error } = await allRows(() => supabase.from('growth_leads').select('*').not('archived_at', 'is', null).order('archived_at', { ascending: false }).order('id'))
+        if (error) return dbError(error)
+        return json({ success: true, leads: data ?? [] })
+      }
+
+      case 'set_daily_list': {
+        const { ids, mode } = body as { ids?: string[]; mode?: string }
+        if (!Array.isArray(ids)) return fail('بيانات ناقصة')
+        const { data, error } = await supabase.rpc('growth_set_daily_list', { p_day: cairoToday(), p_lead_ids: ids, p_mode: mode ?? 'ensure' })
+        if (error) return dbError(error)
+        const { data: rows, error: e2 } = await supabase.from('growth_daily_list').select('lead_id, position').eq('day', cairoToday()).order('position')
+        if (e2) return dbError(e2)
+        return json({ success: true, result: data, dailyList: (rows ?? []).map((d: { lead_id: string }) => d.lead_id) })
       }
 
       case 'import': {
@@ -236,7 +296,41 @@ serve(async (req) => {
           : supabase.from('growth_partners').insert(fields).select().single()
         const { data, error } = await q
         if (error) return dbError(error)
-        return json({ success: true, partner: data })
+        return json({ success: true, partner: publicPartner(data) })
+      }
+
+      case 'partner_pin': {
+        const { id } = body as { id?: string }
+        if (!id) return fail('بيانات ناقصة')
+        const { data: pin, error } = await supabase.rpc('growth_set_partner_pin', { p_partner_id: id })
+        if (error) return dbError(error)
+        const { data: partner, error: e2 } = await supabase.from('growth_partners').select('*').eq('id', id).single()
+        if (e2) return dbError(e2)
+        return json({ success: true, pin, partner: publicPartner(partner) })
+      }
+
+      case 'rotate_partner_token': {
+        const { id } = body as { id?: string }
+        if (!id) return fail('بيانات ناقصة')
+        const { data, error } = await supabase.rpc('growth_rotate_partner_token', { p_partner_id: id })
+        if (error) return dbError(error)
+        return json({ success: true, partner: publicPartner(data) })
+      }
+
+      case 'pay_partner': {
+        const { id, note } = body as { id?: string; note?: string }
+        if (!id) return fail('بيانات ناقصة')
+        const { data, error } = await supabase.rpc('growth_pay_partner', { p_partner_id: id, p_note: note ?? null })
+        if (error) return dbError(error)
+        return json({ success: true, result: data })
+      }
+
+      case 'decide_reward': {
+        const { id, status, note } = body as { id?: string; status?: string; note?: string }
+        if (!id || !['granted', 'rejected'].includes(status ?? '')) return fail('بيانات ناقصة')
+        const { data, error } = await supabase.rpc('growth_decide_referral_reward', { p_id: id, p_status: status, p_note: note ?? null })
+        if (error) return dbError(error)
+        return json({ success: true, reward: data })
       }
 
       case 'save_settings': {
@@ -245,6 +339,7 @@ serve(async (req) => {
           'weights', 'target_areas', 'places_daily_cap', 'qualify_min_appointments', 'qualify_min_clients',
           'auto_discover_enabled', 'auto_discover_categories', 'auto_discover_areas', 'auto_discover_per_day',
           'auto_discover_cursor', 'auto_discover_last_run',
+          'daily_new_calls', 'daily_cooldown_days', 'pool_target', 'max_no_answer', 'places_monthly_cap',
         ])
         const { data, error } = await supabase.from('growth_settings').update(fields).eq('id', 1).select().single()
         if (error) return dbError(error)
@@ -284,7 +379,7 @@ serve(async (req) => {
         if (!Deno.env.get('GOOGLE_PLACES_API_KEY')) return fail('places_not_configured', 503)
         const { data: allowed, error } = await supabase.rpc('growth_take_places_quota')
         if (error) return dbError(error)
-        if (!allowed) return fail('وصلت للحد اليومي لبحث خرائط جوجل — تقدر تغيّره من الإعدادات', 429)
+        if (!allowed) return fail('وصلت للحد اليومي أو الشهري لبحث خرائط جوجل. تقدر تغيّره من الإعدادات', 429)
         const result = await placesSearch(q, pageToken)
         if ('error' in result) return fail(String(result.error), 502)
         return json({ success: true, ...result })

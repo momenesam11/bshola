@@ -55,7 +55,7 @@ export function osmTarget({ governorate, area, radiusKm = 3 }) {
   }
 }
 
-const NOT_A_CLINIC = /(صيدلي|صيدليه|صيدلية|pharmac|مستشفى|مستشفي|hospital|معمل|laborator|lab\b|اشعة|أشعة|radiolog|scan)/i
+export const NOT_A_CLINIC = /(صيدلي|صيدليه|صيدلية|pharmac|مستشفى|مستشفي|hospital|معمل|معامل|مختبر|laborator|lab\b|اشعة|أشعة|radiolog|scan)/i
 const DERMA = /(جلد|تجميل|ليزر|derma|skin|cosmetic|laser|beauty)/i
 const DENTAL = /(اسنان|أسنان|دينتال|دنتال|dental|dent)/i
 

@@ -1,12 +1,14 @@
-// Daily, hands-off lead discovery for the growth engine.
+// The morning job of the growth engine.
 //
-// Runs on a schedule (.github/workflows/growth-daily.yml) — nobody has to
-// open the dashboard. Each run:
-//   1. OpenStreetMap: every clinic in Cairo & Giza with a phone (free, no key) —
-//      weekly, on Saturdays
-//   2. Google Places:  the next slice of the type × area rotation, with review
-//      pain signals (if GOOGLE_PLACES_API_KEY is set and auto-discovery is on)
-//   3. growth_sync_platform(): new sign-ups, trials, payments, qualification
+// Runs on a schedule (.github/workflows/growth-daily.yml), so nobody has to open
+// the dashboard. Each run:
+//   1. OpenStreetMap: clinics with a phone in Cairo & Giza (free) — Saturdays
+//   2. Overture Maps: tops the pool up to pool_target when it runs low (free)
+//   3. Google Places: the next slice of the type × area rotation, only if
+//      GOOGLE_PLACES_API_KEY is set and auto-discovery is on in settings
+//   4. growth_sync_platform(): new sign-ups, trials, payments, commissions
+//   5. Today's list: picks the day's batch of new clinics
+//   6. Writes what happened to growth_runs, which the Today screen shows
 // Everything goes through growth_import_leads(), which skips anything already
 // in the list (same phone / place / name+area), so re-running is harmless.
 //
@@ -14,10 +16,15 @@
 // why it runs under tsx (extension-less imports).
 //
 //   SUPABASE_URL=… SUPABASE_SERVICE_ROLE_KEY=… npx tsx scripts/growth-daily.mjs
+//
+// Overture needs DuckDB, which the workflow installs just for this job
+// (npm i --no-save @duckdb/node-api) to keep it out of the app's dependencies.
 
 import { createClient } from '@supabase/supabase-js'
 import { fetchOsmClinics } from '../src/lib/growth/osm.js'
 import { discoveryQueries, nextBatch, placeToRow, cairoToday } from '../src/lib/growth/discover.js'
+import { latestRelease, overtureSql, OVERTURE_BUCKET, placesToRows, pickForPool } from '../src/lib/growth/overture.js'
+import { pickDailyLeads, poolStats } from '../src/lib/growth/dailyList.js'
 
 const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, GOOGLE_PLACES_API_KEY } = process.env
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
@@ -40,11 +47,21 @@ async function importRows(rows, source) {
   return { inserted, skipped }
 }
 
+// Supabase returns at most 1000 rows per request, so read in pages.
+async function loadLeads() {
+  const rows = []
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await supabase.from('growth_leads').select('*').is('archived_at', null).order('id').range(from, from + 999)
+    if (error) throw new Error(`can't read leads: ${error.message}`)
+    rows.push(...data)
+    if (data.length < 1000) return rows
+  }
+}
+
 // ── 1. OpenStreetMap ────────────────────────────────────────────────────────
 async function runOsm() {
-  // OSM changes slowly — the same clinics come back every day — so once a
-  // week is enough to pick up new ones and kinder to the free public servers.
-  // GROWTH_FORCE_OSM=1 runs it on any day (the dashboard button does too).
+  // OSM changes slowly, so once a week is enough to pick up new ones and kinder
+  // to the free public servers. GROWTH_FORCE_OSM=1 runs it on any day.
   const weekday = new Intl.DateTimeFormat('en-US', { timeZone: 'Africa/Cairo', weekday: 'short' }).format(new Date())
   if (weekday !== 'Sat' && !process.env.GROWTH_FORCE_OSM) return { skipped: 'weekly — runs on Saturdays' }
   const userAgent = 'Beshola-growth/1.0 (+https://www.beshola.co)'
@@ -56,7 +73,44 @@ async function runOsm() {
   return out
 }
 
-// ── 2. Google Places ────────────────────────────────────────────────────────
+// ── 2. Overture Maps ────────────────────────────────────────────────────────
+async function fetchOverturePlaces() {
+  const listing = await fetch(`https://${OVERTURE_BUCKET}.s3.us-west-2.amazonaws.com/?list-type=2&prefix=release/&delimiter=/`)
+  const release = latestRelease(await listing.text())
+  if (!release) throw new Error("couldn't find the latest Overture release")
+  const { DuckDBInstance } = await import('@duckdb/node-api')
+  const db = await DuckDBInstance.create(':memory:')
+  const conn = await db.connect()
+  await conn.run("INSTALL httpfs; LOAD httpfs; SET s3_region='us-west-2';")
+  const result = await conn.runAndReadAll(overtureSql(release))
+  return { release, places: result.getRowObjectsJson() }
+}
+
+async function runOverture(settings) {
+  const target = settings.pool_target ?? 300
+  const leads = await loadLeads()
+  const before = poolStats(leads, settings).ready
+  if (before >= target) return { skipped: `pool is full enough (${before}/${target})` }
+
+  const { release, places } = await fetchOverturePlaces()
+  const rows = placesToRows(places)
+  // Hidden leads count too: what you cleaned up mustn't come back.
+  const known = new Set()
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await supabase.from('growth_leads').select('phone, overture_id').order('id').range(from, from + 999)
+    if (error) throw new Error(error.message)
+    for (const l of data) {
+      if (l.phone) known.add(l.phone)
+      if (l.overture_id) known.add(l.overture_id)
+    }
+    if (data.length < 1000) break
+  }
+  const fresh = rows.filter((r) => !known.has(r.phone) && !known.has(r.overture_id))
+  const batch = pickForPool(fresh, target - before).map(({ confidence, ...row }) => row)
+  return { release, usable: rows.length, unused: fresh.length, ...(batch.length ? await importRows(batch, 'overture') : { inserted: 0, skipped: 0 }) }
+}
+
+// ── 3. Google Places ────────────────────────────────────────────────────────
 const PLACES_FIELDS = [
   'places.id', 'places.displayName', 'places.formattedAddress', 'places.nationalPhoneNumber',
   'places.internationalPhoneNumber', 'places.websiteUri', 'places.rating', 'places.userRatingCount',
@@ -101,7 +155,7 @@ async function runGoogle(settings) {
   for (const item of batch) {
     const { data: allowed } = await supabase.rpc('growth_take_places_quota')
     if (!allowed) {
-      log('google: daily cap reached')
+      log('google: budget reached')
       break
     }
     try {
@@ -119,13 +173,34 @@ async function runGoogle(settings) {
   return { searched, found: rows.length, ...res }
 }
 
+// ── 4. Sync ─────────────────────────────────────────────────────────────────
+async function runSync() {
+  const { data, error } = await supabase.rpc('growth_sync_platform')
+  if (error) throw new Error(error.message)
+  return data
+}
+
+// ── 5. Today's list ─────────────────────────────────────────────────────────
+async function runDailyList(settings) {
+  const leads = await loadLeads()
+  const ids = pickDailyLeads(leads.filter((l) => !l.is_test), settings)
+  const { data, error } = await supabase.rpc('growth_set_daily_list', { p_day: cairoToday(), p_lead_ids: ids, p_mode: 'ensure' })
+  if (error) throw new Error(error.message)
+  return { ...data, pool_left: poolStats(leads, settings).ready }
+}
+
 // ── run ─────────────────────────────────────────────────────────────────────
 async function main() {
   const { data: settings, error } = await supabase.from('growth_settings').select('*').eq('id', 1).single()
   if (error) throw new Error(`can't read growth_settings: ${error.message}`)
 
+  const { data: run } = await supabase.from('growth_runs')
+    .insert({ trigger: process.env.GITHUB_EVENT_NAME === 'schedule' ? 'schedule' : 'manual' })
+    .select('id').single()
+
   const summary = {}
-  for (const [name, fn] of [['openstreetmap', runOsm], ['google', runGoogle]]) {
+  const steps = [['openstreetmap', runOsm], ['overture', runOverture], ['google', runGoogle], ['sync', runSync], ['daily_list', runDailyList]]
+  for (const [name, fn] of steps) {
     try {
       summary[name] = await fn(settings)
     } catch (e) {
@@ -134,17 +209,17 @@ async function main() {
     log(name, JSON.stringify(summary[name]))
   }
 
-  const { data: sync, error: syncError } = await supabase.rpc('growth_sync_platform')
-  summary.sync = syncError ? { error: syncError.message } : sync
-  log('sync', JSON.stringify(summary.sync))
-
-  // Fail the run (so GitHub flags it) only if nothing worked at all.
   const failed = Object.values(summary).filter((s) => s?.error).length
-  if (failed === Object.keys(summary).length) process.exit(1)
+  if (run?.id) {
+    await supabase.from('growth_runs').update({ finished_at: new Date().toISOString(), ok: failed === 0, summary }).eq('id', run.id)
+    await supabase.from('growth_runs').delete().lt('started_at', new Date(Date.now() - 90 * 864e5).toISOString())
+  }
+
+  // The list and the sync are what the day depends on: flag the run in GitHub if either broke.
+  if (summary.sync?.error || summary.daily_list?.error) process.exit(1)
 }
 
 main().catch((e) => {
   console.error('[growth-daily] fatal:', e.message)
   process.exit(1)
 })
-

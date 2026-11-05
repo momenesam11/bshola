@@ -17,6 +17,7 @@ const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'))
 const GrowthPage = lazy(() => import('./pages/admin/growth/GrowthPage'))
 const DemoPage = lazy(() => import('./pages/marketing/DemoPage'))
 const PartnerDashboardPage = lazy(() => import('./pages/marketing/PartnerDashboardPage'))
+const PartnerLoginPage = lazy(() => import('./pages/marketing/PartnerLoginPage'))
 const Login = lazy(() => import('./pages/auth/Login'))
 const Register = lazy(() => import('./pages/auth/Register'))
 const ForgotPassword = lazy(() => import('./pages/auth/ForgotPassword'))
@@ -182,6 +183,7 @@ export default function App() {
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/growth" element={<GrowthPage />} />
           <Route path="/demo/:code" element={<DemoPage />} />
+          <Route path="/partner" element={<PartnerLoginPage />} />
           <Route path="/partner/:token" element={<PartnerDashboardPage />} />
 
           {/* Protected */}

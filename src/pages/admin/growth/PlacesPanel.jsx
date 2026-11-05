@@ -8,6 +8,7 @@ import { SIGNAL_LABELS } from '../../../lib/growth/constants'
 import { usePlacesSearch, useImportLeads } from '../../../hooks/useGrowth'
 import { fetchOsmClinics, OSM_ATTRIBUTION } from '../../../lib/growth/osm'
 import { GOVERNORATES, RADIUS_OPTIONS, areasFor } from '../../../lib/growth/regions'
+import SourcesOverview from './SourcesOverview'
 import { Btn, Card, EmptyState, Field } from './ui'
 import { inputClass } from './format'
 import { HiOutlineExclamationCircle, HiOutlineGlobeAlt, HiOutlineKey, HiOutlineLightBulb, HiOutlineMap } from 'react-icons/hi2'
@@ -25,7 +26,7 @@ const AREAS = ['مدينة نصر', 'مصر الجديدة', 'المعادي', '
  * the ones you tick are saved; each saved lead keeps the signals detected
  * from its reviews (as short quotes) and listing.
  */
-export default function PlacesPanel({ leads, configured }) {
+export default function PlacesPanel({ leads, configured, settings, runs }) {
   const [kind, setKind] = useState(KINDS[0].label)
   const [area, setArea] = useState(AREAS[0])
   const [custom, setCustom] = useState('')
@@ -50,10 +51,11 @@ export default function PlacesPanel({ leads, configured }) {
   if (!configured) {
     return (
       <div className="space-y-4">
+        <SourcesOverview leads={leads} settings={settings} runs={runs} />
         <OsmCard leads={leads} />
         <Card>
-          <EmptyState icon={HiOutlineKey} title="البحث في خرائط جوجل محتاج مفتاح Google Places">
-            جوجل فيه عيادات أكتر بكتير، بس محتاج حساب Google Cloud بكارت. الخطوات في <b>docs/growth-engine.md</b>.
+          <EmptyState icon={HiOutlineKey} title="جوجل اختياري: بتقييمات العيادات وشكاويها">
+            القايمة مش محتاجاه. ميزته إنه بيوريك تقييمات كل عيادة والشكاوى فيها، فتعرف تفتح المكالمة بإيه. مجاني لحد 1,000 طلب في الشهر، بس محتاج حساب Google Cloud بكارت. الخطوات في <b>docs/growth-engine.md</b>.
           </EmptyState>
         </Card>
       </div>
@@ -115,6 +117,7 @@ export default function PlacesPanel({ leads, configured }) {
 
   return (
     <div className="space-y-4">
+      <SourcesOverview leads={leads} settings={settings} runs={runs} />
       <OsmCard leads={leads} />
       <Card icon={HiOutlineMap} title="دوّر في خرائط جوجل">
         <div className="grid sm:grid-cols-[1fr_1fr_auto] gap-2">
@@ -127,7 +130,7 @@ export default function PlacesPanel({ leads, configured }) {
           <Btn tone="primary" onClick={() => run()} disabled={search.isPending}>{search.isPending ? 'بيدوّر…' : 'دوّر'}</Btn>
         </div>
         <input className={`${inputClass} mt-2`} placeholder="أو اكتب بحث بنفسك: «مركز ليزر التجمع»" value={custom} onChange={(e) => setCustom(e.target.value)} />
-        <p className="text-[12.5px] text-gray-400 mt-2">كل بحث = طلب واحد من جوجل (بفلوس). فيه حد يومي من الإعدادات عشان ماتتفاجئش بفاتورة.</p>
+        <PlacesMeter settings={settings} />
       </Card>
 
       {enriched.length > 0 && (
@@ -181,6 +184,21 @@ export default function PlacesPanel({ leads, configured }) {
           )}
         </Card>
       )}
+    </div>
+  )
+}
+
+/** Google's free allowance is monthly; show how much is left. */
+function PlacesMeter({ settings }) {
+  const month = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Cairo', year: 'numeric', month: '2-digit' }).format(new Date())
+  const used = settings?.places_month === month ? settings.places_month_count : 0
+  const cap = settings?.places_monthly_cap ?? 900
+  return (
+    <div className="mt-3">
+      <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
+        <div className={`h-full rounded-full ${used / cap > 0.8 ? 'bg-amber-500' : 'bg-accent-500'}`} style={{ width: `${Math.min(100, cap ? (used / cap) * 100 : 100)}%` }} />
+      </div>
+      <p className="text-xs text-ink-soft mt-1 tabular-nums">استخدمت {used} من {cap} بحث الشهر ده. كل بحث بيجيب لحد 20 عيادة، وجوجل مجاني لحد 1,000 في الشهر.</p>
     </div>
   )
 }

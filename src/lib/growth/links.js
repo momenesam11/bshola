@@ -14,6 +14,7 @@ export const previewLink = (code) => `${SITE_URL}/demo/${encodeURIComponent(code
 export const partnerLink = (code) => `${SITE_URL}/?ref=${encodeURIComponent(code)}`
 /** A partner's private dashboard — the token is a secret, unlike their ref code. */
 export const partnerDashboardLink = (token) => `${SITE_URL}/partner/${encodeURIComponent(token)}`
+export const partnerLoginLink = () => `${SITE_URL}/partner`
 export const referralLink = (bookingSlug) => `${SITE_URL}/register?ref=${encodeURIComponent(`R-${bookingSlug}`)}`
 export const bookingFooterPath = (bookingSlug) => `/?ref=${encodeURIComponent(`B-${bookingSlug}`)}`
 

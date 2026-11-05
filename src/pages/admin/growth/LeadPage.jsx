@@ -10,7 +10,9 @@ import { openingMessage, followUpMessage, CALL_SCRIPT } from '../../../lib/growt
 import { displayPhone, whatsappLink, telLink } from '../../../lib/growth/phone'
 import { registerLink, previewLink } from '../../../lib/growth/links'
 import { defaultPreview, PREVIEW_COLORS } from '../../../lib/growth/preview'
-import { useLeadActivities, useLogActivity, useSaveLead, useDeleteLead, useQualifyLead, useQualifyStatus } from '../../../hooks/useGrowth'
+import { detectReviewSignals, inferPlaceSignals } from '../../../lib/growth/reviewSignals'
+import { normalizePhone } from '../../../lib/growth/phone'
+import { usePlacesSearch, useLeadActivities, useLogActivity, useSaveLead, useDeleteLead, useQualifyLead, useQualifyStatus } from '../../../hooks/useGrowth'
 import ConfirmDialog from '../../../components/ui/ConfirmDialog'
 import LeadForm from './LeadForm'
 import { Btn, Card, Field, OutcomeIcon, QualityBadge, ScoreBadge, ScoreBar, StageBadge } from './ui'
@@ -30,7 +32,7 @@ const TABS = [
  * One lead, as a full page with tabs (replaces the old side drawer). The
  * recommendation sits above the tabs so it's in view whatever you're doing.
  */
-export default function LeadPage({ lead, leads, partners, settings, onBack, tab = 'contact', onTab }) {
+export default function LeadPage({ lead, leads, partners, settings, placesConfigured, onBack, tab = 'contact', onTab }) {
   const [editing, setEditing] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const del = useDeleteLead()
@@ -50,7 +52,7 @@ export default function LeadPage({ lead, leads, partners, settings, onBack, tab 
   async function remove() {
     try {
       await del.mutateAsync(lead.id)
-      toast.success('اتمسح')
+      toast.success('اتخفى')
       onBack()
     } catch (e) {
       toast.error(e.message)
@@ -120,7 +122,7 @@ export default function LeadPage({ lead, leads, partners, settings, onBack, tab 
       {current === 'info' && (
         <div className="grid lg:grid-cols-2 gap-4 items-start">
           <div className="space-y-4">
-            <ContactRow lead={lead} />
+            <ContactRow lead={lead} placesConfigured={placesConfigured} />
             <AccountCard lead={lead} />
           </div>
           <div className="space-y-4">
@@ -149,15 +151,54 @@ export default function LeadPage({ lead, leads, partners, settings, onBack, tab 
         onConfirm={remove}
         variant="danger"
         loading={del.isPending}
-        title="مسح العميل"
-        message={`تمسح ${lead.name} وكل سجل التواصل معاه؟ لو مش عايز تكلّمه تاني، الأحسن تختار «ماتكلّمنيش تاني» بدل المسح — عشان مايتضافش تاني بالغلط.`}
-        confirmLabel="مسح"
+        title="إخفاء العميل"
+        message={`تخفي ${lead.name} من كل الشاشات؟ مش هترجع في الاستيراد، وتقدر ترجّعها من «كل العملاء ← المخفيين». لو طلبوا ماتكلّمهمش، اختار «ماتكلّمنيش تاني» بدل كده.`}
+        confirmLabel="إخفاء"
       />
     </div>
   )
 }
 
-function ContactRow({ lead }) {
+/**
+ * One Google search for this clinic: its rating, reviews and any complaint in
+ * them that tells you what to open the call with. Accepted only if Google shows
+ * the same phone number, so another clinic's reviews never land on this one.
+ */
+function GoogleCheck({ lead }) {
+  const search = usePlacesSearch()
+  const save = useSaveLead()
+
+  async function run() {
+    try {
+      const { places = [] } = await search.mutateAsync({ query: `${lead.name} ${lead.area ?? ''}`.trim() })
+      const match = places.find((p) => normalizePhone(p.phone) === lead.phone)
+      if (!match) return toast.error('جوجل مالقاش عيادة بنفس الرقم')
+      const known = new Set((lead.signals ?? []).map((s) => s.type))
+      const fresh = [...detectReviewSignals(match.reviews, match.google_maps_url), ...inferPlaceSignals(match)].filter((s) => !known.has(s.type))
+      await save.mutateAsync({
+        id: lead.id,
+        lead: {
+          google_place_id: match.google_place_id,
+          google_maps_url: match.google_maps_url,
+          google_rating: match.google_rating,
+          google_reviews_count: match.google_reviews_count,
+          signals: [...(lead.signals ?? []), ...fresh],
+        },
+      })
+      toast.success(fresh.length ? `لقيت ${fresh.length} إشارة جديدة في «البحث»` : 'اتحدّث التقييم، ومفيش شكاوى واضحة')
+    } catch (e) {
+      toast.error(e.message)
+    }
+  }
+
+  return (
+    <button type="button" onClick={run} disabled={search.isPending || save.isPending} className="mt-2 mr-3 inline-flex items-center gap-1 text-xs font-semibold text-accent-700 hover:underline disabled:opacity-50" title="بحث واحد من حصة جوجل المجانية">
+      {search.isPending ? 'بيدوّر…' : 'شوف تقييماتها على جوجل'}
+    </button>
+  )
+}
+
+function ContactRow({ lead, placesConfigured }) {
   const links = [
     lead.google_maps_url && [lead.google_maps_url.includes('openstreetmap.org') ? 'OpenStreetMap' : 'خرائط جوجل', lead.google_maps_url],
     lead.instagram && ['إنستجرام', lead.instagram.startsWith('http') ? lead.instagram : `https://instagram.com/${lead.instagram.replace('@', '')}`],
@@ -191,6 +232,12 @@ function ContactRow({ lead }) {
           ))}
         </div>
       )}
+      {lead.lat != null && lead.lng != null && (
+        <a href={`https://www.google.com/maps/search/?api=1&query=${lead.lat},${lead.lng}`} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs text-accent-700 hover:underline">
+          افتح مكانها على الخريطة <HiOutlineArrowTopRightOnSquare className="w-3 h-3" />
+        </a>
+      )}
+      {placesConfigured && !lead.google_place_id && <GoogleCheck lead={lead} />}
       <div className="grid grid-cols-3 gap-2 mt-3 text-[12.5px] text-ink-soft">
         <div>آخر تواصل: <b className="text-ink-soft">{formatDateTime(lead.last_contacted_at)}</b></div>
         <div>المتابعة الجاية: <b className="text-ink-soft">{formatDateTime(lead.next_follow_up_at)}</b></div>

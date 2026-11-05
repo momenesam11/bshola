@@ -4,9 +4,8 @@ import { Link, useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { HiOutlineArrowPath, HiOutlineArrowRight, HiOutlineChartBar, HiOutlineCog6Tooth, HiOutlineMap, HiOutlinePhone, HiOutlinePlus, HiOutlineQueueList, HiOutlineRocketLaunch, HiOutlineUserGroup } from 'react-icons/hi2'
 import { hasAdminToken } from '../../../hooks/useAdmin'
-import { useQueryClient } from '@tanstack/react-query'
-import { useGrowthData, useSyncPlatform, runAutoDiscover } from '../../../hooks/useGrowth'
-import { buildQueue } from '../../../lib/growth/scoring'
+import { useGrowthData, useSetDailyList, useSyncPlatform } from '../../../hooks/useGrowth'
+import { buildTodayList, pickDailyLeads } from '../../../lib/growth/dailyList'
 import PasswordGate from '../../../components/admin/AdminPasswordGate'
 import QueuePanel from './QueuePanel'
 import LeadsPanel from './LeadsPanel'
@@ -19,10 +18,10 @@ import LeadPage from './LeadPage'
 import { Btn } from './ui'
 
 const TABS = [
-  { key: 'today', label: 'النهارده', icon: HiOutlinePhone },
+  { key: 'today', label: 'مكالمات النهارده', icon: HiOutlinePhone },
   { key: 'leads', label: 'كل العملاء', icon: HiOutlineQueueList },
   { key: 'add', label: 'إضافة', icon: HiOutlinePlus },
-  { key: 'maps', label: 'خرائط جوجل', icon: HiOutlineMap },
+  { key: 'maps', label: 'الخرائط والمصادر', icon: HiOutlineMap },
   { key: 'partners', label: 'الشركاء والترشيحات', icon: HiOutlineUserGroup },
   { key: 'numbers', label: 'الأرقام', icon: HiOutlineChartBar },
   { key: 'settings', label: 'الإعدادات', icon: HiOutlineCog6Tooth },
@@ -44,26 +43,23 @@ function Growth() {
   const partners = data?.partners ?? []
   const settings = data?.settings
   const openLead = openId ? allLeads.find((l) => l.id === openId) : null
+  const dailyList = useMemo(() => data?.dailyList ?? [], [data])
   const queueCount = useMemo(
-    // Same default as the Today screen: only leads you can call.
-    () => buildQueue(leads.filter((l) => l.phone), { weights: settings?.weights, targetAreas: settings?.target_areas }).length,
-    [leads, settings]
+    () => buildTodayList(leads, dailyList, { weights: settings?.weights, targetAreas: settings?.target_areas }).length,
+    [leads, dailyList, settings]
   )
 
-  // Daily automatic discovery, once per Cairo day on first open (see runAutoDiscover).
-  const qc = useQueryClient()
-  const discoverStarted = useRef(false)
+  // The morning job makes today's list. If it hasn't run, the first person to
+  // open the screen makes it instead; the database keeps whichever came first.
+  const setDaily = useSetDailyList()
+  const ensuredFor = useRef(null)
   useEffect(() => {
-    if (!data?.placesConfigured || !settings?.auto_discover_enabled || discoverStarted.current) return
-    discoverStarted.current = true
-    runAutoDiscover(settings)
-      .then((r) => {
-        if (!r.ran) return
-        toast.success(r.added ? `البحث الأوتوماتيك لقى ${r.added} عيادة جديدة` : 'البحث الأوتوماتيك خلص — مفيش عيادات جديدة النهارده', { duration: 6000 })
-        qc.invalidateQueries({ queryKey: ['growth'], exact: true })
-      })
-      .catch((e) => toast.error(`البحث الأوتوماتيك: ${e.message}`))
-  }, [data?.placesConfigured, settings, qc])
+    if (!data?.today || !settings || dailyList.length || ensuredFor.current === data.today) return
+    ensuredFor.current = data.today
+    const ids = pickDailyLeads(leads, settings)
+    if (ids.length) setDaily.mutate({ ids, mode: 'ensure' })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data?.today, settings, dailyList.length, leads])
 
   const update = (patch) =>
     setParams((p) => {
@@ -77,6 +73,11 @@ function Growth() {
   // Opening a lead is a page of its own; scroll to the top like a real navigation.
   const open = (id) => {
     update({ lead: id, ltab: null })
+    window.scrollTo(0, 0)
+  }
+
+  const goTab = (key) => {
+    update({ tab: key, lead: null, ltab: null })
     window.scrollTo(0, 0)
   }
 
@@ -132,6 +133,7 @@ function Growth() {
             leads={allLeads}
             partners={partners}
             settings={settings}
+            placesConfigured={data?.placesConfigured}
             tab={params.get('ltab') ?? 'contact'}
             onTab={(t) => update({ ltab: t })}
             onBack={() => update({ lead: null, ltab: null })}
@@ -145,11 +147,11 @@ function Growth() {
           </div>
         ) : (
           <>
-            {tab === 'today' && <QueuePanel leads={leads} settings={settings} onOpen={open} />}
-            {tab === 'leads' && <LeadsPanel leads={allLeads} settings={settings} onOpen={open} />}
-            {tab === 'add' && <AddPanel leads={allLeads} partners={partners} onOpen={open} />}
-            {tab === 'maps' && <PlacesPanel leads={allLeads} configured={data?.placesConfigured} />}
-            {tab === 'partners' && <PartnersPanel leads={allLeads} partners={partners} commissions={commissions} onOpen={open} />}
+            {tab === 'today' && <QueuePanel leads={leads} settings={settings} dailyList={dailyList} runs={data?.runs ?? []} onOpen={open} onTab={goTab} />}
+            {tab === 'leads' && <LeadsPanel leads={allLeads} settings={settings} archivedCount={data?.archivedCount ?? 0} onOpen={open} />}
+            {tab === 'add' && <AddPanel leads={allLeads} partners={partners} onOpen={open} onTab={goTab} />}
+            {tab === 'maps' && <PlacesPanel leads={allLeads} configured={data?.placesConfigured} settings={settings} runs={data?.runs ?? []} />}
+            {tab === 'partners' && <PartnersPanel leads={allLeads} partners={partners} commissions={commissions} rewards={data?.rewards ?? []} settings={settings} onOpen={open} />}
             {tab === 'numbers' && <NumbersPanel leads={leads} />}
             {tab === 'settings' && <SettingsPanel key={settings?.places_calls_count} settings={settings} placesConfigured={data?.placesConfigured} />}
           </>

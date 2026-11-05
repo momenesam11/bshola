@@ -30,6 +30,7 @@ export const SOURCES = [
   { key: 'organic_signup', label: 'تسجيل مباشر', intent: 70, inbound: true },
   { key: 'facebook_group', label: 'جروب فيسبوك', intent: 60, inbound: false },
   { key: 'google_maps_api', label: 'خرائط جوجل (بحث)', intent: 30, inbound: false },
+  { key: 'overture', label: 'Overture Maps', intent: 30, inbound: false },
   { key: 'openstreetmap', label: 'OpenStreetMap', intent: 30, inbound: false },
   { key: 'google_maps_manual', label: 'خرائط جوجل (يدوي)', intent: 30, inbound: false },
   { key: 'import', label: 'استيراد شيت', intent: 30, inbound: false },
@@ -116,6 +117,20 @@ export const PAIN_SIGNALS = [
 // change if the offer changes. Recorded in MARKETING_CLAIMS.md §13.
 export const REFERRAL_REWARD = 'شهر اشتراك مجاني'
 
-export const DEFAULT_WEIGHTS = { fit: 25, intent: 30, pain: 20, activity: 10, contactability: 15 }
+export const REFERRAL_REWARD_DAYS = 30
+
+// Suggested starting terms for a new partner; each partner's own numbers can
+// differ. The reasoning is in docs/growth-engine.md.
+export const PARTNER_DEFAULTS = { signup_bonus_egp: 50, commission_pct: 20 }
+
+export const PAYOUT_METHODS = [
+  { key: 'vodafone_cash', label: 'فودافون كاش' },
+  { key: 'instapay', label: 'إنستاباي' },
+  { key: 'bank', label: 'حساب بنكي' },
+  { key: 'cash', label: 'كاش' },
+  { key: 'other', label: 'تاني' },
+]
+
+export const DEFAULT_WEIGHTS ={ fit: 25, intent: 30, pain: 20, activity: 10, contactability: 15 }
 
 export const DEFAULT_TARGET_AREAS = ['القاهرة', 'الجيزة']

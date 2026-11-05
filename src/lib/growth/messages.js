@@ -133,7 +133,7 @@ export const CALL_SCRIPT = {
 }
 
 /** What to send a partner so they can share Beshola with clinics. */
-export function partnerShareMessage(partner, link, dashboardLink) {
+export function partnerShareMessage(partner, link, dashboardLink, login) {
   const bonus = Number(partner.signup_bonus_egp || 0)
   const pct = Number(partner.commission_pct || 0)
   const terms = [
@@ -145,5 +145,6 @@ export function partnerShareMessage(partner, link, dashboardLink) {
     `ده لينكك الخاص لبسهولة — ابعته لأي عيادة: ${link}`,
     terms ? `ليك ${terms}.` : null,
     dashboardLink ? `ودي لوحتك تتابع منها العيادات اللي جبتها وفلوسك أول بأول (خليها ليك بس): ${dashboardLink}` : null,
+    login ? `ولو فتحت من موبايل تاني: ${login.url} وادخل برقمك والكود ${login.pin}` : null,
   ].filter(Boolean).join('\n')
 }

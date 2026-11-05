@@ -96,6 +96,56 @@ export function referralRewards(leads) {
   }))
 }
 
+/** How each list-building source performs, from adding to paying. */
+export function sourceBoard(leads) {
+  const keys = ['overture', 'openstreetmap', 'google_maps_api', 'google_maps_manual', 'facebook_group', 'import', 'manual']
+  return keys
+    .map((key) => {
+      const rows = leads.filter((l) => l.source === key)
+      return {
+        key,
+        label: SOURCE_BY_KEY[key]?.label ?? key,
+        total: rows.length,
+        mobile: rows.filter((l) => /^201[0125][0-9]{8}$/.test(l.phone ?? '')).length,
+        called: rows.filter(REACHED.contacted).length,
+        trial: rows.filter(REACHED.trial).length,
+        paid: rows.filter(REACHED.paid).length,
+      }
+    })
+    .filter((r) => r.total > 0)
+    .sort((a, b) => b.total - a.total)
+}
+
+/**
+ * District × specialty: how many clinics you have and how many you've reached,
+ * so the gaps show. Busiest districts first.
+ */
+export function coverageMatrix(leads, categories = ['dental', 'derma', 'clinic']) {
+  const byArea = new Map()
+  for (const l of leads) {
+    if (!l.area || !categories.includes(l.category)) continue
+    if (!byArea.has(l.area)) byArea.set(l.area, [])
+    byArea.get(l.area).push(l)
+  }
+  return [...byArea.entries()]
+    .map(([area, rows]) => ({
+      area,
+      total: rows.length,
+      cells: Object.fromEntries(categories.map((c) => [c, rows.filter((l) => l.category === c).length])),
+      reached: rows.filter(REACHED.contacted).length,
+      won: rows.filter((l) => REACHED.trial(l) || REACHED.paid(l)).length,
+    }))
+    .sort((a, b) => b.total - a.total)
+}
+
+/** What a partner earns per clinic on each plan, with their own terms. */
+export function partnerEarnings({ signup_bonus_egp = 0, commission_pct = 0 } = {}, planPrices = { 1: 299, 3: 749, 6: 1200 }) {
+  return Object.entries(planPrices).map(([months, price]) => {
+    const commission = Math.round(Number(price) * Number(commission_pct)) / 100
+    return { months: Number(months), price: Number(price), commission, total: Number(signup_bonus_egp) + commission }
+  })
+}
+
 /** Headline counts for the top of the dashboard. */
 export function headline(leads, now = Date.now()) {
   const weekAgo = now - 7 * 864e5
