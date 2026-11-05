@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { HiOutlineCheckCircle, HiOutlineChevronLeft } from 'react-icons/hi2'
+import useReducedMotion from '../../lib/useReducedMotion'
 
 /**
  * The hero's one bold element: the real booking flow rebuilt in markup,
@@ -129,14 +130,7 @@ export default function BookingPhoneDemo({
   services = SERVICES,
   color = TEAL,
 } = {}) {
-  // Computed once at mount via a lazy initializer rather than set inside an
-  // effect — an effect that calls setState unconditionally on every mount
-  // triggers an avoidable extra render.
-  const [reduced] = useState(
-    () =>
-      typeof window !== 'undefined' &&
-      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-  )
+  const reduced = useReducedMotion()
   const [step, setStep] = useState(0)
   const [paused, setPaused] = useState(false)
   const looping = !reduced && !paused

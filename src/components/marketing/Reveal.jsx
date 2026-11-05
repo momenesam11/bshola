@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import useReducedMotion from '../../lib/useReducedMotion'
 
 /**
  * Scroll-triggered entrance for one block of content.
@@ -22,12 +23,9 @@ export default function Reveal({
   ...rest
 }) {
   const ref = useRef(null)
-  const [reduced] = useState(
-    () =>
-      typeof window !== 'undefined' &&
-      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-  )
-  const [visible, setVisible] = useState(reduced)
+  const reduced = useReducedMotion()
+  const [revealed, setRevealed] = useState(false)
+  const visible = reduced || revealed
   const motionOk = !reduced
 
   useEffect(() => {
@@ -39,10 +37,10 @@ export default function Reveal({
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          setVisible(true)
+          setRevealed(true)
           if (once) observer.disconnect()
         } else if (!once) {
-          setVisible(false)
+          setRevealed(false)
         }
       },
       { threshold: 0.15, rootMargin: '0px 0px -60px 0px' }
