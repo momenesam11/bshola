@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
-import { FaFacebook, FaInstagram, FaTiktok, FaWhatsapp } from 'react-icons/fa'
+import { FaFacebook, FaInstagram, FaPhone, FaTiktok, FaWhatsapp } from 'react-icons/fa'
 import SiteLinks from '../seo/SiteLinks'
-import { SUPPORT_EMAIL, SUPPORT_PHONE_DISPLAY, SUPPORT_WHATSAPP } from '../../lib/support'
+import { SOCIAL_LINKS, SUPPORT_EMAIL, SUPPORT_PHONE_DISPLAY, SUPPORT_PHONE_E164, SUPPORT_WHATSAPP, SUPPORT_WHATSAPP_DISPLAY } from '../../lib/support'
 
 /** Site-wide footer, shared by the homepage and every standalone marketing page. */
 export default function Footer() {
@@ -19,7 +19,7 @@ export default function Footer() {
             <ul className="mt-4 flex items-center gap-2.5">
               <li>
                 <a
-                  href="https://www.facebook.com/profile.php?id=61590803084934"
+                  href={SOCIAL_LINKS.facebook}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="بسهولة على فيسبوك"
@@ -30,7 +30,7 @@ export default function Footer() {
               </li>
               <li>
                 <a
-                  href="https://www.instagram.com/beshola.co"
+                  href={SOCIAL_LINKS.instagram}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="بسهولة على إنستجرام"
@@ -41,7 +41,7 @@ export default function Footer() {
               </li>
               <li>
                 <a
-                  href="https://www.tiktok.com/@beshola.co"
+                  href={SOCIAL_LINKS.tiktok}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="بسهولة على تيك توك"
@@ -68,14 +68,20 @@ export default function Footer() {
             <p className="text-[12.5px] font-bold text-white/80 mb-3">الدعم والتواصل</p>
             <ul className="space-y-2 text-[13px]">
               <li>
+                <a href={`tel:${SUPPORT_PHONE_E164}`} className="inline-flex items-center gap-2 text-white/85 hover:text-white transition-colors">
+                  <FaPhone className="w-3.5 h-3.5" aria-hidden="true" />
+                  اتصال: <span dir="ltr" className="tabular-nums">{SUPPORT_PHONE_DISPLAY}</span>
+                </a>
+              </li>
+              <li>
                 <a
                   href={`https://wa.me/${SUPPORT_WHATSAPP}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-white/85 hover:text-white transition-colors tabular-nums"
-                  dir="ltr"
+                  className="inline-flex items-center gap-2 text-white/85 hover:text-white transition-colors"
                 >
-                  {SUPPORT_PHONE_DISPLAY}
+                  <FaWhatsapp className="w-3.5 h-3.5" aria-hidden="true" />
+                  واتساب: <span dir="ltr" className="tabular-nums">{SUPPORT_WHATSAPP_DISPLAY}</span>
                 </a>
               </li>
               <li>

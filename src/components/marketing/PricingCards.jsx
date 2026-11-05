@@ -16,6 +16,10 @@ import { SUPPORT_WHATSAPP } from '../../lib/support'
  * codebase (MARKETING_CLAIMS.md §7), so the plans differ only in term length
  * and are presented as one feature list plus three terms, not as three tiers
  * with tick-marks withheld.
+ *
+ * "بدلاً من" here is always the monthly plan times the term: a price we really
+ * charge, never an invented one. The price lock is a promise in the terms too
+ * (legalPages.js, MARKETING_CLAIMS.md §7).
  */
 
 const INCLUDED = [
@@ -27,7 +31,9 @@ const INCLUDED = [
   'ملف طبي وروشتة (للعيادات)',
   'تقارير وتصدير CSV وطباعة',
   'أكتر من فرع',
-  'دعم على واتساب بالعامية',
+  'تدريب مجاني على النظام',
+  'دعم بالعامية على واتساب والتليفون',
+  'صيانة وتحديثات من غير رسوم زيادة',
 ]
 
 export default function PricingCards({ id }) {
@@ -36,15 +42,15 @@ export default function PricingCards({ id }) {
   return (
     <Section id={id} tone="paper">
       <SectionHead
-        title="الأسعار"
-        lead="كل الباقات بتفتح النظام بالكامل. الفرق بينها في مدة الاشتراك بس — المدة الأطول سعرها الشهري أقل. ومفيش عمولة على أي حجز، مهما كان عدد حجوزاتك."
+        title="أسعار الإطلاق: اللي يشترك دلوقتي سعره يفضل ثابت"
+        lead="الأسعار دي قليلة عشان عايزين عيادات كتير تجرّب معانا. ممكن تزيد قدام للمشتركين الجداد، بس اللي مشترك يفضل بسعره طول ما بيجدد. كل الباقات بتفتح النظام بالكامل، ومفيش عمولة على أي حجز."
       />
 
       <div className="mt-9 grid sm:grid-cols-3 gap-4">
         {PLANS.map((plan, i) => {
           const perMonth = Math.round(plan.price / plan.months)
           const isBest = plan.months === 6
-          const savingVsMonthly = monthly ? monthly.price - perMonth : 0
+          const fullPrice = monthly ? monthly.price * plan.months : plan.price
 
           return (
             <Reveal
@@ -69,6 +75,12 @@ export default function PricingCards({ id }) {
                 <span className="text-[14px] font-semibold text-ink-soft"> جنيه</span>
               </p>
 
+              {fullPrice > plan.price && (
+                <p className="mt-2 text-[13px] font-semibold text-accent-700 tabular-nums">
+                  بدلاً من <s>{fullPrice.toLocaleString('en-EG')}</s> جنيه · توفّر {(fullPrice - plan.price).toLocaleString('en-EG')} جنيه
+                </p>
+              )}
+
               <p className="mt-2 text-[13px] text-ink-soft tabular-nums">
                 {plan.months === 1
                   ? 'شهرياً · تجديد كل شهر'
@@ -77,12 +89,6 @@ export default function PricingCards({ id }) {
                   // as a mistake to an Arabic reader.
                   : `لمدة ${plan.months} ${plan.months <= 10 ? 'شهور' : 'شهر'} · يعني ${perMonth} جنيه في الشهر`}
               </p>
-
-              {savingVsMonthly > 0 && (
-                <p className="mt-1 text-[12px] font-semibold text-accent-700 tabular-nums">
-                  توفّر {savingVsMonthly} جنيه في الشهر
-                </p>
-              )}
 
               <Link
                 to="/register"
@@ -98,6 +104,18 @@ export default function PricingCards({ id }) {
           )
         })}
       </div>
+
+      <Reveal delay={150} className="mt-6 rounded-2xl bg-ink text-white p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
+        <div>
+          <p className="text-[16px] font-bold">الحق سعر الإطلاق</p>
+          <p className="mt-1 text-[13.5px] leading-[1.8] text-white/85 max-w-[62ch]">
+            لما الأسعار تزيد، هتزيد على الجداد بس. للقديم قديم: سعرك يفضل زي ما هو طول ما بتجدد باقتك من غير انقطاع.
+          </p>
+        </div>
+        <Link to="/register" className="flex-shrink-0 text-center bg-accent-500 hover:bg-accent-600 text-white text-[14px] font-bold px-6 py-3 rounded-xl transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
+          ابدأ دلوقتي
+        </Link>
+      </Reveal>
 
       {/* One shared feature list — the plans are terms, not tiers */}
       <Reveal delay={200} className="mt-8 rounded-2xl border border-rule bg-white p-6 sm:p-7">
