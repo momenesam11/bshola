@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { HiOutlineAcademicCap, HiOutlineArrowTopRightOnSquare, HiOutlineChatBubbleLeftRight, HiOutlineCheck, HiOutlineGlobeAlt, HiOutlineWrenchScrewdriver } from 'react-icons/hi2'
+import { HiOutlineAcademicCap, HiOutlineArrowLeft, HiOutlineArrowTopRightOnSquare, HiOutlineBellAlert, HiOutlineBookOpen, HiOutlineChatBubbleLeftEllipsis, HiOutlineChatBubbleLeftRight, HiOutlineCheck, HiOutlineClipboardDocumentCheck, HiOutlineExclamationTriangle, HiOutlineGlobeAlt, HiOutlinePhoneArrowDownLeft, HiOutlineUserMinus, HiOutlineWrenchScrewdriver } from 'react-icons/hi2'
 import { FaWhatsapp } from 'react-icons/fa'
 
 import Seo from '../../components/seo/Seo'
@@ -9,6 +9,7 @@ import Footer from '../../components/marketing/Footer'
 import FinalCta from '../../components/marketing/FinalCta'
 import { IllustrativeNote, Section, SectionHead } from '../../components/marketing/Section'
 import Reveal from '../../components/marketing/Reveal'
+import CountUp from '../../components/marketing/CountUp'
 import BookingPhoneDemo from '../../components/marketing/BookingPhoneDemo'
 import VideoSection from '../../components/marketing/VideoSection'
 import FeatureTeaser from '../../components/marketing/FeatureTeaser'
@@ -39,9 +40,9 @@ import { DEMO_BOOKING_PATH, SUPPORT_WHATSAPP } from '../../lib/support'
  *    because sending is a manual button press (src/lib/whatsapp.js:1), and the
  *    FAQ explains why rather than hiding it.
  *
- * 2. The visual system is a clinic register, not a SaaS card grid: hairline
- *    rules divide sections, features read down ruled rows, navy is the only
- *    heading colour, and teal is spent only on calls to action.
+ * 2. Beshola's identity (navy, teal, Tajawal) with a different visual idea per
+ *    section, so scrolling never feels like the same block repeated. Text stays
+ *    in the HTML as text; shapes and motion are decoration on top of it.
  *
  * This page is intentionally the *short* entry point: the deep feature
  * breakdown, the interactive tour, the two other explainer videos, and the
@@ -68,18 +69,22 @@ const INCLUDED_SERVICE = [
 
 const PROBLEMS = [
   {
+    Icon: HiOutlinePhoneArrowDownLeft,
     title: 'التليفون مش بيبطّل',
     desc: 'كل واحد بيتصل يسأل على أول موعد فاضي، والريسبشن بيرد على نفس السؤال طول اليوم بدل ما يقضي وقته مع اللي واقف قدامه.',
   },
   {
+    Icon: HiOutlineChatBubbleLeftEllipsis,
     title: 'الحجز بيضيع بين الرسائل',
     desc: 'العميل يبعت على الواتساب 11 بالليل، محدش يرد لحد الصبح، وساعتها يكون لقى مكان تاني أو نسي الموضوع خلاص.',
   },
   {
+    Icon: HiOutlineBookOpen,
     title: 'دفتر المواعيد مش بيقولك حاجة',
     desc: 'مين مجاش الشهر ده؟ مين مجاش من شهرين ومحتاج تفتكره؟ أنهي خدمة جايبة أكبر دخل؟ مفيش مكان فيه الإجابة.',
   },
   {
+    Icon: HiOutlineUserMinus,
     title: 'الغياب بيمر كأنه مش حاصل',
     desc: 'الموعد اللي صاحبه مجاش كان محجوز ومحدش تاني قدر يأخده — والخسارة دي مش مكتوبة في أي ورقة.',
   },
@@ -195,60 +200,61 @@ function Problem() {
     <Section id="problem" tone="paper">
       <SectionHead title="اليوم بيمشي كده دلوقتي" />
 
-      <div className="mt-8 grid lg:grid-cols-12 gap-10">
-        <div className="lg:col-span-7">
-          <div className="border-t border-rule">
-            {PROBLEMS.map((problem, i) => (
-              <Reveal key={problem.title} delay={i * 90} className="py-5 border-b border-rule">
-                <h3 className="text-[15.5px] font-bold text-ink">{problem.title}</h3>
-                <p className="mt-1.5 text-[14.5px] leading-[1.8] text-ink-soft max-w-[62ch]">
-                  {problem.desc}
-                </p>
-              </Reveal>
-            ))}
-          </div>
+      <div className="mt-8 grid lg:grid-cols-12 gap-6 items-start">
+        <div className="lg:col-span-7 grid sm:grid-cols-2 gap-4">
+          {PROBLEMS.map((problem, i) => (
+            <Reveal key={problem.title} delay={i * 90} className="h-full">
+              <div className="group h-full rounded-2xl bg-white border border-rule p-5 transition-all duration-300 hover:-translate-y-1 hover:border-red-200 hover:shadow-lg motion-reduce:hover:translate-y-0">
+                <span className="w-11 h-11 rounded-xl bg-red-50 text-red-600 flex items-center justify-center transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6 motion-reduce:transform-none">
+                  <problem.Icon className="w-6 h-6" aria-hidden="true" />
+                </span>
+                <h3 className="mt-4 text-[16.5px] font-bold text-ink">{problem.title}</h3>
+                <p className="mt-2 text-[14.5px] leading-[1.8] text-ink-soft">{problem.desc}</p>
+              </div>
+            </Reveal>
+          ))}
         </div>
 
         {/* The product's own loss card, with the numbers labelled as an example */}
-        <Reveal as="div" delay={150} className="lg:col-span-5">
-          <div className="rounded-2xl border border-rule overflow-hidden bg-white" dir="rtl">
-            <div className="px-5 py-3 border-b border-rule bg-paper flex items-center justify-between gap-3">
-              <p className="text-[12px] font-bold text-ink">كارت خسارة الشهر</p>
-              <span className="text-[10.5px] font-bold text-ink-soft bg-white border border-rule px-2 py-1 rounded-md">
+        <Reveal as="div" delay={150} className="lg:col-span-5 lg:sticky lg:top-24">
+          <div className="rounded-3xl overflow-hidden bg-ink text-white shadow-2xl" dir="rtl">
+            <div className="px-6 py-4 flex items-center justify-between gap-3 border-b border-white/10">
+              <p className="text-[14px] font-bold">كارت خسارة الشهر</p>
+              <span className="text-[12px] font-bold text-ink bg-white px-2.5 py-1 rounded-full">
                 مثال توضيحي
               </span>
             </div>
-            <div className="grid grid-cols-2">
-              <div className="bg-red-50 px-5 py-5 border-l border-red-100">
-                <p className="text-[11px] font-bold text-red-600">خسرت هذا الشهر</p>
-                <p className="text-[28px] font-bold text-red-600 tabular-nums leading-tight mt-1.5">
-                  3,300
+            <div className="p-5 space-y-3">
+              <div className="rounded-2xl bg-red-500/15 border border-red-400/30 p-5">
+                <p className="text-[13px] font-bold text-red-200">خسرت هذا الشهر</p>
+                <p className="text-[42px] font-extrabold text-white tabular-nums leading-tight mt-1">
+                  <CountUp value={3300} />
                 </p>
-                <p className="text-[11px] text-red-500/80">جنيه · من 11 غياب</p>
+                <p className="text-[13px] text-red-100/90">جنيه · من 11 غياب</p>
               </div>
-              <div className="bg-accent-50 px-5 py-5">
-                <p className="text-[11px] font-bold text-accent-700">وفّرت بالتذكير</p>
-                <p className="text-[28px] font-bold text-accent-700 tabular-nums leading-tight mt-1.5">
-                  32,700
+              <div className="rounded-2xl bg-accent-500/20 border border-accent-400/30 p-5">
+                <p className="text-[13px] font-bold text-accent-200">وفّرت بالتذكير</p>
+                <p className="text-[42px] font-extrabold text-white tabular-nums leading-tight mt-1">
+                  <CountUp value={32700} />
                 </p>
-                <p className="text-[11px] text-accent-600/80">جنيه · من 109 تذكير</p>
+                <p className="text-[13px] text-accent-100/90">جنيه · من 109 تذكير</p>
               </div>
             </div>
           </div>
-          <IllustrativeNote className="mt-3">
+          <IllustrativeNote className="mt-3 !text-[12.5px] !text-ink-soft">
             الأرقام دي مثال ومش بيانات أي عميل. النظام بيحسبها من مواعيدك ومتوسط سعر خدماتك
             انت، وبتلاقيها في صفحة التقارير.
           </IllustrativeNote>
         </Reveal>
       </div>
 
-      {/* The cost line closes the section across its full width — as a column
-          it left a large empty band beside the shorter loss card. */}
-      <Reveal
-        delay={250}
-        className="mt-12 pt-8 border-t border-rule text-[19px] sm:text-[22px] font-bold text-ink leading-[1.6] max-w-[44ch]"
-      >
-        كل عميل ما جاش = حجز ضايع ووقت ضايع.
+      <Reveal delay={250} className="mt-8">
+        <div className="relative overflow-hidden rounded-3xl bg-red-50 border border-red-200 px-6 py-6 sm:px-8 flex items-center gap-4">
+          <span className="w-12 h-12 rounded-2xl bg-red-600 text-white flex items-center justify-center flex-shrink-0">
+            <HiOutlineExclamationTriangle className="w-6 h-6" aria-hidden="true" />
+          </span>
+          <p className="text-[20px] sm:text-[26px] font-bold leading-[1.4] text-ink">كل عميل ما جاش = حجز ضايع ووقت ضايع.</p>
+        </div>
       </Reveal>
     </Section>
   )
@@ -257,16 +263,24 @@ function Problem() {
 /** What comes with every subscription, beyond the software. */
 function IncludedService() {
   return (
-    <Section id="included" tone="paper">
-      <SectionHead title="مش هنسيبك مع النظام لوحدك" lead="كل ده جوه الاشتراك، في كل الباقات." />
-      <div className="mt-8 grid sm:grid-cols-3 gap-x-10 gap-y-7">
-        {INCLUDED_SERVICE.map((item, i) => (
-          <Reveal key={item.title} delay={i * 80}>
-            <item.Icon className="w-6 h-6 text-accent-600" aria-hidden="true" />
-            <h3 className="mt-3 text-[16px] font-bold text-ink">{item.title}</h3>
-            <p className="mt-1.5 text-[14px] leading-[1.8] text-ink-soft">{item.desc}</p>
-          </Reveal>
-        ))}
+    <Section id="included" tone="ink" className="relative overflow-hidden">
+      <span aria-hidden="true" className="pointer-events-none absolute -top-32 -right-24 w-96 h-96 rounded-full bg-accent-500/20 blur-3xl animate-glow-pulse motion-reduce:animate-none" />
+      <span aria-hidden="true" className="pointer-events-none absolute -bottom-40 -left-24 w-96 h-96 rounded-full bg-accent-400/10 blur-3xl animate-glow-pulse motion-reduce:animate-none" />
+      <div className="relative">
+        <SectionHead onDark title="مش هنسيبك مع النظام لوحدك" lead="كل ده جوه الاشتراك، في كل الباقات." />
+        <div className="mt-9 grid sm:grid-cols-3 gap-5">
+          {INCLUDED_SERVICE.map((item, i) => (
+            <Reveal key={item.title} delay={i * 100} className="h-full">
+              <div className="group h-full rounded-3xl bg-white/[0.06] border border-white/10 p-6 sm:p-7 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1.5 hover:bg-white/10 hover:border-accent-400/60 motion-reduce:hover:translate-y-0">
+                <span className="w-14 h-14 rounded-2xl bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center shadow-lg shadow-accent-900/40 transition-transform duration-300 group-hover:scale-110 motion-reduce:group-hover:scale-100">
+                  <item.Icon className="w-7 h-7 text-white" aria-hidden="true" />
+                </span>
+                <h3 className="mt-5 text-[19px] font-bold text-white">{item.title}</h3>
+                <p className="mt-2 text-[15px] leading-[1.8] text-white/80">{item.desc}</p>
+              </div>
+            </Reveal>
+          ))}
+        </div>
       </div>
     </Section>
   )
@@ -275,35 +289,64 @@ function IncludedService() {
 /** The bundle: no fixed price yet, so the only action is to ask. */
 function ClinicWebsiteOffer() {
   return (
-    <Section id="clinic-website" tone="surface">
-      <div className="grid lg:grid-cols-12 gap-8 items-center">
-        <div className="lg:col-span-8">
-          <HiOutlineGlobeAlt className="w-7 h-7 text-accent-600" aria-hidden="true" />
-          <SectionHead
-            title="عايز موقع خاص بعيادتك؟"
-            lead="نصممهولك كامل: موقع باسم عيادتك، بدومين خاص بيها، ومربوط باشتراك بسهولة عشان مرضاك يحجزوا منه على طول. السعر بيتحدد حسب احتياجك، فكلمنا ونديك عرض."
-          />
+    <Section id="clinic-website" tone="paper">
+      <Reveal>
+        <div className="relative overflow-hidden rounded-[2rem] bg-white border border-rule shadow-sm grid lg:grid-cols-2 gap-8 items-center p-6 sm:p-10">
+          <div>
+            <span className="w-14 h-14 rounded-2xl bg-accent-50 text-accent-700 flex items-center justify-center mb-5">
+              <HiOutlineGlobeAlt className="w-7 h-7" aria-hidden="true" />
+            </span>
+            <SectionHead
+              title="عايز موقع خاص بعيادتك؟"
+              lead="نصممهولك كامل: موقع باسم عيادتك، بدومين خاص بيها، ومربوط باشتراك بسهولة عشان مرضاك يحجزوا منه على طول. السعر بيتحدد حسب احتياجك، فكلمنا ونديك عرض."
+            />
+            <a
+              href={`https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent('مرحباً، عايز عرض سعر لموقع خاص بعيادتي مع اشتراك بسهولة')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-6 inline-flex items-center justify-center gap-2 bg-accent-500 hover:bg-accent-600 text-white text-[15px] font-bold px-7 py-4 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] motion-reduce:hover:scale-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+            >
+              <FaWhatsapp className="w-5 h-5" aria-hidden="true" />
+              اطلب عرض سعر على واتساب
+            </a>
+          </div>
+
+          {/* A drawing of a website: shapes only, so nothing reads as a real clinic. */}
+          <div aria-hidden="true" className="relative" dir="ltr">
+            <div className="absolute inset-6 rounded-full bg-accent-300/30 blur-3xl" />
+            <div className="relative rounded-2xl border border-rule bg-white shadow-2xl overflow-hidden animate-float-slow motion-reduce:animate-none">
+              <div className="flex items-center gap-1.5 px-4 py-3 bg-paper border-b border-rule">
+                <span className="w-2.5 h-2.5 rounded-full bg-red-400" />
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+                <span className="w-2.5 h-2.5 rounded-full bg-accent-400" />
+                <span className="ml-3 flex-1 h-5 rounded-full bg-white border border-rule" />
+              </div>
+              <div className="bg-gradient-to-br from-ink to-accent-800 p-6">
+                <div className="h-3 w-1/2 rounded-full bg-white/80" />
+                <div className="mt-3 h-2 w-3/4 rounded-full bg-white/40" />
+                <div className="mt-5 h-8 w-28 rounded-lg bg-accent-400" />
+              </div>
+              <div className="grid grid-cols-3 gap-3 p-5">
+                {[0, 1, 2].map((n) => (
+                  <div key={n} className="rounded-xl border border-rule p-3">
+                    <div className="w-7 h-7 rounded-lg bg-accent-100" />
+                    <div className="mt-3 h-2 rounded-full bg-ink/20" />
+                    <div className="mt-2 h-2 w-2/3 rounded-full bg-ink/10" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="lg:col-span-4">
-          <a
-            href={`https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent('مرحباً، عايز عرض سعر لموقع خاص بعيادتي مع اشتراك بسهولة')}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 bg-accent-500 hover:bg-accent-600 text-white text-[15px] font-bold px-6 py-4 rounded-xl transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
-          >
-            <FaWhatsapp className="w-5 h-5" aria-hidden="true" />
-            اطلب عرض سعر على واتساب
-          </a>
-        </div>
-      </div>
+      </Reveal>
     </Section>
   )
 }
 
 const FEATURED_GUIDES = [
-  'guides/choose-clinic-management-software-egypt',
-  'guides/reduce-patient-no-shows',
-  'guides/whatsapp-appointment-reminder-templates',
+  { slug: 'guides/choose-clinic-management-software-egypt', Icon: HiOutlineClipboardDocumentCheck },
+  { slug: 'guides/reduce-patient-no-shows', Icon: HiOutlineUserMinus },
+  { slug: 'guides/whatsapp-appointment-reminder-templates', Icon: HiOutlineBellAlert },
 ]
 
 /** The home page has the most authority on the site; this passes it to the guides. */
@@ -311,20 +354,28 @@ function GuidesTeaser() {
   return (
     <Section id="guides" tone="paper">
       <SectionHead title="لسه بتقارن؟ ابدأ من هنا" />
-      <ul className="mt-8 border-t border-rule">
-        {FEATURED_GUIDES.map((slug) => {
+      <ul className="mt-8 grid md:grid-cols-3 gap-5">
+        {FEATURED_GUIDES.map(({ slug, Icon }, i) => {
           const guide = GUIDES.find((g) => g.slug === slug)
           return (
-            <li key={slug} className="border-b border-rule">
-              <Link to={`/${slug}`} className="block py-4 text-[15.5px] font-bold text-ink hover:underline">
-                {guide.h1}
+            <Reveal as="li" key={slug} delay={i * 90}>
+              <Link
+                to={`/${slug}`}
+                className="group flex h-full flex-col rounded-3xl bg-white border border-rule p-6 transition-all duration-300 hover:-translate-y-1 hover:border-accent-400 hover:shadow-xl motion-reduce:hover:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+              >
+                <span className="w-12 h-12 rounded-2xl bg-accent-50 text-accent-700 flex items-center justify-center transition-colors duration-300 group-hover:bg-accent-500 group-hover:text-white">
+                  <Icon className="w-6 h-6" aria-hidden="true" />
+                </span>
+                <span className="mt-5 mb-6 text-[17px] font-bold leading-[1.5] text-ink">{guide.h1}</span>
+                <HiOutlineArrowLeft className="mt-auto w-5 h-5 text-accent-600 transition-transform group-hover:-translate-x-1.5 motion-reduce:group-hover:translate-x-0" aria-hidden="true" />
               </Link>
-            </li>
+            </Reveal>
           )
         })}
       </ul>
-      <Link to="/guides" className="inline-block mt-5 text-[14px] font-bold text-accent-700 hover:underline">
+      <Link to="/guides" className="group inline-flex items-center gap-2 mt-7 rounded-full border border-ink/15 bg-white px-5 py-2.5 text-[14px] font-bold text-ink hover:border-accent-500 hover:text-accent-700 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
         كل الأدلة
+        <HiOutlineArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1 motion-reduce:group-hover:translate-x-0" aria-hidden="true" />
       </Link>
     </Section>
   )

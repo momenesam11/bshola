@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { HiOutlinePlay, HiOutlineVideoCamera } from 'react-icons/hi2'
 import { Section, SectionHead } from './Section'
+import Reveal from './Reveal'
 
 // YouTube's max-res thumbnail (1280x720) isn't guaranteed to exist for every
 // video — it needs a source uploaded at least that large. `hqdefault` always
@@ -63,13 +64,16 @@ export default function VideoSection({
 
       <div className="mt-8 sm:mt-10 grid lg:grid-cols-5 gap-8 lg:gap-10 items-start">
         {/* Player */}
-        <div className="lg:col-span-3">
+        <div className="lg:col-span-3 relative">
+          {hasVideo && (
+            <span aria-hidden="true" className="pointer-events-none absolute -inset-4 rounded-[2rem] bg-gradient-to-br from-accent-300/40 via-transparent to-ink/20 blur-2xl" />
+          )}
           {/* A pending asset gets a light dashed frame, not a filled dark block:
               three navy rectangles down the page read as broken rather than
               as work in progress. */}
           <div
-            className={`relative aspect-video w-full overflow-hidden rounded-2xl ${
-              hasVideo ? 'border border-rule bg-ink' : 'border-2 border-dashed border-rule bg-white'
+            className={`relative aspect-video w-full overflow-hidden rounded-3xl ${
+              hasVideo ? 'bg-ink shadow-2xl ring-1 ring-ink/10' : 'border-2 border-dashed border-rule bg-white'
             }`}
           >
             {!hasVideo ? (
@@ -124,8 +128,11 @@ export default function VideoSection({
                 )}
                 <span className="absolute inset-0 bg-ink/25 group-hover:bg-ink/15 transition-colors" />
                 <span className="absolute inset-0 flex items-center justify-center">
-                  <span className="w-16 h-16 rounded-full bg-white/95 flex items-center justify-center shadow-lg transition-transform group-hover:scale-105 motion-reduce:transform-none">
-                    <HiOutlinePlay className="w-7 h-7 text-ink mr-0.5" aria-hidden="true" />
+                  <span className="relative flex items-center justify-center">
+                    <span aria-hidden="true" className="absolute w-20 h-20 rounded-full bg-accent-400/60 animate-ping-slow motion-reduce:hidden" />
+                    <span className="relative w-20 h-20 rounded-full bg-accent-500 flex items-center justify-center shadow-xl transition-transform group-hover:scale-110 motion-reduce:transform-none">
+                      <HiOutlinePlay className="w-9 h-9 text-white mr-0.5" aria-hidden="true" />
+                    </span>
                   </span>
                 </span>
               </button>
@@ -136,26 +143,29 @@ export default function VideoSection({
         {/* Written steps — the text alternative, and what search engines index */}
         <div className="lg:col-span-2">
           {stepsTitle && (
-            <h3 className="text-[13px] font-bold text-ink-soft mb-4">{stepsTitle}</h3>
+            <h3 className="text-[14px] font-bold text-accent-700 mb-5">{stepsTitle}</h3>
           )}
-          <ol className="space-y-4">
+          <ol>
             {steps.map((step, i) => (
-              <li key={step.title} className="flex gap-3">
+              <Reveal as="li" key={step.title} delay={i * 120} className="relative flex gap-4 pb-6 last:pb-0">
+                {i < steps.length - 1 && (
+                  <span aria-hidden="true" className="absolute top-10 bottom-0 right-[19px] w-0.5 bg-gradient-to-b from-accent-400 to-accent-100" />
+                )}
                 <span
-                  className="mt-0.5 flex-shrink-0 w-6 h-6 rounded-full bg-ink text-white text-[11px] font-bold flex items-center justify-center tabular-nums"
+                  className="relative flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-accent-400 to-accent-600 text-white text-[15px] font-bold flex items-center justify-center tabular-nums shadow-md shadow-accent-200"
                   aria-hidden="true"
                 >
                   {i + 1}
                 </span>
-                <div>
-                  <h4 className="text-[14.5px] font-bold text-ink leading-snug">{step.title}</h4>
+                <div className="pt-1.5">
+                  <h4 className="text-[16px] font-bold text-ink leading-snug">{step.title}</h4>
                   {step.desc && (
-                    <p className="mt-1 text-[13.5px] leading-[1.75] text-ink-soft max-w-[46ch]">
+                    <p className="mt-1.5 text-[14px] leading-[1.75] text-ink-soft max-w-[46ch]">
                       {step.desc}
                     </p>
                   )}
                 </div>
-              </li>
+              </Reveal>
             ))}
           </ol>
 
@@ -179,7 +189,7 @@ export default function VideoSection({
                 </a>
               )}
               {cta.note && (
-                <p className="mt-2.5 text-[12px] text-ink-soft/80 leading-relaxed">{cta.note}</p>
+                <p className="mt-2.5 text-[13px] text-ink-soft leading-relaxed">{cta.note}</p>
               )}
             </div>
           )}

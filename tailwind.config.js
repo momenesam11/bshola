@@ -27,6 +27,14 @@ export default {
           '0%, 100%': { opacity: '0.5', transform: 'scale(1)' },
           '50%': { opacity: '0.9', transform: 'scale(1.15)' },
         },
+        shine: {
+          '0%': { transform: 'translateX(-110%)' },
+          '60%, 100%': { transform: 'translateX(320%)' },
+        },
+        pingSlow: {
+          '0%': { transform: 'scale(1)', opacity: '0.7' },
+          '80%, 100%': { transform: 'scale(1.6)', opacity: '0' },
+        },
         drift: {
           '0%, 100%': { transform: 'translate(0, 0)' },
           '33%': { transform: 'translate(20px, -15px)' },
@@ -40,6 +48,8 @@ export default {
         'float-slow': 'floatSlow 6s ease-in-out infinite',
         'glow-pulse': 'glowPulse 6s ease-in-out infinite',
         drift: 'drift 12s ease-in-out infinite',
+        shine: 'shine 5s ease-in-out infinite',
+        'ping-slow': 'pingSlow 2.4s ease-out infinite',
       },
       // Secondary text read too small in the app at Tailwind's 12px.
       fontSize: {
