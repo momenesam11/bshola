@@ -4,12 +4,14 @@ import Modal from '../ui/Modal'
 import Button from '../ui/Button'
 import { Select } from '../ui/Input'
 import { useActivateBusiness, useExtendTrial } from '../../hooks/useAdmin'
+import { LIFETIME_DAYS } from '../../lib/lifetime'
 
 const PAID_DURATIONS = [
   { value: 30, label: 'شهر واحد (30 يوم)' },
   { value: 90, label: '3 شهور (90 يوم)' },
   { value: 180, label: '6 شهور (180 يوم)' },
   { value: 365, label: 'سنة كاملة (365 يوم)' },
+  { value: LIFETIME_DAYS, label: 'مدى الحياة' },
 ]
 
 const TRIAL_EXTENSIONS = [

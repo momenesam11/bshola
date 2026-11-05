@@ -21,6 +21,7 @@ import {
   hasAdminToken,
 } from '../../hooks/useAdmin'
 import ActivateModal from '../../components/admin/ActivateModal'
+import { LIFETIME_CAP, isLifetime } from '../../lib/lifetime'
 import PasswordGate from '../../components/admin/AdminPasswordGate'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
 
@@ -143,6 +144,10 @@ function Dashboard() {
           </div>
         </div>
 
+        <p className="text-sm text-gray-500">
+          اشتراكات مدى الحياة: <b className="text-gray-800 tabular-nums">{businesses.filter((b) => isLifetime(b.trial_ends_at)).length} من {LIFETIME_CAP}</b>
+        </p>
+
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           <StatCard label="إجمالي الحسابات" value={stats.total} />
           <StatCard label="تجارب نشطة" value={stats.activeTrials} />
@@ -238,7 +243,7 @@ function Dashboard() {
                     <td className="px-4 py-3 text-gray-500 text-right" dir="ltr">{b.owner_phone || b.phone || '—'}</td>
                     <td className="px-4 py-3 text-gray-500">{formatDate(b.created_at)}</td>
                     <td className="px-4 py-3">
-                      <div className="text-gray-700">{formatDate(b.trial_ends_at)}</div>
+                      <div className="text-gray-700">{isLifetime(b.trial_ends_at) ? 'مدى الحياة' : formatDate(b.trial_ends_at)}</div>
                       {status === 'trial' && left !== null && (
                         <div className={`text-xs ${left < 3 ? 'text-amber-500' : 'text-gray-400'}`}>باقي {left} يوم</div>
                       )}

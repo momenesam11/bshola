@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { ALL_MARKETING_PAGES } from '../content/marketingPages'
 import { GUIDES } from '../content/guides'
+import { PLANS } from './seo'
 
 const read = (f) => readFileSync(new URL(`../../${f}`, import.meta.url), 'utf8')
 const appRoutes = [...read('src/App.jsx').matchAll(/path="([^"]+)"/g)].map((m) => m[1])
@@ -25,6 +26,16 @@ describe('every route reaches the browser', () => {
   it('no rewrite would shadow a prerendered page', () => {
     const pages = [...prerendered.filter((p) => p !== '*'), ...ALL_MARKETING_PAGES.map((p) => `/${p.slug}`)]
     expect(pages.filter(covered)).toEqual([])
+  })
+})
+
+describe('launch prices', () => {
+  it('every plan saves the 25% the page promises, against a round later price', () => {
+    for (const p of PLANS) {
+      expect(p.regularPrice, p.name).toBeGreaterThan(p.price)
+      expect(Math.round((1 - p.price / p.regularPrice) * 100), p.name).toBe(25)
+      expect(p.regularPrice % 100, p.name).toBe(99)
+    }
   })
 })
 
