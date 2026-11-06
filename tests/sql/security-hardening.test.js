@@ -67,6 +67,7 @@ async function setup({ lock = true } = {}) {
   await db.exec(readSql('supabase/migrations/023_fix_rls_self_reference_and_capacity_lock.sql'))
   await db.exec(readSql('supabase/migrations/024_fix_capacity_trigger_rls_blindness.sql'))
   await db.exec(readSql('supabase/migrations/039_security_hardening.sql'))
+  await db.exec(readSql('supabase/migrations/041_raise_booking_cap.sql'))
   if (lock) await db.exec(readSql('supabase/migrations/040_lock_business_reads.sql'))
   // Supabase grants these by default on public tables; RLS is what restricts them.
   await db.exec(`
@@ -78,10 +79,11 @@ async function setup({ lock = true } = {}) {
   const business = await createBusiness(db, ownerId, { booking_slug: 'alamal', owner_phone: '01099999999', public_phone: '0220000000' })
   const branch = await one(db, 'INSERT INTO branches (business_id) VALUES ($1) RETURNING id', [business.id])
   const service = await one(db, 'INSERT INTO services (business_id) VALUES ($1) RETURNING id', [business.id])
-  return { db, ownerId, business, branch, service }
+  // From the database, not the JS clock: around midnight the two can disagree on
+  // the date, and bookings for a day the database sees as past are refused.
+  const { today } = await one(db, 'SELECT CURRENT_DATE::text AS today')
+  return { db, ownerId, business, branch, service, today }
 }
-
-const today = () => new Date().toISOString().slice(0, 10)
 
 function book(tx, ctx, fields = {}) {
   const row = {
@@ -90,7 +92,7 @@ function book(tx, ctx, fields = {}) {
     service_id: ctx.service.id,
     client_name: 'مريض تجربة',
     client_phone: '01000000001',
-    appointment_date: today(),
+    appointment_date: ctx.today,
     appointment_time: '10:00',
     status: 'confirmed',
     ...fields,
@@ -160,7 +162,7 @@ describe('booked slots on the public page', () => {
   it('shows a booked time as counts only', async () => {
     const ctx = await setup()
     await bookAsVisitor(ctx)
-    const { rows } = await as(ctx.db, 'anon', (tx) => tx.query('SELECT * FROM public_booked_slots($1, $2, $3)', [ctx.business.id, today(), ctx.branch.id]))
+    const { rows } = await as(ctx.db, 'anon', (tx) => tx.query('SELECT * FROM public_booked_slots($1, $2, $3)', [ctx.business.id, ctx.today, ctx.branch.id]))
     expect(rows).toEqual([{ slot_time: '10:00', booked: 1 }])
   })
 
@@ -174,7 +176,7 @@ describe('booked slots on the public page', () => {
   it('ignores waitlist entries and past days', async () => {
     const ctx = await setup()
     await bookAsVisitor(ctx, { status: 'waitlist' })
-    const now = await as(ctx.db, 'anon', (tx) => tx.query('SELECT * FROM public_booked_slots($1, $2)', [ctx.business.id, today()]))
+    const now = await as(ctx.db, 'anon', (tx) => tx.query('SELECT * FROM public_booked_slots($1, $2)', [ctx.business.id, ctx.today]))
     expect(now.rows).toEqual([])
     await ctx.db.query(`INSERT INTO appointments (business_id, branch_id, client_phone, appointment_date) VALUES ($1, $2, '01000000009', CURRENT_DATE - 30)`, [ctx.business.id, ctx.branch.id])
     const old = await as(ctx.db, 'anon', (tx) => tx.query(`SELECT * FROM public_booked_slots($1, (CURRENT_DATE - 30)::date)`, [ctx.business.id]))
@@ -227,10 +229,14 @@ describe('public booking rules', () => {
 
   it('caps bookings from one address per business, without touching other addresses', async () => {
     const ctx = await setup()
-    await ctx.db.query('UPDATE branches SET capacity = 100')
-    for (let i = 0; i < 20; i++) {
-      await bookAsVisitor(ctx, { client_phone: `0100000${1000 + i}` })
-    }
+    await ctx.db.query('UPDATE branches SET capacity = 1000')
+    const seed = (count) => ctx.db.query(
+      `INSERT INTO appointments (business_id, branch_id, client_phone, booking_ip_hash)
+       SELECT $1, $2, '0109' || lpad(n::text, 7, '0'), md5('1.1.1.1') FROM generate_series(1, ${count}) n`,
+      [ctx.business.id, ctx.branch.id]
+    )
+    await seed(59)
+    await bookAsVisitor(ctx, { client_phone: '01000001999' })
     await expect(bookAsVisitor(ctx, { client_phone: '01000002000' })).rejects.toThrow(/RATE_LIMITED/)
     await bookAsVisitor(ctx, { client_phone: '01000002001' }, '2.2.2.2')
   })

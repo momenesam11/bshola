@@ -37,9 +37,12 @@ export async function adminLogin(password) {
   const { data, error } = await supabaseAdmin.functions.invoke('admin', {
     body: { action: 'login', password },
   })
-  if (error || !data?.success) return null
+  // 429 means too many failed attempts from this network, even if this password
+  // is right. The caller has to say so, or it reads as a wrong password.
+  if (error?.context?.status === 429) return { locked: true }
+  if (error || !data?.success) return {}
   sessionStorage.setItem(TOKEN_KEY, data.token)
-  return data.token
+  return { token: data.token }
 }
 
 export function useAdminBusinesses() {
