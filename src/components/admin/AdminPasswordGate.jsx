@@ -6,16 +6,18 @@ import { adminLogin } from '../../hooks/useAdmin'
 export default function PasswordGate({ onAuthenticated }) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState(false)
+  const [locked, setLocked] = useState(false)
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e) {
     e.preventDefault()
     setLoading(true)
-    const token = await adminLogin(password)
+    const { token, locked: isLocked } = await adminLogin(password)
     setLoading(false)
+    setLocked(!!isLocked)
     if (token) {
       onAuthenticated()
-    } else {
+    } else if (!isLocked) {
       setError(true)
       setTimeout(() => setError(false), 500)
     }
@@ -42,6 +44,7 @@ export default function PasswordGate({ onAuthenticated }) {
           className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-accent-400 focus:border-accent-400"
         />
         {error && <p className="text-xs text-red-500 mt-2">كلمة السر غلط</p>}
+        {locked && <p className="text-xs text-red-500 mt-2">محاولات كتير من الشبكة دي. جرّب تاني بعد 15 دقيقة، أو ادخل من شبكة تانية.</p>}
         <button
           type="submit"
           disabled={loading}
