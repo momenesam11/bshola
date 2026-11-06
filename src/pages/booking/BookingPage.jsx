@@ -256,6 +256,12 @@ export default function BookingPage() {
         qc.invalidateQueries({ queryKey: ['booked-slots', business.id] })
         setStep(STEP_DATETIME)
         toast.error('عذراً، تم حجز هذا الموعد للتو من شخص آخر. اختر وقتاً آخر')
+      } else if (e.message?.includes('BOOKING_LIMIT')) {
+        setLimitError('عندك بالفعل أقصى عدد حجوزات مسموح (2). لازم تنهي أو تلغي حجز قبل ما تحجز تاني')
+      } else if (e.message?.includes('RATE_LIMITED')) {
+        toast.error('حجوزات كتير من نفس الشبكة. جرّب تاني بعد شوية، أو كلّم المكان مباشرة')
+      } else if (e.message?.includes('INVALID_BOOKING')) {
+        toast.error('راجع الاسم ورقم الموبايل وجرّب تاني')
       } else {
         toast.error('حدث خطأ أثناء الحجز: ' + e.message)
       }

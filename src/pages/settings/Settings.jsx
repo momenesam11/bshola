@@ -375,7 +375,7 @@ function IdentitySection({ business, onSaved }) {
     clearTimeout(slugTimer.current)
     slugTimer.current = setTimeout(async () => {
       if (!clean || clean === business?.booking_slug) { setSlugStatus(null); return }
-      const { data } = await supabase.from('businesses').select('id').eq('booking_slug', clean).maybeSingle()
+      const { data } = await supabase.rpc('booking_slug_taken', { p_slug: clean })
       setSlugStatus(data ? 'taken' : 'available')
     }, 600)
   }
