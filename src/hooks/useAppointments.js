@@ -164,23 +164,23 @@ export function useBookedSlotCounts(businessId, date, branchId) {
     queryKey: ['booked-slots', businessId, date, branchId],
     queryFn: async () => {
       if (!businessId || !date) return {}
-      let q = supabase
-        .from('appointments')
-        .select('appointment_time')
-        .eq('business_id', businessId)
-        .eq('appointment_date', date)
-        .in('status', ['confirmed'])
-      if (branchId) q = q.eq('branch_id', branchId)
-      const { data, error } = await q
+      // Visitors can't read appointments, so a direct select always came back
+      // empty and every slot looked free. This returns times and counts only.
+      const { data, error } = await supabase.rpc('public_booked_slots', {
+        p_business_id: businessId,
+        p_date: date,
+        p_branch_id: branchId ?? null,
+      })
       if (error) throw error
       const counts = {}
-      for (const r of data) {
-        const t = r.appointment_time.slice(0, 5)
-        counts[t] = (counts[t] || 0) + 1
-      }
+      for (const r of data) counts[r.slot_time] = r.booked
       return counts
     },
     enabled: !!businessId && !!date,
+    // Realtime respects the same read rules, so visitors get no live events.
+    // Polling is what keeps an open booking page current.
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
   })
 }
 

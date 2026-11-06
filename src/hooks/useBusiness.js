@@ -115,23 +115,15 @@ export function usePublicBusiness(slug) {
   return useQuery({
     queryKey: ['public-business', slug],
     queryFn: async () => {
-      // Try by booking_slug first, then by id (backward compat)
-      let { data, error } = await supabase
-        .from('businesses')
-        .select('id, name, type, working_hours, slot_duration, logo_url, cover_url, brand_color, bio, specialty, years_experience, welcome_message, cancellation_policy, instagram_url, facebook_url, google_reviews_url, booking_slug, public_phone, is_active, trial_ends_at, subscription_type')
-        .eq('booking_slug', slug)
-        .maybeSingle()
-      if (!data) {
-        const res = await supabase
-          .from('businesses')
-          .select('id, name, type, working_hours, slot_duration, logo_url, cover_url, brand_color, bio, specialty, years_experience, welcome_message, cancellation_policy, instagram_url, facebook_url, google_reviews_url, booking_slug, public_phone, is_active, trial_ends_at, subscription_type')
-          .eq('id', slug)
-          .maybeSingle()
-        data = res.data
-        error = res.error
-      }
+      // Looks up booking_slug first, then id. Goes through a function because
+      // visitors can't read the businesses table: it holds private columns.
+      const { data, error } = await supabase.rpc('public_business_profile', { p_ref: slug })
       if (error) throw error
-      return data
+      const row = data?.[0]
+      if (!row) return null
+      // The function reports only locked/not locked, never subscription dates.
+      const { is_locked, ...business } = row
+      return { ...business, is_active: !is_locked, trial_ends_at: null }
     },
     enabled: !!slug,
   })

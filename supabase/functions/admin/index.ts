@@ -26,6 +26,17 @@ function json(body: unknown, status = 200) {
 }
 
 const SESSION_TTL_HOURS = 8
+const MAX_FAILED_LOGINS = 5
+const LOCK_MINUTES = 15
+
+async function clientIpHash(req: Request) {
+  const ip = req.headers.get('cf-connecting-ip')
+    ?? req.headers.get('x-real-ip')
+    ?? req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+    ?? 'unknown'
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(ip))
+  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('')
+}
 
 async function requireSession(supabase: ReturnType<typeof createClient>, token: string | undefined) {
   if (!token) return false
@@ -56,9 +67,23 @@ serve(async (req) => {
 
   if (action === 'login') {
     const password = (body as { password?: string }).password
+    const ipHash = await clientIpHash(req)
+    const since = new Date(Date.now() - LOCK_MINUTES * 60 * 1000).toISOString()
+    const { count, error: countError } = await supabase
+      .from('admin_login_attempts')
+      .select('id', { count: 'exact', head: true })
+      .eq('ip_hash', ipHash)
+      .gt('created_at', since)
+    if (countError) return json({ success: false, error: countError.message }, 500)
+    if ((count ?? 0) >= MAX_FAILED_LOGINS) {
+      return json({ success: false, error: `محاولات كتير. جرّب تاني بعد ${LOCK_MINUTES} دقيقة` }, 429)
+    }
     if (!password || password !== Deno.env.get('ADMIN_DASHBOARD_PASSWORD')) {
+      await supabase.from('admin_login_attempts').insert({ ip_hash: ipHash })
       return json({ success: false, error: 'كلمة السر غلط' }, 401)
     }
+    await supabase.from('admin_login_attempts').delete().lt('created_at', since)
+    await supabase.from('admin_login_attempts').delete().eq('ip_hash', ipHash)
     const { data, error } = await supabase
       .from('admin_sessions')
       .insert({ expires_at: new Date(Date.now() + SESSION_TTL_HOURS * 60 * 60 * 1000).toISOString() })
