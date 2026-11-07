@@ -17,7 +17,7 @@ import { MEDICAL_TYPES } from '../../utils/constants'
 import RetargetModal from './RetargetModal'
 import ClientPlanTab from './ClientPlanTab'
 import ClientLedgerTab from './ClientLedgerTab'
-import { currencyFor, formatMoney } from '../../lib/countries'
+import { currencyFor, displayPhone, formatMoney } from '../../lib/countries'
 
 function Avatar({ name }) {
   return (
@@ -104,7 +104,7 @@ export default function ClientProfileDrawer({ client, businessId, business, onCl
                 {profile?.name || client.name}
               </h2>
               <div className="flex items-center gap-2 mt-1">
-                <span className="text-sm text-slate-500" dir="ltr">{client.phone}</span>
+                <span className="text-sm text-slate-500" dir="ltr">{displayPhone(client.phone) || client.phone}</span>
                 <button onClick={copyPhone} className="text-slate-400 hover:text-accent-600 transition-colors">
                   {copied
                     ? <HiOutlineCheck className="w-4 h-4 text-accent-500" />

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { COUNTRIES, CURRENCIES, displayPhone, formatMoney, isValidPhone, joinPhone, phoneDigits, phoneFromInput, splitPhone, telHref } from './countries'
+import { COUNTRIES, CURRENCIES, displayPhone, formatMoney, isValidPhone, joinPhone, phoneDigits, phoneFromInput, phoneMatches, splitPhone, telHref } from './countries'
 import { phoneSchema, bookingClientSchema } from './validators'
 
 describe('phone numbers', () => {
@@ -66,6 +66,18 @@ describe('phone numbers', () => {
     expect(phoneSchema().safeParse('').success).toBe(false)
     expect(bookingClientSchema.safeParse({ client_name: 'سارة', client_phone: '96551234567' }).success).toBe(true)
     expect(bookingClientSchema.safeParse({ client_name: 'سارة', client_phone: '9655123' }).success).toBe(false)
+  })
+
+  it('finds a patient by either way of writing the number', () => {
+    expect(phoneMatches('201012345678', '01012345678')).toBe(true)
+    expect(phoneMatches('201012345678', '٠١٠١٢')).toBe(true)
+    expect(phoneMatches('201012345678', '2010123')).toBe(true)
+    expect(phoneMatches('201012345678', '5678')).toBe(true)
+    expect(phoneMatches('01012345678', '01012345678')).toBe(true)
+    expect(phoneMatches('966501234567', '050')).toBe(false)
+    expect(phoneMatches('966501234567', '50123')).toBe(true)
+    expect(phoneMatches('201012345678', 'سارة')).toBe(false)
+    expect(phoneMatches(null, '010')).toBe(false)
   })
 
   it('shows and dials numbers correctly', () => {

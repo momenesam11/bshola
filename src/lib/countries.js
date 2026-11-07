@@ -142,6 +142,13 @@ export function displayPhone(raw) {
   return known ? `+${known.dial} ${national}` : `+${national}`
 }
 
+/** Reception types 010..., the database holds 2010...: both have to find the patient. */
+export function phoneMatches(stored, query) {
+  const q = phoneDigits(query)
+  if (!q) return false
+  return phoneDigits(stored).includes(q) || phoneDigits(displayPhone(stored)).includes(q)
+}
+
 export function telHref(raw) {
   const { country, national } = splitPhone(raw)
   const known = countryByCode(country)
