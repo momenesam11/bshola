@@ -12,47 +12,55 @@
 --     by script could hide an allergy or attach it to the wrong person, so all of
 --     that patient's rows stay as they are, and the result below counts them.
 -- No appointment trigger fires on this: they all depend on status or time changing.
+--
+-- All the work is one DO statement on purpose, so it either finishes or changes
+-- nothing. The Supabase SQL Editor doesn't keep BEGIN ... COMMIT together: an earlier
+-- version failed here with "relation does not exist" on its temporary table, yet its
+-- CREATE TABLE stayed. That run changed no numbers and left phone_unify_log empty,
+-- which this version reuses.
 
-BEGIN;
-
--- Holds each row's previous value so the rollback can restore it. Patient phones
--- live here, so nobody but the database owner can read it.
-CREATE TABLE IF NOT EXISTS phone_unify_log (
-  id bigserial PRIMARY KEY,
-  table_name text NOT NULL,
-  row_id uuid NOT NULL,
-  action text NOT NULL CHECK (action IN ('update', 'delete', 'merge_target')),
-  old_phone text,
-  old_row jsonb,
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-ALTER TABLE phone_unify_log ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON phone_unify_log FROM anon, authenticated;
-
-CREATE OR REPLACE FUNCTION pg_temp.unified_phone(p text) RETURNS text
-LANGUAGE sql IMMUTABLE AS $$
-  SELECT CASE
-    WHEN p ~ '^01[0125][0-9]{8}$' THEN '20' || substr(p, 2)
-    WHEN p ~ '^1[0125][0-9]{8}$' THEN '20' || p
-  END
-$$;
-
--- Patients whose medical record would collide, under either older format.
-CREATE TEMP TABLE phone_unify_skipped ON COMMIT DROP AS
-  SELECT old.business_id, pg_temp.unified_phone(old.client_phone) AS new_phone
-  FROM patient_records old
-  JOIN patient_records other
-    ON other.business_id = old.business_id
-   AND other.id <> old.id
-   AND coalesce(pg_temp.unified_phone(other.client_phone), other.client_phone) = pg_temp.unified_phone(old.client_phone)
-  WHERE pg_temp.unified_phone(old.client_phone) IS NOT NULL;
-
--- The tables that only need the number rewritten. Checked one by one, because the
--- live database can differ from the migration files.
-DO $$
+DO $migration$
 DECLARE
+  -- The new number for a stored one, or NULL if it isn't an Egyptian mobile.
+  unified CONSTANT text := $sql$CASE
+      WHEN %1$s ~ '^01[0125][0-9]{8}$' THEN '20' || substr(%1$s, 2)
+      WHEN %1$s ~ '^1[0125][0-9]{8}$' THEN '20' || %1$s
+    END$sql$;
+  new_phone text := format(unified, 'r.client_phone');
+  skipped text[];
   t text;
+  c clients%ROWTYPE;
+  target clients%ROWTYPE;
+  v_new text;
 BEGIN
+  -- Holds each row's previous value so the rollback can restore it. Patient phones
+  -- live here, so nobody but the database owner can read it.
+  CREATE TABLE IF NOT EXISTS phone_unify_log (
+    id bigserial PRIMARY KEY,
+    table_name text NOT NULL,
+    row_id uuid NOT NULL,
+    action text NOT NULL CHECK (action IN ('update', 'delete', 'merge_target')),
+    old_phone text,
+    old_row jsonb,
+    created_at timestamptz NOT NULL DEFAULT now()
+  );
+  ALTER TABLE phone_unify_log ENABLE ROW LEVEL SECURITY;
+  REVOKE ALL ON phone_unify_log FROM anon, authenticated;
+
+  -- Patients whose medical record would collide, under either older format.
+  EXECUTE format($sql$
+    SELECT coalesce(array_agg(DISTINCT r.business_id::text || '|' || %1$s), '{}')
+    FROM patient_records r
+    JOIN patient_records other
+      ON other.business_id = r.business_id
+     AND other.id <> r.id
+     AND coalesce(%2$s, other.client_phone) = %1$s
+    WHERE %1$s IS NOT NULL
+  $sql$, new_phone, format(unified, 'other.client_phone'))
+  INTO skipped;
+
+  -- The tables that only need the number rewritten. Checked one by one, because the
+  -- live database can differ from the migration files.
   FOREACH t IN ARRAY ARRAY['appointments', 'patient_records', 'diagnoses', 'prescriptions',
                            'medical_attachments', 'client_plans', 'client_ledger_entries']
   LOOP
@@ -63,41 +71,23 @@ BEGIN
       INSERT INTO phone_unify_log (table_name, row_id, action, old_phone)
       SELECT %1$L, r.id, 'update', r.client_phone
       FROM public.%1$I r
-      WHERE pg_temp.unified_phone(r.client_phone) IS NOT NULL
-        AND NOT EXISTS (
-          SELECT 1 FROM phone_unify_skipped s
-          WHERE s.business_id = r.business_id AND s.new_phone = pg_temp.unified_phone(r.client_phone)
-        )
-    $sql$, t);
+      WHERE %2$s IS NOT NULL AND NOT (r.business_id::text || '|' || %2$s) = ANY ($1)
+    $sql$, t, new_phone) USING skipped;
     EXECUTE format($sql$
       UPDATE public.%1$I r
-      SET client_phone = pg_temp.unified_phone(r.client_phone)
-      WHERE pg_temp.unified_phone(r.client_phone) IS NOT NULL
-        AND NOT EXISTS (
-          SELECT 1 FROM phone_unify_skipped s
-          WHERE s.business_id = r.business_id AND s.new_phone = pg_temp.unified_phone(r.client_phone)
-        )
-    $sql$, t);
+      SET client_phone = %2$s
+      WHERE %2$s IS NOT NULL AND NOT (r.business_id::text || '|' || %2$s) = ANY ($1)
+    $sql$, t, new_phone) USING skipped;
   END LOOP;
-END;
-$$;
 
--- clients has one row per number, and bookings create it automatically, so someone
--- who booked under both formats has two. These hold only a name, notes and tags, so
--- they merge safely: notes and tags move across and nothing is lost.
-DO $$
-DECLARE
-  c clients%ROWTYPE;
-  target clients%ROWTYPE;
-  v_new text;
-BEGIN
+  -- clients has one row per number, and bookings create it automatically, so someone
+  -- who booked under both formats has two. These hold only a name, notes and tags, so
+  -- they merge safely: notes and tags move across and nothing is lost.
   FOR c IN
-    SELECT * FROM clients
-    WHERE pg_temp.unified_phone(phone) IS NOT NULL
-    ORDER BY created_at, id
+    SELECT * FROM clients WHERE phone ~ '^(01|1)[0125][0-9]{8}$' ORDER BY created_at, id
   LOOP
-    v_new := pg_temp.unified_phone(c.phone);
-    IF EXISTS (SELECT 1 FROM phone_unify_skipped s WHERE s.business_id = c.business_id AND s.new_phone = v_new) THEN
+    v_new := '20' || regexp_replace(c.phone, '^0', '');
+    IF (c.business_id::text || '|' || v_new) = ANY (skipped) THEN
       CONTINUE;
     END IF;
 
@@ -116,9 +106,7 @@ BEGIN
     END IF;
   END LOOP;
 END;
-$$;
-
-COMMIT;
+$migration$;
 
 -- Totals only, with no patient data.
 SELECT
