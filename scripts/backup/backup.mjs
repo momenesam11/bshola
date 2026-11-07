@@ -10,7 +10,7 @@ import { Readable } from 'node:stream'
 import {
   backupFileName, backupsToDelete, COUNTS_SQL, decryptFileToBuffer, encryptBufferToFile,
   encryptStreamToFile, findPgBin, listBucketFiles, loadBackupConfig, parseCounts,
-  pgEnvFromUrl, planFileSync,
+  pgEnvFromUrl, planFileSync, planRemoteUpload, remoteToDelete,
 } from './lib.mjs'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
@@ -90,6 +90,40 @@ async function backupFiles(config, filesDir, now) {
   return { total: Object.keys(nextIndex).length, downloaded, removed: remove.length }
 }
 
+function gh(args) {
+  const r = spawnSync('gh', args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
+  if (r.status !== 0) throw new Error(`GitHub upload failed: ${String(r.stderr || r.error).trim().slice(0, 500)}`)
+  return r.stdout
+}
+
+const remoteAssets = (repo, tag) =>
+  gh(['release', 'view', tag, '--repo', repo, '--json', 'assets', '--jq', '.assets[].name']).split(/\r?\n/).filter(Boolean)
+
+/** Sends the encrypted files off this computer. They are already encrypted here. */
+function uploadOffsite(config, dbDir, filesDir) {
+  const repo = config.BACKUP_GITHUB_REPO
+  // The files are encrypted, but they still never go to a repo anyone can read.
+  const visibility = gh(['repo', 'view', repo, '--json', 'visibility', '--jq', '.visibility']).trim()
+  if (visibility !== 'PRIVATE') throw new Error(`${repo} is not private (${visibility}). Nothing was uploaded.`)
+  const dbRemote = remoteAssets(repo, 'db')
+  const dbNew = planRemoteUpload(readdirSync(dbDir), dbRemote)
+  for (const name of dbNew) gh(['release', 'upload', 'db', join(dbDir, name), '--repo', repo])
+  const after = [...dbRemote, ...dbNew]
+  const stale = remoteToDelete(after, config.BACKUP_KEEP)
+  for (const name of stale) gh(['release', 'delete-asset', 'db', name, '--repo', repo, '-y'])
+
+  const filesRemote = remoteAssets(repo, 'files')
+  const filesLocal = readdirSync(filesDir)
+  const filesNew = planRemoteUpload(filesLocal.filter((n) => n !== 'index.json.enc'), filesRemote)
+  for (const name of filesNew) gh(['release', 'upload', 'files', join(filesDir, name), '--repo', repo])
+  // The list of files changes every run, so it replaces the previous copy.
+  gh(['release', 'upload', 'files', join(filesDir, 'index.json.enc'), '--repo', repo, '--clobber'])
+  const gone = filesRemote.filter((n) => n !== 'index.json.enc' && !filesLocal.includes(n))
+  for (const name of gone) gh(['release', 'delete-asset', 'files', name, '--repo', repo, '-y'])
+
+  return { db: dbNew.length, files: filesNew.length, removed: stale.length + gone.length }
+}
+
 async function main() {
   const config = loadBackupConfig(ROOT)
   const dir = config.BACKUP_DIR
@@ -112,6 +146,11 @@ async function main() {
 
     const files = await backupFiles(config, filesDir, started.getTime())
     logLine(`files ok: ${files.total} kept, ${files.downloaded} new or changed, ${files.removed} removed`)
+
+    if (config.BACKUP_GITHUB_REPO) {
+      const sent = uploadOffsite(config, dbDir, filesDir)
+      logLine(`off-site ok: ${sent.db} database files and ${sent.files} files sent, ${sent.removed} old removed`)
+    }
 
     // Only after a fully successful run, so failures never eat into good backups.
     for (const old of backupsToDelete(readdirSync(dbDir), config.BACKUP_KEEP)) {

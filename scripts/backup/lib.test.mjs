@@ -6,7 +6,7 @@ import { Readable } from 'node:stream'
 import {
   backupFileName, backupsToDelete, compareCounts, decryptFileToBuffer, encryptBufferToFile,
   encryptStreamToFile, fileKey, listBucketFiles, parseCounts, parseEnv,
-  pgEnvFromUrl, planFileSync,
+  pgEnvFromUrl, planFileSync, planRemoteUpload, remoteToDelete,
 } from './lib.mjs'
 
 describe('encryption', () => {
@@ -139,6 +139,23 @@ describe('file sync', () => {
   it('fails loudly when listing fails instead of treating files as deleted', async () => {
     const fake = async () => ({ ok: false, status: 500 })
     await expect(listBucketFiles(fake, 'https://x', 'k', 'bucket')).rejects.toThrow(/500/)
+  })
+})
+
+describe('off-site copy', () => {
+  const name = (d) => `beshola-2026-11-${d}_1300.dump.enc`
+
+  it('sends only what is missing, and never a half-written file', () => {
+    expect(planRemoteUpload(['a.enc', 'b.enc', 'c.enc.part'], ['a.enc'])).toEqual(['b.enc'])
+  })
+
+  it('removes old off-site backups along with their count files', () => {
+    const remote = [name('01'), `${name('01')}.counts.json`, name('02'), `${name('02')}.counts.json`, name('03')]
+    expect(remoteToDelete(remote, 2).sort()).toEqual([name('01'), `${name('01')}.counts.json`].sort())
+  })
+
+  it('keeps everything when there are fewer backups than the limit', () => {
+    expect(remoteToDelete([name('01'), `${name('01')}.counts.json`], 30)).toEqual([])
   })
 })
 

@@ -128,6 +128,9 @@ function isLocalUrl(url) {
 /** Newest PostgreSQL install on Windows, otherwise whatever is on PATH. */
 export function findPgBin(configured) {
   if (configured) return configured
+  // The portable copy comes first: nothing else on this machine depends on it.
+  const portable = 'E:\\beshola-tools\\pgsql\\bin'
+  if (existsSync(join(portable, 'pg_dump.exe'))) return portable
   const base = 'C:\\Program Files\\PostgreSQL'
   if (!existsSync(base)) return ''
   const versions = readdirSync(base).filter((v) => /^\d+$/.test(v)).sort((a, b) => Number(b) - Number(a))
@@ -198,6 +201,22 @@ export function planFileSync(remote, index, now, keepDays) {
 /** Database backups to delete: everything past the newest `keep`. Names sort by date. */
 export function backupsToDelete(names, keep) {
   return names.filter((n) => /^beshola-.*\.dump\.enc$/.test(n)).sort().reverse().slice(Math.max(keep, 1))
+}
+
+/**
+ * What to send to the off-site copy: anything local that isn't there yet, except
+ * half-written files. A local file is never removed because of this plan.
+ */
+export function planRemoteUpload(localNames, remoteNames) {
+  const remote = new Set(remoteNames)
+  return localNames.filter((n) => !n.endsWith('.part') && !remote.has(n))
+}
+
+/** Off-site database backups past the newest `keep`, with their count files. */
+export function remoteToDelete(remoteNames, keep) {
+  const old = backupsToDelete(remoteNames, keep)
+  const countFiles = old.map((n) => `${n}.counts.json`).filter((n) => remoteNames.includes(n))
+  return [...old, ...countFiles]
 }
 
 export function backupFileName(date) {
