@@ -8,6 +8,7 @@ import {
 } from 'react-icons/hi2'
 import BookingPhoneDemo from './BookingPhoneDemo'
 import { IllustrativeNote, Section, SectionHead } from './Section'
+import { useVisitorPricing } from '../../hooks/useVisitorPricing'
 
 /**
  * Interactive product tour.
@@ -226,7 +227,7 @@ const TABS = [
     Icon: HiOutlineChartBarSquare,
     benefit:
       'معدل الحضور، وقيمة الغياب بالجنيه محسوبة بمتوسط سعر خدماتك، مقابل اللي اتوفّر بالتذكير. تصدّر CSV أو تطبع التقرير بعربي سليم.',
-    render: () => (
+    render: (t) => (
       <Panel note="بيانات العرض توضيحية · النظام بيحسبها من مواعيدك وأسعار خدماتك.">
         <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-x-reverse divide-y sm:divide-y-0 divide-rule border-b border-rule">
           {REPORT_STATS.map((stat) => (
@@ -243,14 +244,14 @@ const TABS = [
           <div className="bg-red-50 px-5 py-4 border-b sm:border-b-0 sm:border-l border-red-100">
             <p className="text-[11px] font-bold text-red-600">خسرت هذا الشهر</p>
             <p className="text-[26px] font-bold text-red-600 tabular-nums leading-tight mt-1">
-              3,300 <span className="text-[13px] font-semibold">جنيه</span>
+              3,300 <span className="text-[13px] font-semibold">{t('جنيه')}</span>
             </p>
             <p className="text-[11px] text-red-500/80 mt-0.5">من 11 غياب</p>
           </div>
           <div className="bg-accent-50 px-5 py-4">
             <p className="text-[11px] font-bold text-accent-700">وفّرت بالتذكير</p>
             <p className="text-[26px] font-bold text-accent-700 tabular-nums leading-tight mt-1">
-              32,700 <span className="text-[13px] font-semibold">جنيه</span>
+              32,700 <span className="text-[13px] font-semibold">{t('جنيه')}</span>
             </p>
             <p className="text-[11px] text-accent-600/80 mt-0.5">من 109 تذكير أُرسل</p>
           </div>
@@ -261,6 +262,7 @@ const TABS = [
 ]
 
 export default function ProductTour({ id }) {
+  const { t } = useVisitorPricing()
   const [active, setActive] = useState('booking')
   const tab = TABS.find((t) => t.id === active)
 
@@ -313,11 +315,11 @@ export default function ProductTour({ id }) {
           aria-labelledby={`tour-tab-${tab.id}`}
           className="animate-fadeIn motion-reduce:animate-none mt-6 grid lg:grid-cols-5 gap-7 lg:gap-10 items-start"
         >
-          <div className="lg:col-span-3">{tab.render()}</div>
+          <div className="lg:col-span-3">{tab.render(t)}</div>
           <div className="lg:col-span-2">
             <h3 className="text-[17px] font-bold text-ink">{tab.label}</h3>
             <p className="mt-2.5 text-[14.5px] leading-[1.85] text-ink-soft max-w-[46ch]">
-              {tab.benefit}
+              {t(tab.benefit)}
             </p>
           </div>
         </div>

@@ -30,6 +30,8 @@ import { todayISO } from '../../utils/dateHelpers'
 import { MEDICAL_TYPES } from '../../utils/constants'
 import { supabase } from '../../lib/supabase'
 import { openWhatsApp, generateReminderMessage } from '../../lib/whatsapp'
+import PhoneInput from '../ui/PhoneInput'
+import { formatMoney } from '../../lib/countries'
 
 async function countActiveBookings(businessId, phone) {
   const { count } = await supabase
@@ -293,9 +295,13 @@ export default function AppointmentModal({ open, onClose, businessId, initialDat
             <label className="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1">
               <HiOutlinePhone className="w-3.5 h-3.5" /> واتساب
             </label>
-            <input {...register('client_phone')} placeholder="201XXXXXXXXX" dir="ltr"
-              className={`${fieldCls(errors.client_phone)} font-mono`} />
-            {errors.client_phone && <p className="text-xs text-red-500 mt-0.5">{errors.client_phone.message}</p>}
+            <Controller
+              name="client_phone"
+              control={control}
+              render={({ field }) => (
+                <PhoneInput {...field} ariaLabel="رقم واتساب المريض" defaultCountry={business?.country} error={errors.client_phone?.message} />
+              )}
+            />
           </div>
         </div>
 
@@ -314,7 +320,7 @@ export default function AppointmentModal({ open, onClose, businessId, initialDat
                 placeholder="اختر الخدمة..."
                 options={services.map(s => ({
                   value: s.id,
-                  label: `${s.name}${s.duration_minutes ? ` — ${s.duration_minutes} د` : ''}${s.price ? ` (${s.price} ج.م)` : ''}`,
+                  label: `${s.name}${s.duration_minutes ? ` — ${s.duration_minutes} د` : ''}${s.price ? ` (${formatMoney(s.price, business?.currency)})` : ''}`,
                 }))}
               />
             )}
@@ -322,7 +328,7 @@ export default function AppointmentModal({ open, onClose, businessId, initialDat
           {errors.service_id && <p className="text-xs text-red-500 mt-0.5">{errors.service_id.message}</p>}
           {selectedService && (
             <p className="text-xs text-accent-600 mt-0.5">
-              {selectedService.duration_minutes} دقيقة{selectedService.price ? ` · ${selectedService.price} ج.م` : ''}
+              {selectedService.duration_minutes} دقيقة{selectedService.price ? ` · ${formatMoney(selectedService.price, business?.currency)}` : ''}
             </p>
           )}
         </div>

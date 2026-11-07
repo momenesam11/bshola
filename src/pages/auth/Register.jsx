@@ -1,4 +1,4 @@
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
@@ -12,14 +12,18 @@ import Input from '../../components/ui/Input'
 import AuthLayout from '../../components/auth/AuthLayout'
 import GoogleButton from '../../components/auth/GoogleButton'
 import { HiOutlineGift } from 'react-icons/hi2'
+import PhoneInput from '../../components/ui/PhoneInput'
+import { useVisitorCountry } from '../../hooks/useVisitorPricing'
 
 export default function Register() {
   const navigate = useNavigate()
   const [serverError, setServerError] = useState('')
   const [success, setSuccess] = useState(false)
 
-  const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm({
+  const visitorCountry = useVisitorCountry()
+  const { register, control, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(registerSchema),
+    defaultValues: { ownerPhone: '' },
   })
   const passwordStrength = getPasswordStrength(watch('password'))
   // The partner/referral/lead code they came with. Read from the URL too: on a
@@ -131,14 +135,18 @@ export default function Register() {
           error={errors.confirmPassword?.message}
           {...register('confirmPassword')}
         />
-        <Input
-          label="رقم واتساب بتاعك"
-          type="tel"
-          placeholder="201XXXXXXXXX"
-          dir="ltr"
-          helper="هنتواصل معاك عليه للاشتراك"
-          error={errors.ownerPhone?.message}
-          {...register('ownerPhone')}
+        <Controller
+          name="ownerPhone"
+          control={control}
+          render={({ field }) => (
+            <PhoneInput
+              {...field}
+              label="رقم واتساب بتاعك"
+              defaultCountry={visitorCountry}
+              helper="هنتواصل معاك عليه للاشتراك"
+              error={errors.ownerPhone?.message}
+            />
+          )}
         />
 
         {serverError && (

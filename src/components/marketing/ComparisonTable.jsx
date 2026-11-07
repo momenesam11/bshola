@@ -3,6 +3,7 @@ import { FaWhatsapp } from 'react-icons/fa'
 import { Section, SectionHead } from './Section'
 import Reveal from './Reveal'
 import { SUPPORT_WHATSAPP } from '../../lib/support'
+import { useVisitorPricing } from '../../hooks/useVisitorPricing'
 
 /**
  * Honest comparison against a *category*, never a named competitor — we have
@@ -23,6 +24,7 @@ const ROWS = [
   },
   {
     aspect: 'الاشتراك',
+    localCurrencyOnly: true,
     us: { value: 'مبلغ ثابت بالجنيه المصري', good: true },
     them: { value: 'بالدولار، بيتغير مع سعر الصرف', good: false },
   },
@@ -59,6 +61,7 @@ const ROWS = [
 ]
 
 function Cell({ cell }) {
+  const { t } = useVisitorPricing()
   const Icon = cell.good ? HiOutlineCheck : HiOutlineMinus
   return (
     <div className="flex items-start gap-2">
@@ -67,13 +70,17 @@ function Cell({ cell }) {
         aria-hidden="true"
       />
       <span className={`text-[13px] leading-[1.7] ${cell.good ? 'text-ink font-semibold' : 'text-ink-soft'}`}>
-        {cell.value}
+        {t(cell.value)}
       </span>
     </div>
   )
 }
 
 export default function ComparisonTable({ id }) {
+  const { currency } = useVisitorPricing()
+  // This row compares against tools priced in dollars, so it can't be shown to a
+  // visitor whose own price is in dollars.
+  const rows = ROWS.filter((row) => !(row.localCurrencyOnly && currency === 'USD'))
   return (
     <Section id={id} tone="surface">
       <SectionHead
@@ -104,7 +111,7 @@ export default function ComparisonTable({ id }) {
                 browsers still render inconsistently — so the table reveals as
                 one block (below) and rows get a hover highlight instead, the
                 clinic-register way of saying "this line is active". */}
-            {ROWS.map((row) => (
+            {rows.map((row) => (
               <tr
                 key={row.aspect}
                 className="border-b border-rule last:border-b-0 transition-colors hover:bg-paper/50"

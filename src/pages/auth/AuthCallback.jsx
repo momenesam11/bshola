@@ -6,8 +6,9 @@ import { trackEvent } from '../../lib/tracking'
 import { getStoredRef } from '../../lib/refCapture'
 import { phoneSchema } from '../../lib/validators'
 import AuthLayout from '../../components/auth/AuthLayout'
-import Input from '../../components/ui/Input'
 import Button from '../../components/ui/Button'
+import PhoneInput from '../../components/ui/PhoneInput'
+import { useVisitorCountry } from '../../hooks/useVisitorPricing'
 
 const PENDING_PHONE_KEY = 'beshola_pending_owner_phone'
 const ownerPhoneSchema = phoneSchema('رقم الواتساب غير صحيح')
@@ -64,6 +65,7 @@ export default function AuthCallback() {
 }
 
 function PhoneStep({ onDone }) {
+  const visitorCountry = useVisitorCountry()
   const [phone, setPhone] = useState('')
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -104,15 +106,12 @@ function PhoneStep({ onDone }) {
           <h2 className="text-2xl font-bold text-gray-900">رقم الواتساب بتاعك</h2>
           <p className="text-gray-500 text-sm mt-1">لازم عشان نكمّل إنشاء حسابك.</p>
         </div>
-        <Input
+        <PhoneInput
           label="رقم الواتساب"
-          placeholder="01XXXXXXXXX"
-          dir="ltr"
-          inputMode="tel"
-          autoComplete="tel"
           autoFocus
+          defaultCountry={visitorCountry}
           value={phone}
-          onChange={(e) => setPhone(e.target.value)}
+          onChange={setPhone}
           error={error}
         />
         <Button type="submit" loading={saving} className="w-full">كمّل</Button>

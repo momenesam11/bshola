@@ -195,3 +195,9 @@ export function usePublicBranches(businessId) {
     enabled: !!businessId,
   })
 }
+
+/** The account's own currency, for the prices it charges its customers. */
+export function useBusinessCurrency() {
+  const { data: business } = useBusiness()
+  return business?.currency ?? 'EGP'
+}

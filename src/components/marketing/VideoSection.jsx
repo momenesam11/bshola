@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { HiOutlinePlay, HiOutlineVideoCamera } from 'react-icons/hi2'
 import { Section, SectionHead } from './Section'
 import Reveal from './Reveal'
+import { useVisitorPricing } from '../../hooks/useVisitorPricing'
 
 // YouTube's max-res thumbnail (1280x720) isn't guaranteed to exist for every
 // video — it needs a source uploaded at least that large. `hqdefault` always
@@ -51,6 +52,7 @@ export default function VideoSection({
   cta,
   children,
 }) {
+  const { t } = useVisitorPricing()
   const [playing, setPlaying] = useState(false)
   const [thumbFallback, setThumbFallback] = useState(false)
 
@@ -161,7 +163,7 @@ export default function VideoSection({
                   <h4 className="text-[16px] font-bold text-ink leading-snug">{step.title}</h4>
                   {step.desc && (
                     <p className="mt-1.5 text-[14px] leading-[1.75] text-ink-soft max-w-[46ch]">
-                      {step.desc}
+                      {t(step.desc)}
                     </p>
                   )}
                 </div>

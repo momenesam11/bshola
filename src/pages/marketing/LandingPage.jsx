@@ -23,10 +23,12 @@ import {
   faqSchema,
   organizationSchema,
   softwareApplicationSchema,
+  REGIONAL_ALTERNATES,
   videoObjectSchema,
   websiteSchema,
 } from '../../lib/seo'
 import { DEMO_BOOKING_PATH, SUPPORT_WHATSAPP } from '../../lib/support'
+import { useVisitorPricing } from '../../hooks/useVisitorPricing'
 
 /**
  * Landing page.
@@ -147,6 +149,7 @@ function Hero() {
 }
 
 function TrustStrip() {
+  const { t } = useVisitorPricing()
   return (
     <section className="bg-white border-t border-rule" aria-label="لمين النظام وإيه اللي يميزه">
       {/* Two full-width rows rather than two half-width columns: at 1024–1280px
@@ -183,7 +186,7 @@ function TrustStrip() {
                   />
                   <div>
                     <p className="text-[13.5px] font-bold text-ink leading-snug">{fact.label}</p>
-                    <p className="text-[12px] text-ink-soft mt-0.5">{fact.detail}</p>
+                    <p className="text-[12px] text-ink-soft mt-0.5">{t(fact.detail)}</p>
                   </div>
                 </Reveal>
               ))}
@@ -196,6 +199,7 @@ function TrustStrip() {
 }
 
 function Problem() {
+  const { t } = useVisitorPricing()
   return (
     <Section id="problem" tone="paper">
       <SectionHead title="اليوم بيمشي كده دلوقتي" />
@@ -230,14 +234,14 @@ function Problem() {
                 <p className="text-[42px] font-extrabold text-white tabular-nums leading-tight mt-1">
                   <CountUp value={3300} />
                 </p>
-                <p className="text-[13px] text-red-100/90">جنيه · من 11 غياب</p>
+                <p className="text-[13px] text-red-100/90">{t('جنيه')} · من 11 غياب</p>
               </div>
               <div className="rounded-2xl bg-accent-500/20 border border-accent-400/30 p-5">
                 <p className="text-[13px] font-bold text-accent-200">وفّرت بالتذكير</p>
                 <p className="text-[42px] font-extrabold text-white tabular-nums leading-tight mt-1">
                   <CountUp value={32700} />
                 </p>
-                <p className="text-[13px] text-accent-100/90">جنيه · من 109 تذكير</p>
+                <p className="text-[13px] text-accent-100/90">{t('جنيه')} · من 109 تذكير</p>
               </div>
             </div>
           </div>
@@ -401,6 +405,7 @@ export default function LandingPage() {
         title={HOME_META.title}
         description={HOME_META.description}
         path={HOME_META.path}
+        alternates={REGIONAL_ALTERNATES}
         schemas={[
           organizationSchema(),
           websiteSchema(),
