@@ -40,7 +40,7 @@ import { DEMO_BOOKING_PATH, SUPPORT_WHATSAPP } from '../../lib/support'
  *    because sending is a manual button press (src/lib/whatsapp.js:1), and the
  *    FAQ explains why rather than hiding it.
  *
- * 2. Beshola's identity (navy, teal, Tajawal) with a different visual idea per
+ * 2. Beshola's identity (navy, teal, Cairo) with a different visual idea per
  *    section, so scrolling never feels like the same block repeated. Text stays
  *    in the HTML as text; shapes and motion are decoration on top of it.
  *

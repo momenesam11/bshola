@@ -4,7 +4,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Tajawal', 'sans-serif'],
+        sans: ['Cairo', 'sans-serif'],
       },
       keyframes: {
         fadeIn: {
@@ -85,17 +85,17 @@ export default {
         },
         // Teal — accent brand color (replaces old emerald)
         accent: {
-          DEFAULT: '#16B89A',
+          DEFAULT: '#0F9D82',
           50: '#D7F5EE',
           100: '#BFEFE3',
           200: '#8FE0CD',
           300: '#5ED0B7',
-          400: '#2EC1A1',
-          500: '#16B89A',
-          600: '#0E8F76',
-          700: '#0B7561',
-          800: '#08594A',
-          900: '#053D33',
+          400: '#22B296',
+          500: '#0F9D82',
+          600: '#0C8069',
+          700: '#0A6C59',
+          800: '#075346',
+          900: '#043A30',
         },
       },
     },

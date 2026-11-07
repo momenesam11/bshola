@@ -11,7 +11,7 @@ A smart appointment booking system for small/medium businesses — with built-in
 | Layer | Technology |
 |-------|-----------|
 | Frontend | React 19 + Vite |
-| Styling | Tailwind CSS v3 + Tajawal font |
+| Styling | Tailwind CSS v3 + Cairo font |
 | State / Data | TanStack React Query v5 |
 | Auth & DB | Supabase (PostgreSQL + RLS) |
 | Realtime | Supabase Realtime |
@@ -101,7 +101,7 @@ The `vercel.json` file already handles SPA routing rewrites and security headers
 - **Monthly loss card** — shows revenue lost from no-shows vs. saved by reminders
 - **Realtime notifications** — toast alerts for new bookings via Supabase Realtime
 - **Responsive** — mobile (bottom nav), tablet (icon sidebar), desktop (full sidebar)
-- **RTL Arabic** — Tajawal font, full Arabic UI
+- **RTL Arabic** — Cairo font, full Arabic UI
 
 ---
 

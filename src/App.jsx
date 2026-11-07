@@ -151,15 +151,15 @@ export function AppRoutes() {
           position="bottom-left"
           toastOptions={{
             style: {
-              fontFamily: 'Tajawal, sans-serif',
+              fontFamily: 'Cairo, sans-serif',
               direction: 'rtl',
               textAlign: 'right',
               borderRadius: '12px',
               fontSize: '14px',
             },
             success: {
-              style: { background: '#D7F5EE', color: '#08594A', border: '1px solid #8FE0CD' },
-              iconTheme: { primary: '#16B89A', secondary: '#fff' },
+              style: { background: '#D7F5EE', color: '#075346', border: '1px solid #8FE0CD' },
+              iconTheme: { primary: '#0F9D82', secondary: '#fff' },
             },
             error: {
               style: { background: '#FEE2E2', color: '#991B1B', border: '1px solid #FECACA' },
