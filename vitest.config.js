@@ -5,7 +5,7 @@ import { defineConfig } from 'vitest/config'
 // `npm run test:e2e`.
 export default defineConfig({
   test: {
-    include: ['src/**/*.test.js', 'tests/sql/**/*.test.js'],
+    include: ['src/**/*.test.js', 'tests/sql/**/*.test.js', 'scripts/**/*.test.mjs'],
     testTimeout: 30000,
   },
 })

@@ -13,7 +13,11 @@
     "test:e2e:ui": "playwright test --ui",
     "prebuild": "node scripts/generate-sitemap.mjs",
     "postbuild": "vite build --ssr src/entry-server.jsx --outDir dist-ssr && node scripts/prerender.mjs",
-    "sitemap": "node scripts/generate-sitemap.mjs"
+    "sitemap": "node scripts/generate-sitemap.mjs",
+    "backup": "node scripts/backup/backup.mjs",
+    "backup:setup": "node scripts/backup/setup.mjs",
+    "backup:verify": "node scripts/backup/verify.mjs",
+    "backup:schedule": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/backup/register-task.ps1"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
