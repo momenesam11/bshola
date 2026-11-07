@@ -9,6 +9,7 @@
 // to sit under the SERP length limits (~60 / ~155 chars) in Arabic.
 
 import { GUIDES } from './guides.js'
+import { COUNTRY_PAGES } from './countryPages.js'
 
 const TRIAL = 'جرّب 14 يوم مجاناً بدون بطاقة بنكية.'
 
@@ -535,6 +536,7 @@ export const PRICING_PAGE = {
     },
     {
       h2: 'أسعار الإطلاق: سعرك يفضل ثابت',
+      egyptOnly: true,
       body:
         'الأسعار الحالية أسعار إطلاق أقل 25% من الأسعار بعد الإطلاق. من يشترك الآن يبقى على نفس سعره طالما يجدد باقته بدون انقطاع.',
     },
@@ -583,6 +585,6 @@ export const PRICING_PAGE = {
   related: ['solutions/clinics', 'solutions/salons', 'features/whatsapp-reminders'],
 }
 
-export const ALL_MARKETING_PAGES = [...MARKETING_PAGES, ...GUIDES, PRICING_PAGE]
+export const ALL_MARKETING_PAGES = [...MARKETING_PAGES, ...COUNTRY_PAGES, ...GUIDES, PRICING_PAGE]
 
 export const pageBySlug = (slug) => ALL_MARKETING_PAGES.find((p) => p.slug === slug)

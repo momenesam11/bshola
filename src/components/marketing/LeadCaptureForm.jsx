@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { HiOutlineCheckCircle } from 'react-icons/hi2'
 import { submitLead } from '../../hooks/useGrowth'
 import { trackEvent } from '../../lib/tracking'
+import PhoneInput from '../ui/PhoneInput'
+import { useVisitorCountry } from '../../hooks/useVisitorPricing'
 
 const CATEGORY_OPTIONS = [
   { value: 'dental', label: 'عيادة أسنان' },
@@ -31,6 +33,7 @@ export default function LeadCaptureForm({
   const [state, setState] = useState({ status: 'idle', error: '' })
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
   const dark = tone === 'dark'
+  const visitorCountry = useVisitorCountry()
 
   async function onSubmit(e) {
     e.preventDefault()
@@ -62,7 +65,15 @@ export default function LeadCaptureForm({
   return (
     <form onSubmit={onSubmit} className="grid sm:grid-cols-2 gap-2.5 text-right" noValidate>
       <input className={field} placeholder="اسمك" value={form.name} onChange={set('name')} required autoComplete="name" aria-label="اسمك" />
-      <input className={field} placeholder="رقم الموبايل" value={form.phone} onChange={set('phone')} required inputMode="tel" dir="ltr" autoComplete="tel" aria-label="رقم الموبايل" />
+      <PhoneInput
+        ariaLabel="رقم الموبايل"
+        placeholder="رقم الموبايل"
+        value={form.phone}
+        onChange={(phone) => setForm((f) => ({ ...f, phone }))}
+        defaultCountry={visitorCountry}
+        inputClassName={field}
+        pickerClassName={`rounded-xl ${dark ? 'bg-white/10 border border-white/20 text-white' : 'bg-white border border-rule text-ink'}`}
+      />
       <input className={field} placeholder="اسم العيادة / النشاط (اختياري)" value={form.businessName} onChange={set('businessName')} aria-label="اسم العيادة" />
       <select className={field} value={form.category} onChange={set('category')} aria-label="نوع النشاط">
         {CATEGORY_OPTIONS.map((o) => <option key={o.value} value={o.value} className="text-ink">{o.label}</option>)}

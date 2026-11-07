@@ -6,6 +6,9 @@
 // canonical, og:url and sitemap entry must use www or Google is told the real
 // page is a URL that redirects away.
 import { SOCIAL_LINKS, SUPPORT_PHONE_E164 } from './support.js'
+import { PLANS, getPricing } from './pricing.js'
+
+export { PLANS }
 
 export const SITE_URL = 'https://www.beshola.co'
 export const SITE_NAME = 'بسهولة'
@@ -18,14 +21,22 @@ export const DEFAULT_OG_IMAGE = `${SITE_URL}/og-image.png`
 export const absoluteUrl = (path = '/') =>
   /^https?:\/\//.test(path) ? path : `${SITE_URL}${path.startsWith('/') ? path : `/${path}`}`
 
-// Plans mirrored from the pricing section of the landing page. Kept here so
-// the Offer schema Google reads and the prices users see share one source.
-export const PLANS = [
-  // price: today's launch price. regularPrice: what new subscribers will pay once
-  // the launch ends. It's a real plan, so raise to these when it does.
-  { name: 'باقة الشهر الواحد', price: 299, regularPrice: 399, months: 1 },
-  { name: 'باقة الـ 3 شهور', price: 749, regularPrice: 999, months: 3 },
-  { name: 'باقة الـ 6 شهور', price: 1200, regularPrice: 1599, months: 6 },
+// The Gulf country pages. Each one is the regional version of the home page, so
+// they and the home page list each other as hreflang alternates.
+export const COUNTRY_PAGE_PATHS = {
+  SA: '/solutions/clinics-saudi-arabia',
+  AE: '/solutions/clinics-uae',
+  QA: '/solutions/clinics-qatar',
+  KW: '/solutions/clinics-kuwait',
+  BH: '/solutions/clinics-bahrain',
+  OM: '/solutions/clinics-oman',
+}
+
+export const REGIONAL_ALTERNATES = [
+  { hrefLang: 'ar', path: '/' },
+  { hrefLang: 'ar-EG', path: '/' },
+  ...Object.entries(COUNTRY_PAGE_PATHS).map(([code, path]) => ({ hrefLang: `ar-${code}`, path })),
+  { hrefLang: 'x-default', path: '/' },
 ]
 
 export function organizationSchema() {
@@ -45,10 +56,10 @@ export function organizationSchema() {
     ],
     description:
       'بسهولة نظام حجز مواعيد وإدارة عملاء عربي بالكامل للعيادات والصالونات ومراكز اللياقة والمراكز التعليمية.',
-    areaServed: [
-      { '@type': 'Country', name: 'Egypt' },
-      { '@type': 'Country', name: 'Saudi Arabia' },
-    ],
+    areaServed: ['Egypt', 'Saudi Arabia', 'United Arab Emirates', 'Qatar', 'Kuwait', 'Bahrain', 'Oman'].map((name) => ({
+      '@type': 'Country',
+      name,
+    })),
     contactPoint: [
       {
         '@type': 'ContactPoint',
@@ -74,7 +85,9 @@ export function websiteSchema() {
 
 // SoftwareApplication is the type Google uses for SaaS rich results —
 // it is what surfaces price and rating next to the listing.
-export function softwareApplicationSchema() {
+export function softwareApplicationSchema(countryCode = 'EG') {
+  const { currency, plans } = getPricing(countryCode)
+  const pagePath = COUNTRY_PAGE_PATHS[countryCode] ?? '/pricing'
   return {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
@@ -100,17 +113,17 @@ export function softwareApplicationSchema() {
     ],
     offers: {
       '@type': 'AggregateOffer',
-      priceCurrency: 'EGP',
+      priceCurrency: currency,
       // Derived so the range always brackets the Offer prices listed below.
-      lowPrice: Math.min(...PLANS.map((p) => p.price)),
-      highPrice: Math.max(...PLANS.map((p) => p.price)),
-      offerCount: PLANS.length,
-      offers: PLANS.map((p) => ({
+      lowPrice: Math.min(...plans.map((p) => p.price)),
+      highPrice: Math.max(...plans.map((p) => p.price)),
+      offerCount: plans.length,
+      offers: plans.map((p) => ({
         '@type': 'Offer',
         name: p.name,
         price: p.price,
-        priceCurrency: 'EGP',
-        url: absoluteUrl('/pricing'),
+        priceCurrency: currency,
+        url: absoluteUrl(pagePath),
         availability: 'https://schema.org/InStock',
       })),
     },

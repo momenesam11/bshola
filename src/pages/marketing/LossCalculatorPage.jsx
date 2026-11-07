@@ -7,6 +7,7 @@ import { Section, SectionHead } from '../../components/marketing/Section'
 import LeadCaptureForm from '../../components/marketing/LeadCaptureForm'
 import { CALCULATOR_META } from '../../content/pageMeta'
 import { breadcrumbSchema, organizationSchema } from '../../lib/seo'
+import { useVisitorPricing } from '../../hooks/useVisitorPricing'
 
 /**
  * "How much do no-shows cost your clinic?" — a free tool that ranks for the
@@ -28,6 +29,7 @@ const FIELDS = [
 const fmt = (n) => Math.round(n).toLocaleString('en-EG')
 
 export default function LossCalculatorPage() {
+  const { t } = useVisitorPricing()
   const [v, setV] = useState({ perDay: 20, days: 24, noShowRate: 10, price: 300 })
   const set = (k) => (e) => setV((s) => ({ ...s, [k]: e.target.value === '' ? '' : Number(e.target.value) }))
 
@@ -67,7 +69,7 @@ export default function LossCalculatorPage() {
                   <input type="range" min={f.min} max={f.max} step={f.step} value={v[f.key] || 0} onChange={set(f.key)} className="flex-1 accent-emerald-600" />
                   <input type="number" min={f.min} max={f.max} step={f.step} value={v[f.key]} onChange={set(f.key)}
                     className="w-24 rounded-lg border border-rule px-2.5 py-2 text-center tabular-nums" aria-label={f.label} />
-                  <span className="text-[12px] text-ink-soft w-14">{f.suffix}</span>
+                  <span className="text-[12px] text-ink-soft w-14">{t(f.suffix)}</span>
                 </div>
               </label>
             ))}
@@ -77,8 +79,8 @@ export default function LossCalculatorPage() {
             <p className="text-[13px] text-white/70">حسب أرقامك</p>
             <p className="mt-3 text-[15px]">مواعيد ضايعة في الشهر: <b className="tabular-nums">{fmt(r.missedPerMonth)}</b></p>
             <p className="mt-4 text-[13px] text-white/70">خسارة الشهر</p>
-            <p className="text-[40px] font-extrabold text-accent-400 leading-tight tabular-nums">{fmt(r.monthly)} <span className="text-[18px]">جنيه</span></p>
-            <p className="mt-1 text-[14px] text-white/80">يعني حوالي <b className="tabular-nums">{fmt(r.yearly)}</b> جنيه في السنة</p>
+            <p className="text-[40px] font-extrabold text-accent-400 leading-tight tabular-nums">{fmt(r.monthly)} <span className="text-[18px]">{t('جنيه')}</span></p>
+            <p className="mt-1 text-[14px] text-white/80">يعني حوالي <b className="tabular-nums">{fmt(r.yearly)}</b> {t('جنيه')} في السنة</p>
             <div className="mt-6 pt-5 border-t border-white/10">
               <p className="text-[14px] text-white/85 mb-3 leading-relaxed">
                 عايز نكلّمك نشوف إزاي تقلل الرقم ده في عيادتك؟ سيب رقمك:

@@ -7,7 +7,8 @@ import Logo from '../../components/marketing/Logo'
 import { usePreview } from '../../hooks/useGrowth'
 import { initialsFor } from '../../lib/growth/preview'
 import { SUPPORT_WHATSAPP } from '../../lib/support'
-import { PLANS } from '../../lib/seo'
+import { useVisitorPricing } from '../../hooks/useVisitorPricing'
+import { formatPrice } from '../../lib/pricing'
 
 /**
  * Personalised demo: "this is what <clinic>'s booking page would look like".
@@ -28,6 +29,7 @@ const POINTS = [
 ]
 
 export default function DemoPage() {
+  const { plans, label, t } = useVisitorPricing()
   const { code } = useParams()
   const { data: preview, isLoading } = usePreview(code)
 
@@ -74,7 +76,7 @@ export default function DemoPage() {
           </h1>
           <ul className="mt-6 space-y-3">
             {POINTS.map((p) => (
-              <li key={p} className="flex items-start gap-2.5 text-[15px] text-white/90 leading-relaxed">
+              <li key={t(p)} className="flex items-start gap-2.5 text-[15px] text-white/90 leading-relaxed">
                 <HiOutlineCheck className="w-5 h-5 text-accent-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
                 {p}
               </li>
@@ -90,7 +92,7 @@ export default function DemoPage() {
             </a>
           </div>
           <p className="mt-4 text-[13px] text-white/60">
-            من غير بطاقة بنكية · بعد التجربة من {PLANS[0].price} جنيه في الشهر · مفيش عمولة على الحجوزات
+            من غير بطاقة بنكية · بعد التجربة من {formatPrice(plans[0].price)} {label} في الشهر · مفيش عمولة على الحجوزات
           </p>
         </div>
 

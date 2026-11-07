@@ -64,6 +64,8 @@ export default function Seo({
   noindex = false,
   ogType = 'website',
   schemas = [],
+  alternates,
+  locale = SITE_LOCALE,
 }) {
   useStaticHeadTagCleanup()
 
@@ -83,12 +85,15 @@ export default function Seo({
         name="robots"
         content={noindex ? 'noindex, nofollow' : 'index, follow, max-image-preview:large, max-snippet:-1'}
       />
-      {!noindex && <link rel="alternate" hrefLang="ar" href={url} />}
-      {!noindex && <link rel="alternate" hrefLang="x-default" href={url} />}
+      {!noindex && !alternates && <link rel="alternate" hrefLang="ar" href={url} />}
+      {!noindex && !alternates && <link rel="alternate" hrefLang="x-default" href={url} />}
+      {!noindex && alternates?.map((a) => (
+        <link key={a.hrefLang} rel="alternate" hrefLang={a.hrefLang} href={absoluteUrl(a.path)} />
+      ))}
 
       <meta property="og:type" content={ogType} />
       <meta property="og:site_name" content={SITE_NAME} />
-      <meta property="og:locale" content={SITE_LOCALE} />
+      <meta property="og:locale" content={locale} />
       <meta property="og:url" content={url} />
       <meta property="og:title" content={fullTitle} />
       <meta property="og:description" content={description} />

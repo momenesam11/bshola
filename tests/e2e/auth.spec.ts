@@ -17,6 +17,8 @@ test.describe('Auth', () => {
     await page.locator('input[name="password"]').fill('TestPass123')
     await page.locator('input[name="confirmPassword"]').fill('TestPass123')
     await page.locator('input[name="ownerPhone"]').fill('201012345678')
+
+    await page.locator('input[name="acceptTerms"]').check()
     await page.getByRole('button', { name: 'إنشاء حساب' }).click()
 
     await expect(async () => {
@@ -38,6 +40,8 @@ test.describe('Auth', () => {
       await page.locator('input[name="password"]').fill('TestPass123')
       await page.locator('input[name="confirmPassword"]').fill('TestPass123')
       await page.locator('input[name="ownerPhone"]').fill('201012345678')
+
+      await page.locator('input[name="acceptTerms"]').check()
       await page.getByRole('button', { name: 'إنشاء حساب' }).click()
 
       await expect(page.getByText('هذا البريد الإلكتروني مسجل بالفعل')).toBeVisible({ timeout: 15_000 })
@@ -53,6 +57,8 @@ test.describe('Auth', () => {
     await page.locator('input[name="password"]').fill('abcdefg')
     await page.locator('input[name="confirmPassword"]').fill('abcdefg')
     await page.locator('input[name="ownerPhone"]').fill('201012345678')
+
+    await page.locator('input[name="acceptTerms"]').check()
     await page.getByRole('button', { name: 'إنشاء حساب' }).click()
 
     await expect(page.getByText('كلمة المرور يجب أن تكون 8 أحرف على الأقل')).toBeVisible()

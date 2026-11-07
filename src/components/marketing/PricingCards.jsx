@@ -3,14 +3,17 @@ import { HiCheck, HiOutlineLockClosed, HiOutlineSparkles } from 'react-icons/hi2
 import { FaWhatsapp } from 'react-icons/fa'
 import { Section, SectionHead } from './Section'
 import Reveal from './Reveal'
-import { PLANS } from '../../lib/seo'
+import { useVisitorPricing } from '../../hooks/useVisitorPricing'
+import { formatPrice, pricePerMonth } from '../../lib/pricing'
 import { SUPPORT_WHATSAPP } from '../../lib/support'
 
 /**
  * Pricing.
  *
- * Prices come from PLANS in src/lib/seo.js — the same constant that feeds the
- * Offer structured data — so the page and what Google reads can never disagree.
+ * Prices come from src/lib/pricing.js, which also feeds the Offer structured
+ * data. The prerendered page shows Egypt's list, then a visitor from another Arab
+ * country gets their own list and currency. Those have no launch discount, so
+ * the launch wording and crossed-out prices only appear for Egypt.
  *
  * All plans open the whole system: there is no feature gating anywhere in the
  * codebase (MARKETING_CLAIMS.md §7), so the plans differ only in term length
@@ -18,7 +21,7 @@ import { SUPPORT_WHATSAPP } from '../../lib/support'
  * with tick-marks withheld.
  *
  * "بدلاً من" is the price new subscribers will pay after the launch (PLANS in
- * lib/seo.js), never an invented one. The price lock is a promise in the terms
+ * lib/pricing.js), never an invented one. The price lock is a promise in the terms
  * too (legalPages.js, MARKETING_CLAIMS.md §7).
  */
 
@@ -37,16 +40,19 @@ const INCLUDED = [
 ]
 
 export default function PricingCards({ id }) {
+  const { plans, label, isEgypt } = useVisitorPricing()
   return (
     <Section id={id} tone="surface">
       <SectionHead
-        title="أسعار الإطلاق: اللي يشترك دلوقتي سعره يفضل ثابت"
-        lead="الأسعار دي أقل عشان عايزين عيادات كتير تبدأ معانا. بعد فترة الإطلاق هتبقى الأسعار المتشطّبة للجداد، بس اللي مشترك يفضل بسعره طول ما بيجدد. كل الباقات بتفتح النظام بالكامل، ومفيش عمولة على أي حجز."
+        title={isEgypt ? 'أسعار الإطلاق: اللي يشترك دلوقتي سعره يفضل ثابت' : 'أسعار بسهولة: اللي يشترك دلوقتي سعره يفضل ثابت'}
+        lead={isEgypt
+          ? 'الأسعار دي أقل عشان عايزين عيادات كتير تبدأ معانا. بعد فترة الإطلاق هتبقى الأسعار المتشطّبة للجداد، بس اللي مشترك يفضل بسعره طول ما بيجدد. كل الباقات بتفتح النظام بالكامل، ومفيش عمولة على أي حجز.'
+          : 'كل الباقات فيها النظام كامل، والفرق بينها في المدة بس. واللي يشترك يفضل بسعره طول ما بيجدد من غير انقطاع.'}
       />
 
       <div className="mt-10 grid md:grid-cols-3 gap-5 items-stretch">
-        {PLANS.map((plan, i) => {
-          const perMonth = Math.round(plan.price / plan.months)
+        {plans.map((plan, i) => {
+          const perMonth = formatPrice(pricePerMonth(plan))
           const isBest = plan.months === 6
 
           return (
@@ -67,22 +73,26 @@ export default function PricingCards({ id }) {
                   )}
                 </div>
 
-                <p className={`mt-5 text-[46px] font-extrabold leading-none tabular-nums ${isBest ? 'text-white' : 'text-ink'}`}>
-                  {plan.price.toLocaleString('en-EG')}
-                  <span className={`text-[16px] font-semibold ${isBest ? 'text-white/70' : 'text-ink-soft'}`}> جنيه</span>
+                <p data-geo="" className={`mt-5 text-[46px] font-extrabold leading-none tabular-nums ${isBest ? 'text-white' : 'text-ink'}`}>
+                  {formatPrice(plan.price)}
+                  <span className={`text-[16px] font-semibold ${isBest ? 'text-white/70' : 'text-ink-soft'}`}> {label}</span>
                 </p>
+
+                {plan.regularPrice && (
 
                 <p className={`mt-3 inline-block self-start rounded-full px-3 py-1 text-[13px] font-semibold tabular-nums ${isBest ? 'bg-accent-500/20 text-accent-200' : 'bg-accent-50 text-accent-800'}`}>
                   بدلاً من <s>{plan.regularPrice.toLocaleString('en-EG')}</s> جنيه بعد الإطلاق · وفّر 25%
                 </p>
 
-                <p className={`mt-3 mb-6 text-[13.5px] tabular-nums ${isBest ? 'text-white/75' : 'text-ink-soft'}`}>
+                )}
+
+                <p data-geo="" className={`mt-3 mb-6 text-[13.5px] tabular-nums ${isBest ? 'text-white/75' : 'text-ink-soft'}`}>
                   {plan.months === 1
                     ? 'شهرياً · تجديد كل شهر'
                     // Arabic noun-number agreement: 3–10 takes the plural
                     // (شهور), 11+ takes the singular (شهر) — "12 شهور" reads
                     // as a mistake to an Arabic reader.
-                    : `لمدة ${plan.months} ${plan.months <= 10 ? 'شهور' : 'شهر'} · يعني ${perMonth} جنيه في الشهر`}
+                    : `لمدة ${plan.months} ${plan.months <= 10 ? 'شهور' : 'شهر'} · يعني ${perMonth} ${label} في الشهر`}
                 </p>
 
                 <Link
@@ -109,7 +119,7 @@ export default function PricingCards({ id }) {
               <HiOutlineLockClosed className="w-6 h-6" aria-hidden="true" />
             </span>
             <div>
-              <p className="text-[19px] font-bold">الحق سعر الإطلاق</p>
+              <p className="text-[19px] font-bold">{isEgypt ? 'الحق سعر الإطلاق' : 'سعرك يفضل ثابت'}</p>
               <p className="mt-1 text-[14px] leading-[1.8] text-white/85 max-w-[62ch]">
                 لما الأسعار تزيد، هتزيد على الجداد بس. للقديم قديم: سعرك يفضل زي ما هو طول ما بتجدد باقتك من غير انقطاع.
               </p>

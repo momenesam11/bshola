@@ -17,6 +17,7 @@ import { MEDICAL_TYPES } from '../../utils/constants'
 import RetargetModal from './RetargetModal'
 import ClientPlanTab from './ClientPlanTab'
 import ClientLedgerTab from './ClientLedgerTab'
+import { currencyFor, formatMoney } from '../../lib/countries'
 
 function Avatar({ name }) {
   return (
@@ -36,6 +37,7 @@ function StatMini({ label, value }) {
 }
 
 export default function ClientProfileDrawer({ client, businessId, business, onClose }) {
+  const currency = business?.currency ?? 'EGP'
   const { data: profile, isLoading } = useClientProfile(client.phone, businessId)
   const updateNotes = useUpdateClientNotes(businessId)
   const navigate = useNavigate()
@@ -163,7 +165,7 @@ export default function ClientProfileDrawer({ client, businessId, business, onCl
               {/* Stats strip */}
               <div className="flex gap-2 overflow-x-auto pb-1">
                 <StatMini label="الزيارات" value={stats.totalVisits ?? 0} />
-                <StatMini label="الإنفاق ج.م" value={stats.totalSpent ?? 0} />
+                <StatMini label={`الإنفاق ${currencyFor(currency).short}`} value={stats.totalSpent ?? 0} />
                 <StatMini label="الحضور %" value={`${stats.attendanceRate ?? 0}%`} />
                 <StatMini label="آخر زيارة" value={stats.lastVisit ? formatDateAr(stats.lastVisit, 'd/M') : '—'} />
               </div>
@@ -172,11 +174,11 @@ export default function ClientProfileDrawer({ client, businessId, business, onCl
               {stats.totalSpent > 0 && (
                 <div className="flex gap-2">
                   <div className="flex-1 bg-accent-50 rounded-xl p-3 text-center">
-                    <p className="text-lg font-bold text-accent-700 leading-tight">{stats.totalPaid ?? 0} ج.م</p>
+                    <p className="text-lg font-bold text-accent-700 leading-tight">{formatMoney(stats.totalPaid ?? 0, currency)}</p>
                     <p className="text-xs text-accent-600 mt-0.5">المدفوع</p>
                   </div>
                   <div className={`flex-1 rounded-xl p-3 text-center ${stats.totalOwed > 0 ? 'bg-amber-50' : 'bg-slate-50'}`}>
-                    <p className={`text-lg font-bold leading-tight ${stats.totalOwed > 0 ? 'text-amber-700' : 'text-slate-900'}`}>{stats.totalOwed ?? 0} ج.م</p>
+                    <p className={`text-lg font-bold leading-tight ${stats.totalOwed > 0 ? 'text-amber-700' : 'text-slate-900'}`}>{formatMoney(stats.totalOwed ?? 0, currency)}</p>
                     <p className={`text-xs mt-0.5 ${stats.totalOwed > 0 ? 'text-amber-600' : 'text-slate-500'}`}>المتبقي</p>
                   </div>
                 </div>
@@ -210,7 +212,7 @@ export default function ClientProfileDrawer({ client, businessId, business, onCl
                                 <span className="text-slate-400">{appt.branches.name}</span>
                               )}
                               {(appt.price ?? appt.services?.price) != null && (
-                                <span className="font-medium text-slate-700">{appt.price ?? appt.services.price} ج.م</span>
+                                <span className="font-medium text-slate-700">{formatMoney(appt.price ?? appt.services.price, currency)}</span>
                               )}
                               {appt.payment_status && appt.payment_status !== 'unpaid' && (
                                 <span className={`px-1.5 py-0.5 rounded-full font-medium ${appt.payment_status === 'paid' ? 'bg-accent-100 text-accent-700' : 'bg-amber-100 text-amber-700'}`}>

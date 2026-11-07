@@ -6,9 +6,11 @@ import Seo from '../../components/seo/Seo'
 import Nav from '../../components/marketing/Nav'
 import Footer from '../../components/marketing/Footer'
 import { pageBySlug } from '../../content/marketingPages'
+import { useVisitorPricing } from '../../hooks/useVisitorPricing'
 import {
   articleSchema,
   breadcrumbSchema,
+  REGIONAL_ALTERNATES,
   faqSchema,
   organizationSchema,
   softwareApplicationSchema,
@@ -26,6 +28,7 @@ import { SUPPORT_WHATSAPP } from '../../lib/support'
 export default function SolutionPage({ slug }) {
   const page = pageBySlug(slug)
   const [openFaq, setOpenFaq] = useState(0)
+  const pricing = useVisitorPricing()
 
   // Routes are generated from the same content file, so a miss means a typo in
   // a hand-written route — fail loudly in dev rather than render an empty page.
@@ -35,6 +38,9 @@ export default function SolutionPage({ slug }) {
   }
 
   const path = `/${page.slug}`
+  // A country page states its own country's prices, whoever is reading it.
+  const t = page.country ? (text) => text : pricing.t
+  const sections = page.sections.filter((section) => !section.egyptOnly || pricing.isEgypt)
   const crumbs = [{ name: 'الرئيسية', path: '/' }]
   if (page.group !== 'pricing') crumbs.push({ name: page.groupLabel, path: page.isGuide ? '/guides' : '/' })
   crumbs.push({ name: page.h1 })
@@ -46,11 +52,13 @@ export default function SolutionPage({ slug }) {
         description={page.description}
         path={path}
         ogType="article"
+        alternates={page.country ? REGIONAL_ALTERNATES : undefined}
+        locale={page.country ? `ar_${page.country}` : undefined}
         schemas={[
           organizationSchema(),
           page.isGuide
             ? articleSchema({ title: page.title, description: page.description, path, published: page.published, updated: page.updated })
-            : softwareApplicationSchema(),
+            : softwareApplicationSchema(page.country),
           faqSchema(page.faqs),
           breadcrumbSchema(crumbs),
         ]}
@@ -79,7 +87,7 @@ export default function SolutionPage({ slug }) {
         {/* HERO */}
         <section className="pt-6 pb-12 border-b border-slate-100">
           <h1 className="text-3xl sm:text-4xl font-black leading-tight mb-5">{page.h1}</h1>
-          <p className="text-base sm:text-lg text-slate-600 leading-relaxed max-w-3xl mb-8">{page.intro}</p>
+          <p className="text-base sm:text-lg text-slate-600 leading-relaxed max-w-3xl mb-8">{t(page.intro)}</p>
           {page.isGuide && (
             <p className="text-xs text-slate-500 -mt-5 mb-8">
               من فريق بسهولة · آخر تحديث <time dateTime={page.updated}>{new Date(page.updated).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}</time>
@@ -106,16 +114,16 @@ export default function SolutionPage({ slug }) {
         </section>
 
         {/* BODY SECTIONS */}
-        {page.sections.map((section) => (
+        {sections.map((section) => (
           <section key={section.h2} className="py-12 border-b border-slate-100">
             <h2 className="text-2xl font-black mb-4">{section.h2}</h2>
-            <p className="text-base text-slate-600 leading-relaxed max-w-3xl">{section.body}</p>
+            <p className="text-base text-slate-600 leading-relaxed max-w-3xl">{t(section.body)}</p>
             {section.bullets && (
-              <ul className="grid sm:grid-cols-2 gap-3 mt-7">
+              <ul data-geo={page.group === 'pricing' ? '' : undefined} className="grid sm:grid-cols-2 gap-3 mt-7">
                 {section.bullets.map((bullet) => (
                   <li key={bullet} className="flex items-start gap-2.5 bg-slate-50 rounded-2xl p-4">
                     <HiCheck className="w-5 h-5 text-accent-500 flex-shrink-0 mt-0.5" />
-                    <span className="text-sm font-semibold text-slate-700 leading-relaxed">{bullet}</span>
+                    <span className="text-sm font-semibold text-slate-700 leading-relaxed">{t(bullet)}</span>
                   </li>
                 ))}
               </ul>
@@ -145,7 +153,7 @@ export default function SolutionPage({ slug }) {
                   {/* Rendered always (hidden, not unmounted) so crawlers and
                       screen readers still reach the answer text. */}
                   <div className={openFaq === idx ? 'border-t border-slate-100' : 'hidden'}>
-                    <p className="px-5 py-4 text-sm text-slate-600 leading-relaxed">{faq.a}</p>
+                    <p className="px-5 py-4 text-sm text-slate-600 leading-relaxed">{t(faq.a)}</p>
                   </div>
                 </div>
               ))}

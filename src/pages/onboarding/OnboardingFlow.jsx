@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
   HiOutlineHeart,
@@ -32,10 +32,13 @@ import { phoneSchema } from '../../lib/validators'
 import { DEFAULT_REMINDER_TEMPLATE, MEDICAL_TYPES } from '../../utils/constants'
 import { useCreateBusiness, useUpsertService, uploadBusinessAsset } from '../../hooks/useBusiness'
 import Button from '../../components/ui/Button'
-import Input from '../../components/ui/Input'
+import Input, { Select } from '../../components/ui/Input'
 import Dropdown from '../../components/ui/Dropdown'
 import ScheduleBlockEditor from '../../components/ui/ScheduleBlockEditor'
 import BookingLinkActions from '../../components/booking/BookingLinkActions'
+import PhoneInput from '../../components/ui/PhoneInput'
+import { useVisitorCountry } from '../../hooks/useVisitorPricing'
+import { COUNTRIES, CURRENCIES, DEFAULT_COUNTRY, defaultCurrencyOf, isArabCountry } from '../../lib/countries'
 const STEPS = ['نوع النشاط', 'معلوماتك', 'الفروع', 'ساعات العمل', 'الخدمات', 'هويتك']
 
 // Context-aware content based on business type
@@ -100,6 +103,7 @@ function getStepBusinessInfoSchema(requireOwnerPhone) {
   return z.object({
     name: z.string().min(2, 'اسم النشاط يجب أن يكون حرفين على الأقل'),
     public_phone: z.string().optional(),
+    country: z.string().optional(),
     ownerPhone: requireOwnerPhone
       ? phoneSchema('رقم الواتساب غير صحيح')
       : z.string().optional(),
@@ -206,36 +210,55 @@ function StepBusinessType({ onNext }) {
 
 // ── Step 1: Business Info ──────────────────────────────────────────
 function StepBusinessInfo({ onNext, onBack, vertical, requireOwnerPhone }) {
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
+  const visitorCountry = useVisitorCountry()
+  const { register, control, setValue, handleSubmit, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(getStepBusinessInfoSchema(requireOwnerPhone)),
+    defaultValues: { ownerPhone: '', public_phone: '' },
   })
+  // Follows the visitor's country until they choose one themselves.
+  const chosenCountry = useWatch({ control, name: 'country' })
+  const country = chosenCountry || (isArabCountry(visitorCountry) ? visitorCountry : DEFAULT_COUNTRY)
   const cfg = TYPE_CONFIG[vertical?.key] || TYPE_CONFIG.other
   return (
-    <form onSubmit={handleSubmit(onNext)} className="space-y-4" dir="rtl">
+    <form onSubmit={handleSubmit((values) => onNext({ ...values, country }))} className="space-y-4" dir="rtl">
       <div className="mb-4">
         <h2 className="text-xl font-bold text-gray-900">معلومات نشاطك</h2>
         <p className="text-gray-500 text-sm mt-1">أخبرنا عن نشاطك حتى نضبط النظام لك</p>
       </div>
       <Input label={cfg.businessNameLabel} placeholder={cfg.businessNamePlaceholder} error={errors.name?.message} {...register('name')} />
+      <Select label="الدولة" value={country} onChange={(e) => setValue('country', e.target.value)}>
+        {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
+      </Select>
+      <p className="text-xs text-gray-400 -mt-2">
+        أسعار خدماتك هتظهر بـ{CURRENCIES[defaultCurrencyOf(country)].name}، وتقدر تغيرها من الإعدادات.
+      </p>
       {requireOwnerPhone && (
-        <Input
-          label="رقم واتساب بتاعك"
-          type="tel"
-          placeholder="201XXXXXXXXX"
-          dir="ltr"
-          helper="هنتواصل معاك عليه للاشتراك"
-          error={errors.ownerPhone?.message}
-          {...register('ownerPhone')}
+        <Controller
+          name="ownerPhone"
+          control={control}
+          render={({ field }) => (
+            <PhoneInput
+              {...field}
+              label="رقم واتساب بتاعك"
+              defaultCountry={country}
+              helper="هنتواصل معاك عليه للاشتراك"
+              error={errors.ownerPhone?.message}
+            />
+          )}
         />
       )}
-      <Input
-        label={cfg.publicPhoneLabel}
-        type="tel"
-        placeholder="01XXXXXXXXX"
-        dir="ltr"
-        helper="اختياري — يظهر لعملائك في صفحة الحجز"
-        error={errors.public_phone?.message}
-        {...register('public_phone')}
+      <Controller
+        name="public_phone"
+        control={control}
+        render={({ field }) => (
+          <PhoneInput
+            {...field}
+            label={cfg.publicPhoneLabel}
+            defaultCountry={country}
+            helper="اختياري — يظهر لعملائك في صفحة الحجز"
+            error={errors.public_phone?.message}
+          />
+        )}
       />
       <div className="flex gap-3 mt-2 sticky bottom-0 bg-white pt-3 pb-1 -mx-4 px-4 md:static md:bg-transparent md:mx-0 md:px-0 md:pt-0 md:pb-0">
         <Button variant="secondary" type="button" onClick={onBack} className="flex-1">السابق</Button>
@@ -253,7 +276,7 @@ const CAPACITY_LABELS = {
 }
 
 // ── Step 2: Branches ───────────────────────────────────────────────
-function StepBranches({ onNext, onBack, vertical }) {
+function StepBranches({ onNext, onBack, vertical, defaultCountry }) {
   const cfg = TYPE_CONFIG[vertical?.key] || TYPE_CONFIG.other
   const isClinic = MEDICAL_TYPES.includes(vertical?.key)
   const [isMulti, setIsMulti] = useState(false)
@@ -314,8 +337,7 @@ function StepBranches({ onNext, onBack, vertical }) {
                 className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent-400 disabled:bg-slate-100 disabled:text-slate-400" />
               <input value={branch.address} onChange={e => updateBranch(i, 'address', e.target.value)} placeholder="العنوان"
                 className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent-400" />
-              <input value={branch.phone} onChange={e => updateBranch(i, 'phone', e.target.value)} placeholder="رقم الهاتف" dir="ltr"
-                className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent-400" />
+              <PhoneInput value={branch.phone} onChange={(phone) => updateBranch(i, 'phone', phone)} ariaLabel="رقم الهاتف" defaultCountry={defaultCountry} />
             </div>
           ))}
           {branches.length < 10 && (
@@ -771,6 +793,15 @@ export default function OnboardingFlow() {
   const upsertService = useUpsertService()
   const requireOwnerPhone = !sessionStorage.getItem('beshola_pending_owner_phone')
 
+  // Nobody sets up an account without accepting the terms, including someone who
+  // signed up before the checkbox existed and never finished. The callback page
+  // asks them, or sends them on if the account is already set up.
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user && !user.user_metadata?.terms_accepted_at) navigate('/auth/callback', { replace: true })
+    })
+  }, [navigate])
+
   function next(updates) {
     setData(prev => ({ ...prev, ...updates }))
     setStep(s => s + 1)
@@ -791,6 +822,8 @@ export default function OnboardingFlow() {
       const identityFields = {
         ...(ownerPhone ? { owner_phone: ownerPhone } : {}),
         public_phone: data.public_phone || null,
+        country: data.country || DEFAULT_COUNTRY,
+        currency: defaultCurrencyOf(data.country),
         brand_color: identityValues.brandColor,
         bio: identityValues.bio || null,
         years_experience: identityValues.years_experience || null,
@@ -918,7 +951,7 @@ export default function OnboardingFlow() {
           <div className="flex-1 overflow-y-auto px-4 md:px-6 pb-4 md:pb-6 min-h-0">
             {step === 0 && <StepBusinessType onNext={handleStep0} />}
             {step === 1 && <StepBusinessInfo onNext={handleStep1} onBack={() => setStep(0)} vertical={data.vertical} requireOwnerPhone={requireOwnerPhone} />}
-            {step === 2 && <StepBranches onNext={handleStep2} onBack={() => setStep(1)} vertical={data.vertical} />}
+            {step === 2 && <StepBranches onNext={handleStep2} onBack={() => setStep(1)} vertical={data.vertical} defaultCountry={data.country} />}
             {step === 3 && <StepWorkingHours onNext={handleStep3} onBack={() => setStep(2)} />}
             {step === 4 && <StepServices onNext={handleStep4} onBack={() => setStep(3)} businessVertical={data.vertical} />}
             {step === 5 && <StepIdentity onNext={handleStep5} onBack={() => setStep(4)} businessName={data.name} vertical={data.vertical} loading={loading} />}
