@@ -13,7 +13,7 @@ import { FaWhatsapp } from 'react-icons/fa'
 import PageWrapper from '../../components/layout/PageWrapper'
 import { StatCard } from '../../components/ui/Card'
 import { useBusiness, useBusinessCurrency } from '../../hooks/useBusiness'
-import { currencyFor } from '../../lib/countries'
+import { currencyFor, phoneMatches } from '../../lib/countries'
 import { useClients, useClientStats } from '../../hooks/useClients'
 import { useTomorrowsAppointments } from '../../hooks/useAppointments'
 import { formatDateAr, formatTime12 } from '../../utils/dateHelpers'
@@ -170,7 +170,7 @@ export default function ClientsPage() {
 
   const filtered = clients.filter(c => {
     const matchTab = !activeTab || c.status === activeTab
-    const matchSearch = !search || c.name.includes(search) || c.phone.includes(search)
+    const matchSearch = !search || c.name.includes(search) || phoneMatches(c.phone, search)
     return matchTab && matchSearch
   })
 

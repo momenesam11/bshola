@@ -1,4 +1,5 @@
 import { formatDateAr, formatTime12 } from '../../utils/dateHelpers'
+import { displayPhone } from '../../lib/countries'
 
 const STATUS_LABELS = {
   confirmed: 'مؤكد',
@@ -76,7 +77,7 @@ export default function PrintableReport({ business, bookingUrl, from, to, stats,
             {appointments.map((appt, i) => (
               <tr key={appt.id} style={{ background: i % 2 === 0 ? '#fff' : '#FAFBFC' }}>
                 <td style={{ padding: '9px 8px', borderBottom: '1px solid #F1F5F9' }}>{appt.client_name}</td>
-                <td style={{ padding: '9px 8px', borderBottom: '1px solid #F1F5F9', color: '#475569' }} dir="ltr">{appt.client_phone}</td>
+                <td style={{ padding: '9px 8px', borderBottom: '1px solid #F1F5F9', color: '#475569' }} dir="ltr">{displayPhone(appt.client_phone) || appt.client_phone}</td>
                 <td style={{ padding: '9px 8px', borderBottom: '1px solid #F1F5F9', color: '#475569' }}>{appt.services?.name || '—'}</td>
                 <td style={{ padding: '9px 8px', borderBottom: '1px solid #F1F5F9', color: '#475569' }}>{formatDateAr(appt.appointment_date, 'd MMM yyyy')}</td>
                 <td style={{ padding: '9px 8px', borderBottom: '1px solid #F1F5F9', color: '#475569' }} dir="ltr">{formatTime12(appt.appointment_time?.slice(0, 5))}</td>
