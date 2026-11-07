@@ -10,7 +10,7 @@ import {
   HiOutlineTableCells,
   HiOutlinePrinter,
 } from 'react-icons/hi2'
-import { ar } from 'date-fns/locale'
+import { toCsv } from '../../lib/csv'
 import PageWrapper from '../../components/layout/PageWrapper'
 import StatusBadge from '../../components/appointments/StatusBadge'
 import { StatCard } from '../../components/ui/Card'
@@ -36,6 +36,8 @@ const STATUS_FILTERS = [
   { value: 'no_show', label: 'لم يحضر' },
 ]
 
+const STATUS_AR = { confirmed: 'مؤكد', completed: 'مكتمل', cancelled: 'ملغي', no_show: 'لم يحضر', waitlist: 'انتظار' }
+
 function downloadCSV(appointments) {
   const headers = ['الاسم', 'الهاتف', 'الخدمة', 'التاريخ', 'الوقت', 'الحالة']
   const rows = appointments.map(a => [
@@ -44,9 +46,10 @@ function downloadCSV(appointments) {
     a.services?.name || '',
     a.appointment_date,
     a.appointment_time?.slice(0, 5) || '',
-    a.status,
+    STATUS_AR[a.status] || a.status,
   ])
-  const csv = [headers, ...rows].map(r => r.join(',')).join('\n')
+  // Quoted and formula-safe: a comma in a name used to shift every column after it.
+  const csv = toCsv([headers, ...rows])
   const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -124,7 +127,7 @@ export default function Reports() {
             </div>
           )}
           <div className="flex gap-2 w-full sm:w-auto sm:mr-auto">
-            <button onClick={() => downloadCSV(appointments)} disabled={appointments.length === 0}
+            <button onClick={() => downloadCSV(filtered)} disabled={filtered.length === 0}
               className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-40 transition-colors min-h-[44px] sm:min-h-0">
               <HiOutlineArrowDownTray className="w-4 h-4" />
               تصدير CSV

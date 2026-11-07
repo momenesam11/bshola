@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { format, differenceInYears, parseISO } from 'date-fns'
@@ -18,7 +18,6 @@ import {
   HiOutlineClipboardDocument,
   HiOutlineChevronDown,
   HiOutlineExclamationTriangle,
-  HiOutlineBeaker,
   HiOutlineSparkles,
   HiOutlineHeart,
   HiOutlineCalendarDays,
@@ -101,6 +100,46 @@ function TagInput({ tags = [], onChange, placeholder, chipClass = 'bg-primary-50
   )
 }
 
+// ─── Autosave ─────────────────────────────────────────────────────
+// Every change shows at once and is collected; one save sends all of them.
+// Before, each change cancelled the previous one's pending save, so picking a
+// gender and then a blood type kept only the blood type, and adding three
+// allergies quickly kept only the last. Leaving the tab sends what's pending.
+function usePatientAutoSave(businessId, clientPhone, clientName) {
+  const { data: saved } = usePatientRecord(businessId, clientPhone)
+  const upsert = useUpsertPatientRecord(businessId, clientPhone)
+  const [draft, setDraft] = useState({})
+  const pending = useRef({})
+  const timer = useRef(null)
+  const latest = useRef({ upsert, clientName })
+  useEffect(() => { latest.current = { upsert, clientName } })
+
+  const flush = useCallback(async () => {
+    clearTimeout(timer.current)
+    const changes = pending.current
+    if (!Object.keys(changes).length) return
+    pending.current = {}
+    try {
+      await latest.current.upsert.mutateAsync({ ...changes, client_name: latest.current.clientName })
+      toast.success('تم الحفظ', { duration: 1200 })
+    } catch (e) {
+      toast.error(e?.message || 'تعذر الحفظ')
+    }
+  }, [])
+
+  useEffect(() => () => { flush() }, [flush])
+
+  function autoSave(field, value) {
+    setDraft(d => ({ ...d, [field]: value }))
+    pending.current = { ...pending.current, [field]: value }
+    clearTimeout(timer.current)
+    timer.current = setTimeout(flush, 800)
+  }
+
+  const record = saved || Object.keys(draft).length ? { ...saved, ...draft } : saved
+  return { record, autoSave }
+}
+
 // ─── Shared helpers ───────────────────────────────────────────────
 function Section({ title, children }) {
   return (
@@ -121,7 +160,6 @@ function Field({ label, children, className = '' }) {
 
 // ─── Patient Header with Stats Strip ─────────────────────────────
 function PatientHeader({ clientPhone, clientName, visits = [], diagnoses = [] }) {
-  const age = null
   const initials = (clientName || '؟').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
   const lastVisit = visits[0]?.appointment_date
   const totalVisits = visits.length
@@ -174,19 +212,7 @@ function PatientHeader({ clientPhone, clientName, visits = [], diagnoses = [] })
 
 // ─── TAB 1: Basic Info ─────────────────────────────────────────────
 function TabBasicInfo({ businessId, clientPhone, clientName }) {
-  const { data: record } = usePatientRecord(businessId, clientPhone)
-  const upsert = useUpsertPatientRecord(businessId, clientPhone)
-  const saveTimer = useRef(null)
-
-  function autoSave(field, value) {
-    clearTimeout(saveTimer.current)
-    saveTimer.current = setTimeout(async () => {
-      try {
-        await upsert.mutateAsync({ [field]: value, client_name: clientName })
-        toast.success('تم الحفظ', { duration: 1200 })
-      } catch (e) { toast.error(e.message) }
-    }, 800)
-  }
+  const { record, autoSave } = usePatientAutoSave(businessId, clientPhone, clientName)
 
   return (
     <div className="space-y-6 p-4 sm:p-6">
@@ -258,19 +284,7 @@ function TabBasicInfo({ businessId, clientPhone, clientName }) {
 
 // ─── TAB 1 (simple, non-medical types): Basic Info only ────────────
 function TabBasicInfoSimple({ businessId, clientPhone, clientName, visits = [] }) {
-  const { data: record } = usePatientRecord(businessId, clientPhone)
-  const upsert = useUpsertPatientRecord(businessId, clientPhone)
-  const saveTimer = useRef(null)
-
-  function autoSave(field, value) {
-    clearTimeout(saveTimer.current)
-    saveTimer.current = setTimeout(async () => {
-      try {
-        await upsert.mutateAsync({ [field]: value, client_name: clientName })
-        toast.success('تم الحفظ', { duration: 1200 })
-      } catch (e) { toast.error(e.message) }
-    }, 800)
-  }
+  const { record, autoSave } = usePatientAutoSave(businessId, clientPhone, clientName)
 
   const lastVisit = visits[0]?.appointment_date
   const age = calcAge(record?.date_of_birth)
@@ -331,7 +345,7 @@ function TabBasicInfoSimple({ businessId, clientPhone, clientName, visits = [] }
 }
 
 // ─── TAB 2: Visits / Timeline ──────────────────────────────────────
-function DiagnosisForm({ appointmentId, businessId, clientPhone, existing, onDone, clientName }) {
+function DiagnosisForm({ appointmentId, businessId, clientPhone, existing, onDone }) {
   const [diagnosis, setDiagnosis] = useState(existing?.diagnosis || '')
   const [treatment, setTreatment] = useState(existing?.treatment || '')
   const [notes, setNotes] = useState(existing?.notes || '')

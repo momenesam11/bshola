@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { useQueryClient } from '@tanstack/react-query'
@@ -32,8 +32,11 @@ import {
   uploadBusinessAsset,
 } from '../../hooks/useBusiness'
 import { REMINDER_OPTIONS, DEFAULT_REMINDER_TEMPLATE } from '../../utils/constants'
+import { openWhatsApp } from '../../lib/whatsapp'
+import { SUPPORT_WHATSAPP, SUPPORT_WHATSAPP_DISPLAY } from '../../lib/support'
+import toast from 'react-hot-toast'
 import { supabase } from '../../lib/supabase'
-import { useBranch } from '../../context/BranchContext'
+import { useBranch } from '../../context/branchState'
 import ScheduleBlockEditor from '../../components/ui/ScheduleBlockEditor'
 import BookingLinkActions from '../../components/booking/BookingLinkActions'
 import ReferralCard from '../../components/referral/ReferralCard'
@@ -178,21 +181,13 @@ function WorkingHoursSection({ business }) {
   const branchCtx = useBranch()
   const isMultiBranch = !!branchCtx?.isMultiBranch
   const currentBranch = branchCtx?.currentBranch
-  const [scheduleBlocks, setScheduleBlocks] = useState({})
+  // Settings remounts this per branch (key), so starting state is enough.
+  const [scheduleBlocks, setScheduleBlocks] = useState(() =>
+    currentBranch && !currentBranch.isAll ? currentBranch.schedule_blocks || {} : {})
   const [isValid, setIsValid] = useState(true)
   const [slotDuration, setSlotDuration] = useState(business?.slot_duration || 30)
   const [saveStatus, setSaveStatus] = useState(null)
   const [saveMsg, setSaveMsg] = useState('')
-
-  useEffect(() => {
-    if (currentBranch && !currentBranch.isAll) {
-      setScheduleBlocks(currentBranch.schedule_blocks || {})
-    }
-  }, [currentBranch?.id])
-
-  useEffect(() => {
-    setSlotDuration(business?.slot_duration || 30)
-  }, [business?.slot_duration])
 
   async function handleSave() {
     if (!currentBranch || currentBranch.isAll) return
@@ -272,19 +267,31 @@ function ServicesSection({ businessId }) {
   const deleteService = useDeleteService()
   const [pendingDeleteId, setPendingDeleteId] = useState(null)
 
+  const onSaveError = { onError: e => toast.error(e?.message || 'تعذر حفظ الخدمة') }
+
   function addService() {
-    upsertService.mutate({ businessId, services: [{ name: 'خدمة جديدة', duration_minutes: 30, price: null }] })
+    upsertService.mutate({ businessId, services: [{ name: 'خدمة جديدة', duration_minutes: 30, price: null }] }, onSaveError)
   }
 
   function updateField(service, field, value) {
-    upsertService.mutate({ businessId, services: [{ id: service.id, name: service.name, duration_minutes: service.duration_minutes, price: service.price, [field]: value }] })
+    if (field === 'name' && !String(value).trim()) {
+      toast.error('اسم الخدمة مايبقاش فاضي')
+      return
+    }
+    if (service[field] === value) return
+    upsertService.mutate({ businessId, services: [{ id: service.id, name: service.name, duration_minutes: service.duration_minutes, price: service.price, [field]: value }] }, onSaveError)
   }
 
   async function confirmDelete() {
     const id = pendingDeleteId
     setPendingDeleteId(null)
     if (!id) return
-    await deleteService.mutateAsync(id)
+    try {
+      await deleteService.mutateAsync(id)
+      toast.success('تم حذف الخدمة')
+    } catch (e) {
+      toast.error(e?.message || 'تعذر حذف الخدمة')
+    }
   }
 
   if (isLoading) return <div className="space-y-2">{[1, 2].map(i => <div key={i} className="h-14 bg-slate-100 rounded-xl animate-pulse" />)}</div>
@@ -337,22 +344,6 @@ function IdentitySection({ business, onSaved }) {
   const logoRef = useRef(null)
   const coverRef = useRef(null)
 
-  // Sync from parent when business loads
-  useEffect(() => {
-    if (!business) return
-    setBrandColor(business.brand_color || '#0D9B6C')
-    setLogoPreview(business.logo_url || null)
-    setCoverPreview(business.cover_url || null)
-    setSlug(business.booking_slug || '')
-    setBio(business.bio || '')
-    setYears(business.years_experience || '')
-    setSpecialty(business.specialty || '')
-    setInstagram(business.instagram_url || '')
-    setFacebook(business.facebook_url || '')
-    setGoogleReviews(business.google_reviews_url || '')
-    setWelcomeMsg(business.welcome_message || '')
-    setCancelPolicy(business.cancellation_policy || CANCELLATION_OPTIONS[0])
-  }, [business?.id])
 
   function handleLogoChange(e) {
     const file = e.target.files?.[0]
@@ -563,20 +554,18 @@ export default function Settings() {
   const navigate = useNavigate()
   const { data: business, isLoading } = useBusiness()
   const updateBusiness = useUpdateBusiness()
-  const [bizForm, setBizForm] = useState({ name: '', phone: '' })
-  const [reminderHours, setReminderHours] = useState(24)
-  const [reminderTemplate, setReminderTemplate] = useState(DEFAULT_REMINDER_TEMPLATE)
+  const branchCtx = useBranch()
+  // Only what the owner typed is state; everything else shows the saved values.
+  const [edits, setEdits] = useState({})
+  const bizForm = { name: business?.name || '', phone: business?.phone || '', ...edits.biz }
+  const setBizForm = (fn) => setEdits(e => ({ ...e, biz: fn(bizForm) }))
+  const reminderHours = edits.reminderHours ?? (business?.reminder_hours || 24)
+  const setReminderHours = (v) => setEdits(e => ({ ...e, reminderHours: v }))
+  const reminderTemplate = edits.reminderTemplate ?? (business?.reminder_template || DEFAULT_REMINDER_TEMPLATE)
+  const setReminderTemplate = (v) => setEdits(e => ({ ...e, reminderTemplate: v }))
   const [saveStatus, setSaveStatus] = useState({})
   const [confirmDeleteAccount, setConfirmDeleteAccount] = useState(false)
   const [tab, setTab] = useState('business')
-
-  useEffect(() => {
-    if (business) {
-      setBizForm({ name: business.name || '', phone: business.phone || '' })
-      setReminderHours(business.reminder_hours || 24)
-      setReminderTemplate(business.reminder_template || DEFAULT_REMINDER_TEMPLATE)
-    }
-  }, [business])
 
   function setStatus(key, val, msg = '') {
     setSaveStatus(s => ({ ...s, [key]: val, [`${key}Msg`]: msg }))
@@ -584,8 +573,12 @@ export default function Settings() {
   }
 
   async function saveBizInfo() {
+    if (bizForm.name.trim().length < 2) {
+      setStatus('biz', 'error', 'اسم النشاط لازم يكون حرفين على الأقل')
+      return
+    }
     setStatus('biz', 'loading')
-    try { await updateBusiness.mutateAsync({ id: business.id, ...bizForm }); setStatus('biz', 'ok') }
+    try { await updateBusiness.mutateAsync({ id: business.id, name: bizForm.name.trim(), phone: bizForm.phone.trim() }); setStatus('biz', 'ok') }
     catch (e) { setStatus('biz', 'error', e?.message || String(e)) }
   }
 
@@ -595,10 +588,14 @@ export default function Settings() {
     catch (e) { setStatus('reminder', 'error', e?.message || String(e)) }
   }
 
-  async function handleDeleteAccount() {
+  // Deleting a clinic's patients can't be undone, so it is a request the
+  // Beshola team carries out after confirming with the owner, not a button.
+  // It used to only sign out while saying "deleted permanently".
+  function handleDeleteAccount() {
     setConfirmDeleteAccount(false)
-    await supabase.auth.signOut()
-    navigate('/login')
+    const msg = `أهلاً، عايز أحذف حساب "${business?.name || ''}" على بسهولة نهائياً هو وكل بياناته.
+كود الحساب: ${business?.id || ''}`
+    if (!openWhatsApp(SUPPORT_WHATSAPP, msg)) toast.error('المتصفح منع فتح واتساب — كلّمنا على ' + SUPPORT_WHATSAPP_DISPLAY)
   }
 
   async function handleLogout() {
@@ -659,7 +656,7 @@ export default function Settings() {
         {/* ── Identity ─────────────────────────────────────────── */}
         {tab === 'identity' && (
           <Section title="هوية البيزنس" subtitle="الصورة، الألوان، الرابط، والمعلومات التي تظهر في صفحة الحجز">
-            {business && <IdentitySection business={business} />}
+            {business && <IdentitySection key={business.id} business={business} />}
           </Section>
         )}
 
@@ -673,7 +670,7 @@ export default function Settings() {
         {/* ── Working Hours ─────────────────────────────────────── */}
         {tab === 'hours' && (
           <Section title="ساعات العمل" subtitle="يمكنك إضافة أكتر من فترة لليوم الواحد، بدون تقاطع بينها">
-            {business && <WorkingHoursSection business={business} />}
+            {business && <WorkingHoursSection key={branchCtx?.currentBranch?.id ?? 'none'} business={business} />}
           </Section>
         )}
 
@@ -689,7 +686,7 @@ export default function Settings() {
             <Textarea label="نص رسالة التذكير" value={reminderTemplate} onChange={e => setReminderTemplate(e.target.value)} rows={4} />
             <p className="text-xs text-slate-400">
               المتغيرات:{' '}
-              {['{client_name}', '{service}', '{time}', '{business_name}', '{branch}'].map(v => (
+              {['{client_name}', '{service}', '{date}', '{time}', '{business_name}', '{branch}'].map(v => (
                 <code key={v} className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 mx-0.5 text-[12.5px]">{v}</code>
               ))}
             </p>
@@ -719,8 +716,8 @@ export default function Settings() {
             </div>
 
             <Section title="منطقة الخطر">
-              <p className="text-sm text-slate-500">سيتم حذف جميع بياناتك بشكل دائم ولا يمكن التراجع.</p>
-              <Button variant="danger" onClick={() => setConfirmDeleteAccount(true)} size="sm">حذف الحساب نهائياً</Button>
+              <p className="text-sm text-slate-500">لو عايز تحذف حسابك وكل بيانات عملائك، ابعتلنا طلب وهنأكد معاك قبل الحذف. الحذف مايترجعش.</p>
+              <Button variant="danger" onClick={() => setConfirmDeleteAccount(true)} size="sm">طلب حذف الحساب</Button>
             </Section>
           </>
         )}
@@ -733,9 +730,9 @@ export default function Settings() {
         onClose={() => setConfirmDeleteAccount(false)}
         onConfirm={handleDeleteAccount}
         variant="danger"
-        title="حذف الحساب"
-        message="هل أنت متأكد من حذف الحساب؟ لا يمكن التراجع."
-        confirmLabel="حذف نهائياً"
+        title="طلب حذف الحساب"
+        message="هيتفتح واتساب برسالة لفريق بسهولة. هنكلمك نأكد قبل ما نحذف أي حاجة."
+        confirmLabel="ابعت الطلب"
       />
     </PageWrapper>
   )

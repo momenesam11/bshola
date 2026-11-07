@@ -15,7 +15,7 @@ import {
 } from 'react-icons/hi2'
 import { FaWhatsapp } from 'react-icons/fa'
 import { useBusiness } from '../../hooks/useBusiness'
-import { useBranch, ALL_BRANCHES } from '../../context/BranchContext'
+import { useBranch, ALL_BRANCHES } from '../../context/branchState'
 import { getBranchColor } from '../../utils/constants'
 import { SUPPORT_WHATSAPP, SUPPORT_EMAIL } from '../../lib/support'
 import { useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead } from '../../hooks/useNotifications'

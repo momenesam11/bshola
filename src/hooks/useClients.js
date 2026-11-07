@@ -1,8 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
-import { subDays } from 'date-fns'
+import { todayISO } from '../utils/dateHelpers'
+import { fetchAllRows } from './useAppointments'
 
-function classifyStatus(lastDate) {
+// Upcoming bookings count as activity (a new client who booked for next week
+// is not "lost"), but only past visits are shown as the last visit.
+function classifyStatus(lastDate, hasUpcoming = false) {
+  if (hasUpcoming) return 'منتظم'
   if (!lastDate) return 'ضايع'
   const daysDiff = Math.floor((new Date() - new Date(lastDate)) / (1000 * 60 * 60 * 24))
   if (daysDiff <= 30) return 'منتظم'
@@ -14,15 +18,16 @@ export function useClients(businessId) {
   return useQuery({
     queryKey: ['clients', businessId],
     queryFn: async () => {
-      const { data: appts, error } = await supabase
+      const appts = await fetchAllRows(() => supabase
         .from('appointments')
-        .select('client_name, client_phone, appointment_date, status, services(price)')
+        .select('id, client_name, client_phone, appointment_date, status, price, services(price)')
         .eq('business_id', businessId)
         .order('appointment_date', { ascending: false })
+        .order('id'))
 
-      if (error) throw error
-
-      // Aggregate per phone
+      const today = todayISO()
+      // Aggregate per phone. Cancelled and waitlisted bookings are not visits:
+      // they don't count toward visits, spending or the last visit.
       const map = new Map()
       for (const a of appts) {
         const key = a.client_phone
@@ -33,13 +38,17 @@ export function useClients(businessId) {
             visits: 0,
             totalSpent: 0,
             lastVisit: null,
+            hasUpcoming: false,
             attended: 0,
           })
         }
         const client = map.get(key)
+        if (a.status === 'cancelled' || a.status === 'waitlist') continue
         client.visits++
-        if (a.services?.price) client.totalSpent += a.services.price
-        if (!client.lastVisit || a.appointment_date > client.lastVisit) {
+        client.totalSpent += Number(a.price ?? a.services?.price ?? 0)
+        if (a.appointment_date > today) {
+          client.hasUpcoming = true
+        } else if (!client.lastVisit || a.appointment_date > client.lastVisit) {
           client.lastVisit = a.appointment_date
         }
         if (a.status === 'completed') client.attended++
@@ -47,7 +56,7 @@ export function useClients(businessId) {
 
       return Array.from(map.values()).map(c => ({
         ...c,
-        status: classifyStatus(c.lastVisit),
+        status: classifyStatus(c.lastVisit, c.hasUpcoming),
         attendanceRate: c.visits > 0 ? Math.round((c.attended / c.visits) * 100) : 0,
       }))
     },
@@ -87,14 +96,18 @@ export function useClientProfile(phone, businessId) {
 
       if (error) throw error
 
-      const totalVisits = appts.length
-      const billable = appts.filter(a => a.status !== 'cancelled')
-      const totalSpent = billable.reduce((s, a) => s + (a.price ?? a.services?.price ?? 0), 0)
-      const totalPaid = billable.reduce((s, a) => s + (a.amount_paid || (a.payment_status === 'paid' ? (a.price ?? a.services?.price ?? 0) : 0)), 0)
+      // Same rules as the client list, so the card and the drawer agree.
+      const today = todayISO()
+      const billable = appts.filter(a => a.status !== 'cancelled' && a.status !== 'waitlist')
+      const totalVisits = billable.length
+      const priceOf = a => Number(a.price ?? a.services?.price ?? 0)
+      const totalSpent = billable.reduce((s, a) => s + priceOf(a), 0)
+      const totalPaid = billable.reduce((s, a) => s + (Number(a.amount_paid) || (a.payment_status === 'paid' ? priceOf(a) : 0)), 0)
       const totalOwed = Math.max(0, totalSpent - totalPaid)
-      const attended = appts.filter(a => a.status === 'completed').length
+      const attended = billable.filter(a => a.status === 'completed').length
       const attendanceRate = totalVisits > 0 ? Math.round((attended / totalVisits) * 100) : 0
-      const lastVisit = appts[0]?.appointment_date || null
+      const lastVisit = billable.find(a => a.appointment_date <= today)?.appointment_date || null
+      const hasUpcoming = billable.some(a => a.appointment_date > today)
 
       // Fetch notes from clients table
       const { data: clientRow } = await supabase
@@ -102,7 +115,7 @@ export function useClientProfile(phone, businessId) {
         .select('notes')
         .eq('business_id', businessId)
         .eq('phone', phone)
-        .single()
+        .maybeSingle()
 
       return {
         name: appts[0]?.client_name || '',
@@ -110,7 +123,7 @@ export function useClientProfile(phone, businessId) {
         notes: clientRow?.notes || '',
         appointments: appts,
         stats: { totalVisits, totalSpent, totalPaid, totalOwed, attendanceRate, lastVisit },
-        status: classifyStatus(lastVisit),
+        status: classifyStatus(lastVisit, hasUpcoming),
       }
     },
     enabled: !!phone && !!businessId,

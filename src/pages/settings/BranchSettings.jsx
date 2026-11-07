@@ -203,7 +203,11 @@ export default function BranchSettings() {
       qc.invalidateQueries({ queryKey: ['branches', business?.id] })
       toast.success('تم حذف الفرع')
     },
-    onError: (e) => toast.error(e.message),
+    // Appointments keep their branch, so the database refuses to delete a branch
+    // that has any. Say that instead of showing the raw constraint error.
+    onError: (e) => toast.error(e?.code === '23503' || /foreign key/i.test(e?.message || '')
+      ? 'مش هينفع تحذف فرع عليه مواعيد. سيبه موجود، أو احذف مواعيده الأول.'
+      : (e?.message || 'تعذر حذف الفرع')),
   })
 
   function handleDelete(branch) {

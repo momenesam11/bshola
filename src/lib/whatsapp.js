@@ -1,8 +1,26 @@
 // WhatsApp Manual Sender — opens WhatsApp Web/App with pre-filled message, no API needed
 
+// The text onboarding saves for everyone. A clinic still on it gets the fuller
+// built-in reminder (it has the date and branch); a clinic that wrote its own
+// text in Settings gets exactly that.
+const UNCHANGED_DEFAULT_TEMPLATE =
+  'مرحباً {client_name}، نذكرك بموعدك في {business_name} لخدمة {service} الساعة {time}. نتطلع لرؤيتك!'
+
 export function generateReminderMessage(appointment, business, branch) {
   const timeFormatted = formatTimeArabic(appointment.appointment_time)
   const dateFormatted = formatDateArabic(appointment.appointment_date)
+  const template = business.reminder_template?.trim()
+  if (template && template !== UNCHANGED_DEFAULT_TEMPLATE) {
+    const values = {
+      client_name: appointment.client_name || '',
+      service: appointment.services?.name || appointment.service_name || '',
+      time: timeFormatted,
+      date: dateFormatted,
+      business_name: business.name || '',
+      branch: branch?.name || business.name || '',
+    }
+    return template.replace(/\{(client_name|service|time|date|business_name|branch)\}/g, (_, key) => values[key])
+  }
   const branchLine = branch?.name
     ? `📍 ${branch.name}${branch.address ? ' — ' + branch.address : ''}`
     : `📍 ${business.name}`
@@ -40,9 +58,12 @@ ${branchLine}
 — ${business.name}`
 }
 
+// Returns false when the browser blocked the new tab, so a caller sending many
+// messages can say which ones never opened instead of reporting them as sent.
 export function openWhatsApp(phone, message) {
   const cleanPhone = String(phone).replace(/[^0-9]/g, '')
-  window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank')
+  const tab = window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank')
+  return !!tab
 }
 
 export function formatTimeArabic(time) {

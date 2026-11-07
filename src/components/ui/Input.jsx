@@ -1,4 +1,4 @@
-import { forwardRef, useState } from 'react'
+import { forwardRef, useId, useState } from 'react'
 import { HiOutlineEye, HiOutlineEyeSlash, HiOutlineExclamationTriangle } from 'react-icons/hi2'
 
 const base = `w-full border rounded-xl px-3 py-2.5 text-sm text-gray-900 bg-white
@@ -6,14 +6,17 @@ const base = `w-full border rounded-xl px-3 py-2.5 text-sm text-gray-900 bg-whit
   focus:outline-none focus:ring-2 focus:ring-accent-400 focus:border-accent-400
   disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed`
 
-const Input = forwardRef(function Input({ label, error, helper, className = '', type, ...props }, ref) {
+const Input = forwardRef(function Input({ label, error, helper, className = '', type, id, ...props }, ref) {
   const [revealed, setRevealed] = useState(false)
+  const generatedId = useId()
+  const inputId = id || generatedId
   const isPassword = type === 'password'
   return (
     <div className="flex flex-col gap-1.5">
-      {label && <label className="text-sm font-medium text-gray-700">{label}</label>}
+      {label && <label htmlFor={inputId} className="text-sm font-medium text-gray-700">{label}</label>}
       <div className="relative">
         <input
+          id={inputId}
           ref={ref}
           type={isPassword && revealed ? 'text' : type}
           className={`${base} ${isPassword ? 'pl-10' : ''} ${error ? 'border-red-400 focus:ring-red-300 focus:border-red-400 bg-red-50' : 'border-gray-200'} ${className}`}
@@ -43,12 +46,15 @@ const Input = forwardRef(function Input({ label, error, helper, className = '', 
 
 export default Input
 
-export const Select = forwardRef(function Select({ label, error, children, className = '', ...props }, ref) {
+export const Select = forwardRef(function Select({ label, error, children, className = '', id, ...props }, ref) {
+  const generatedId = useId()
+  const fieldId = id || generatedId
   return (
     <div className="flex flex-col gap-1.5">
-      {label && <label className="text-sm font-medium text-gray-700">{label}</label>}
+      {label && <label htmlFor={fieldId} className="text-sm font-medium text-gray-700">{label}</label>}
       <div className="relative">
         <select
+          id={fieldId}
           ref={ref}
           className={`${base} appearance-none pr-3 pl-9 cursor-pointer ${error ? 'border-red-400' : 'border-gray-200'} ${className}`}
           {...props}
@@ -67,11 +73,14 @@ export const Select = forwardRef(function Select({ label, error, children, class
   )
 })
 
-export const Textarea = forwardRef(function Textarea({ label, error, className = '', ...props }, ref) {
+export const Textarea = forwardRef(function Textarea({ label, error, className = '', id, ...props }, ref) {
+  const generatedId = useId()
+  const fieldId = id || generatedId
   return (
     <div className="flex flex-col gap-1.5">
-      {label && <label className="text-sm font-medium text-gray-700">{label}</label>}
+      {label && <label htmlFor={fieldId} className="text-sm font-medium text-gray-700">{label}</label>}
       <textarea
+        id={fieldId}
         ref={ref}
         rows={3}
         className={`${base} resize-none ${error ? 'border-red-400' : 'border-gray-200'} ${className}`}

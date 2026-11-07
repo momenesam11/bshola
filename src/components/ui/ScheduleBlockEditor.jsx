@@ -23,6 +23,12 @@ function dayHasOverlap(blocks) {
   return false
 }
 
+// A period that ends at or before its start has no slots at all, so the day
+// would silently show as fully closed on the booking page.
+function dayHasBackwardsBlock(blocks) {
+  return (blocks || []).some(b => !b.start || !b.end || b.end <= b.start)
+}
+
 export default function ScheduleBlockEditor({ value, onChange, onValidityChange }) {
   const blocks = value || {}
 
@@ -42,7 +48,7 @@ export default function ScheduleBlockEditor({ value, onChange, onValidityChange 
     setDayBlocks(day, dayBlocks(day).filter((_, i) => i !== idx))
   }
 
-  const isValid = DAYS.every(({ key }) => !dayHasOverlap(dayBlocks(key)))
+  const isValid = DAYS.every(({ key }) => !dayHasOverlap(dayBlocks(key)) && !dayHasBackwardsBlock(dayBlocks(key)))
 
   useEffect(() => {
     onValidityChange?.(isValid)
@@ -53,22 +59,29 @@ export default function ScheduleBlockEditor({ value, onChange, onValidityChange 
     <div className="space-y-2">
       {DAYS.map(({ key, label }) => {
         const dBlocks = dayBlocks(key)
-        const overlap = dayHasOverlap(dBlocks)
+        const backwards = dayHasBackwardsBlock(dBlocks)
+        const overlap = !backwards && dayHasOverlap(dBlocks)
         return (
           <DayToggle key={key} label={label} on={dBlocks.length > 0} onChange={on => toggleDay(key, on)}>
             <div className="space-y-2 pt-2">
               {dBlocks.map((b, idx) => (
                 <div key={idx} className="flex items-center gap-2 flex-wrap">
                   <input type="time" value={b.start} onChange={e => updateBlock(key, idx, 'start', e.target.value)}
-                    className={`border rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent-400 ${overlap ? 'border-red-300' : 'border-slate-200'}`} dir="ltr" />
+                    className={`border rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent-400 ${overlap || backwards ? 'border-red-300' : 'border-slate-200'}`} dir="ltr" />
                   <span className="text-slate-400 text-xs">←</span>
                   <input type="time" value={b.end} onChange={e => updateBlock(key, idx, 'end', e.target.value)}
-                    className={`border rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent-400 ${overlap ? 'border-red-300' : 'border-slate-200'}`} dir="ltr" />
+                    className={`border rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent-400 ${overlap || backwards ? 'border-red-300' : 'border-slate-200'}`} dir="ltr" />
                   <button type="button" onClick={() => removeBlock(key, idx)} className="text-red-400 hover:text-red-600 p-1">
                     <HiOutlineTrash className="w-4 h-4" />
                   </button>
                 </div>
               ))}
+              {backwards && (
+                <p className="text-xs text-red-500 flex items-center gap-1">
+                  <HiOutlineExclamationTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                  وقت النهاية لازم يكون بعد وقت البداية
+                </p>
+              )}
               {overlap && (
                 <p className="text-xs text-red-500 flex items-center gap-1">
                   <HiOutlineExclamationTriangle className="w-3.5 h-3.5 flex-shrink-0" />

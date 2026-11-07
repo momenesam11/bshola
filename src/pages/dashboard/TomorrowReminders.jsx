@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import toast from 'react-hot-toast'
 import { format, addDays } from 'date-fns'
 import { ar } from 'date-fns/locale'
 import {
@@ -12,9 +13,14 @@ import {
 } from 'react-icons/hi2'
 import { FaWhatsapp } from 'react-icons/fa'
 import { useTomorrowsAppointments } from '../../hooks/useAppointments'
-import { useBranch } from '../../context/BranchContext'
+import { useBranch } from '../../context/branchState'
 import { supabase } from '../../lib/supabase'
 import { generateReminderMessage, openWhatsApp, formatTimeArabic } from '../../lib/whatsapp'
+
+async function markReminderSent(id) {
+  const { error } = await supabase.from('appointments').update({ reminder_sent: true }).eq('id', id)
+  if (error) throw error
+}
 
 function ReminderCard({ appt, business, onSent }) {
   const [sent, setSent] = useState(appt.reminder_sent)
@@ -28,10 +34,15 @@ function ReminderCard({ appt, business, onSent }) {
         business,
         appt.branches || null
       )
-      openWhatsApp(appt.client_phone, msg)
-      await supabase.from('appointments').update({ reminder_sent: true }).eq('id', appt.id)
+      if (!openWhatsApp(appt.client_phone, msg)) {
+        toast.error('المتصفح منع فتح واتساب — اسمح بالنوافذ المنبثقة وجرّب تاني')
+        return
+      }
+      await markReminderSent(appt.id)
       setSent(true)
       onSent?.(appt.id)
+    } catch (e) {
+      toast.error(e?.message || 'تعذر حفظ التذكير')
     } finally {
       setLoading(false)
     }
@@ -101,9 +112,16 @@ function SendAllModal({ appts, business, onDone, onClose }) {
 
   async function sendCurrent() {
     const msg = generateReminderMessage(current, business, current.branches || null)
-    openWhatsApp(current.client_phone, msg)
-    await supabase.from('appointments').update({ reminder_sent: true }).eq('id', current.id)
-    setSentIds(prev => new Set([...prev, current.id]))
+    if (!openWhatsApp(current.client_phone, msg)) {
+      toast.error('المتصفح منع فتح واتساب — اسمح بالنوافذ المنبثقة وجرّب تاني')
+      return
+    }
+    try {
+      await markReminderSent(current.id)
+      setSentIds(prev => new Set([...prev, current.id]))
+    } catch (e) {
+      toast.error(e?.message || 'تعذر حفظ التذكير')
+    }
   }
 
   function next() {

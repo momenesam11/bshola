@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import toast from 'react-hot-toast'
 import { HiOutlinePlus, HiOutlineCalendarDays, HiOutlineClock } from 'react-icons/hi2'
 import { useClientPlan, useCreateClientPlan, useUpdatePlanVisit, useDeleteClientPlan } from '../../hooks/useClientPlan'
 import Button from '../../components/ui/Button'
@@ -17,7 +18,7 @@ const VISIT_STATUS = {
 }
 
 export default function ClientPlanTab({ businessId, clientPhone, clientName }) {
-  const { data: plan, isLoading } = useClientPlan(businessId, clientPhone)
+  const { data: plan, isLoading, isError, refetch } = useClientPlan(businessId, clientPhone)
   const createPlan = useCreateClientPlan()
   const updateVisit = useUpdatePlanVisit()
   const deletePlan = useDeleteClientPlan()
@@ -28,16 +29,56 @@ export default function ClientPlanTab({ businessId, clientPhone, clientName }) {
   // { mode: 'book', visit } to create a new appointment for a pending/cancelled
   // visit, or { mode: 'view', visit } to open the already-linked appointment.
   const [modalState, setModalState] = useState(null)
+  const [formError, setFormError] = useState('')
 
   async function handleCreatePlan() {
-    if (!planName.trim()) return
-    await createPlan.mutateAsync({ businessId, clientPhone, name: planName.trim(), totalVisits: Number(totalVisits) || 1 })
-    setShowNewPlan(false)
-    setPlanName('')
+    setFormError('')
+    const visitsCount = Number(totalVisits)
+    if (!planName.trim()) {
+      setFormError('اكتب اسم الخطة')
+      return
+    }
+    if (!Number.isInteger(visitsCount) || visitsCount < 1 || visitsCount > 50) {
+      setFormError('عدد الزيارات لازم يكون من 1 لـ 50')
+      return
+    }
+    try {
+      await createPlan.mutateAsync({ businessId, clientPhone, name: planName.trim(), totalVisits: visitsCount })
+      setShowNewPlan(false)
+      setPlanName('')
+      toast.success('تم إنشاء الخطة')
+    } catch (e) {
+      toast.error(e?.message || 'حدث خطأ أثناء إنشاء الخطة')
+    }
+  }
+
+  function updateVisitDate(id, date) {
+    updateVisit.mutate({ id, suggested_date: date || null }, {
+      onError: e => toast.error(e?.message || 'تعذر حفظ التاريخ'),
+    })
+  }
+
+  function handleDeletePlan() {
+    setConfirmDeletePlan(false)
+    deletePlan.mutate(plan.id, {
+      onSuccess: () => toast.success('تم حذف الخطة'),
+      onError: e => toast.error(e?.message || 'تعذر حذف الخطة'),
+    })
   }
 
   if (isLoading) {
     return <div className="space-y-2">{[1, 2, 3].map(i => <div key={i} className="h-14 bg-slate-100 rounded-xl animate-pulse" />)}</div>
+  }
+
+  // A failed load must not look like "no plan": that invites creating another
+  // one on top of the plan that is really there.
+  if (isError) {
+    return (
+      <div className="text-center py-8 space-y-3" dir="rtl">
+        <p className="text-red-500 text-sm">تعذر تحميل الخطة</p>
+        <Button size="sm" variant="secondary" onClick={() => refetch()} className="mx-auto">إعادة المحاولة</Button>
+      </div>
+    )
   }
 
   if (!plan) {
@@ -52,6 +93,7 @@ export default function ClientPlanTab({ businessId, clientPhone, clientName }) {
           <div className="max-w-xs mx-auto space-y-2 text-right">
             <Input label="اسم الخطة" value={planName} onChange={e => setPlanName(e.target.value)} placeholder="مثال: كورس علاج الأسنان" />
             <Input label="عدد الزيارات" type="number" min={1} max={50} value={totalVisits} onChange={e => setTotalVisits(e.target.value)} dir="ltr" />
+            {formError && <p className="text-xs text-red-500">{formError}</p>}
             <div className="flex gap-2">
               <Button variant="secondary" onClick={() => setShowNewPlan(false)} className="flex-1">إلغاء</Button>
               <Button onClick={handleCreatePlan} loading={createPlan.isPending} className="flex-1">إنشاء</Button>
@@ -77,9 +119,12 @@ export default function ClientPlanTab({ businessId, clientPhone, clientName }) {
 
       <div className="space-y-2">
         {visits.map(visit => {
-          const cfg = VISIT_STATUS[visit.status] || VISIT_STATUS.pending
-          const canBook = visit.status === 'pending' || visit.status === 'cancelled'
           const linkedAppt = visit.appointments
+          // Deleting a booked appointment clears the link but leaves the status on
+          // "scheduled". Without this the visit would have no button at all.
+          const effectiveStatus = visit.status === 'scheduled' && !linkedAppt ? 'pending' : visit.status
+          const cfg = VISIT_STATUS[effectiveStatus] || VISIT_STATUS.pending
+          const canBook = effectiveStatus === 'pending' || effectiveStatus === 'cancelled'
 
           return (
             <div key={visit.id} className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100 flex-wrap">
@@ -89,10 +134,10 @@ export default function ClientPlanTab({ businessId, clientPhone, clientName }) {
               {canBook ? (
                 <>
                   <div className="flex-1 min-w-[110px]">
-                    <DatePicker value={visit.suggested_date || ''} onChange={d => updateVisit.mutate({ id: visit.id, suggested_date: d || null })} placeholder="تاريخ مقترح" />
+                    <DatePicker value={visit.suggested_date || ''} onChange={d => updateVisitDate(visit.id, d)} placeholder="تاريخ مقترح" />
                   </div>
                   <Button size="sm" variant="secondary" onClick={() => setModalState({ mode: 'book', visit })} className="flex-shrink-0">
-                    {visit.status === 'cancelled' ? 'إعادة حجز' : 'حجز الآن'}
+                    {effectiveStatus === 'cancelled' ? 'إعادة حجز' : 'حجز الآن'}
                   </Button>
                 </>
               ) : linkedAppt ? (
@@ -112,7 +157,7 @@ export default function ClientPlanTab({ businessId, clientPhone, clientName }) {
       <ConfirmDialog
         open={confirmDeletePlan}
         onClose={() => setConfirmDeletePlan(false)}
-        onConfirm={() => { deletePlan.mutate(plan.id); setConfirmDeletePlan(false) }}
+        onConfirm={handleDeletePlan}
         variant="danger"
         loading={deletePlan.isPending}
         title="حذف الخطة"

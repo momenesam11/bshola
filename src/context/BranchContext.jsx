@@ -1,21 +1,20 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { useBusiness } from '../hooks/useBusiness'
+import { BranchContext, ALL_BRANCHES } from './branchState'
 
-const BranchContext = createContext(null)
+const STORAGE_KEY = 'beshola_branch_id'
 
-// Sentinel for "show all branches together" — id is null on purpose, since
-// every appointment query already treats a null branchId as "no filter".
-export const ALL_BRANCHES = { id: null, name: 'كل الفروع', isAll: true }
-
-export function useBranch() {
-  return useContext(BranchContext)
+function readStoredBranch() {
+  try { return localStorage.getItem(STORAGE_KEY) } catch { return null }
 }
 
 export function BranchProvider({ children }) {
   const { data: business } = useBusiness()
-  const [currentBranch, setCurrentBranchState] = useState(null)
+  // Only the chosen id is state; the branch itself is looked up from the list,
+  // so a renamed or edited branch shows its new data without a reload.
+  const [selectedId, setSelectedId] = useState(readStoredBranch)
 
   const { data: branches = [] } = useQuery({
     queryKey: ['branches', business?.id],
@@ -32,17 +31,16 @@ export function BranchProvider({ children }) {
     enabled: !!business?.id,
   })
 
-  useEffect(() => {
-    if (!branches.length) return
-    const stored = localStorage.getItem('beshola_branch_id')
-    if (stored === 'all') { setCurrentBranchState(ALL_BRANCHES); return }
-    const found = stored ? branches.find(b => b.id === stored) : null
-    setCurrentBranchState(found || branches.find(b => b.is_main) || branches[0])
-  }, [branches])
+  const currentBranch = useMemo(() => {
+    if (!branches.length) return null
+    if (selectedId === 'all') return ALL_BRANCHES
+    return branches.find(b => b.id === selectedId) || branches.find(b => b.is_main) || branches[0]
+  }, [branches, selectedId])
 
   function setCurrentBranch(branch) {
-    setCurrentBranchState(branch)
-    localStorage.setItem('beshola_branch_id', branch.id || 'all')
+    const id = branch.id || 'all'
+    setSelectedId(id)
+    try { localStorage.setItem(STORAGE_KEY, id) } catch { /* private mode: choice lasts this visit */ }
   }
 
   const isMultiBranch = branches.length > 1

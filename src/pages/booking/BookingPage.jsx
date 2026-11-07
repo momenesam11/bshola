@@ -152,8 +152,12 @@ export default function BookingPage() {
   // so the "تم حجزه للتو" treatment never applies to pre-existing bookings.
   useEffect(() => {
     selectedDateRef.current = selectedDate
-    setJustBookedSlots(new Set())
   }, [selectedDate])
+
+  function chooseDate(date) {
+    setSelectedDate(date)
+    setJustBookedSlots(new Set())
+  }
 
   // Live updates: if someone else books a slot while this page is open,
   // reflect it immediately without requiring a refresh.
@@ -537,7 +541,7 @@ export default function BookingPage() {
                   const d = new Date(date + 'T00:00:00')
                   const isSelected = date === selectedDate
                   return (
-                    <button key={date} onClick={() => { setSelectedDate(date); setSelectedTime(null) }}
+                    <button key={date} onClick={() => { chooseDate(date); setSelectedTime(null); setWaitlistMode(false) }}
                       className={`flex-shrink-0 w-16 py-2.5 rounded-2xl border-2 text-center transition-all active:scale-95 ${
                         isSelected ? 'text-white shadow-md' : 'border-gray-100 hover:border-[var(--brand-color)] text-gray-700'
                       }`}
@@ -569,7 +573,7 @@ export default function BookingPage() {
                       <HiOutlineClock className="w-4 h-4" />
                       انضم لقائمة الانتظار
                     </button>
-                    <Button variant="secondary" size="sm" onClick={() => setSelectedDate(null)} className="w-full">اختر يوماً آخر</Button>
+                    <Button variant="secondary" size="sm" onClick={() => chooseDate(null)} className="w-full">اختر يوماً آخر</Button>
                   </div>
                 </div>
               ) : (
@@ -578,7 +582,7 @@ export default function BookingPage() {
                     const isJustBooked = !slot.isAvailable && justBookedSlots.has(slot.time)
                     return (
                       <button key={slot.time} type="button" disabled={!slot.isAvailable}
-                        onClick={() => { if (slot.isAvailable) { setSelectedTime(slot.time); setStep(STEP_CLIENT) } }}
+                        onClick={() => { if (slot.isAvailable) { setWaitlistMode(false); setSelectedTime(slot.time); setStep(STEP_CLIENT) } }}
                         className={
                           slot.isAvailable
                             ? `py-3 px-2 rounded-xl border-2 transition-all text-sm font-medium active:scale-95 min-h-[48px] ${
@@ -608,7 +612,7 @@ export default function BookingPage() {
           {step === STEP_CLIENT && (
             <div>
               <div className="flex items-center gap-1.5 mb-3">
-                <BackButton onClick={() => setStep(STEP_DATETIME)} />
+                <BackButton onClick={() => { setWaitlistMode(false); setStep(STEP_DATETIME) }} />
                 <h2 className="font-bold text-gray-900">بياناتك</h2>
               </div>
 
