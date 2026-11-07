@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { COUNTRIES, CURRENCIES, displayPhone, formatMoney, isValidPhone, joinPhone, phoneDigits, splitPhone, telHref } from './countries'
+import { COUNTRIES, CURRENCIES, displayPhone, formatMoney, isValidPhone, joinPhone, phoneDigits, phoneFromInput, splitPhone, telHref } from './countries'
 import { phoneSchema, bookingClientSchema } from './validators'
 
 describe('phone numbers', () => {
@@ -13,6 +13,16 @@ describe('phone numbers', () => {
   it('accepts Arabic numerals', () => {
     expect(phoneDigits('٠١٠١٢٣٤٥٦٧٨')).toBe('01012345678')
     expect(joinPhone('EG', '٠١٠١٢٣٤٥٦٧٨')).toBe('201012345678')
+  })
+
+  it('keeps one country code when a whole number is pasted', () => {
+    expect(phoneFromInput('EG', '201012345678')).toBe('201012345678')
+    expect(phoneFromInput('EG', '01012345678')).toBe('201012345678')
+    expect(phoneFromInput('SA', '966501234567')).toBe('966501234567')
+    expect(phoneFromInput('EG', '+966 50 123 4567')).toBe('966501234567')
+    expect(phoneFromInput('EG', '00966501234567')).toBe('966501234567')
+    expect(phoneFromInput('SA', '0501234567')).toBe('966501234567')
+    expect(phoneFromInput('XX', '447911123456')).toBe('447911123456')
   })
 
   it('reads numbers saved before the dropdown as Egyptian', () => {

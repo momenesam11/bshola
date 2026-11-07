@@ -1,6 +1,6 @@
 import { forwardRef, useState } from 'react'
 import { HiOutlineChevronDown, HiOutlineExclamationTriangle } from 'react-icons/hi2'
-import { COUNTRIES, DEFAULT_COUNTRY, OTHER_COUNTRY, countryByCode, joinPhone, phoneDigits, splitPhone } from '../../lib/countries'
+import { COUNTRIES, DEFAULT_COUNTRY, OTHER_COUNTRY, countryByCode, joinPhone, phoneDigits, phoneFromInput, splitPhone } from '../../lib/countries'
 
 const OPTIONS = [...COUNTRIES, OTHER_COUNTRY]
 
@@ -79,7 +79,7 @@ const PhoneInput = forwardRef(function PhoneInput(
           placeholder={placeholder ?? (isOther ? 'الرقم بكود دولته' : country.code === 'EG' ? '1XXXXXXXXX' : 'XXXXXXXXX')}
           value={national}
           onBlur={onBlur}
-          onChange={(e) => onChange(joinPhone(country.code, phoneDigits(e.target.value)))}
+          onChange={(e) => onChange(phoneFromInput(country.code, e.target.value))}
           className={inputClassName ?? `${inputBase} ${error ? 'border-red-400 bg-red-50' : 'border-gray-200'} disabled:bg-gray-50`}
         />
       </div>

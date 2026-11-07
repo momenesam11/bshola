@@ -33,6 +33,7 @@ export const registerSchema = z.object({
     .regex(/[0-9]/, 'يجب أن تحتوي كلمة المرور على رقم واحد على الأقل'),
   confirmPassword: z.string().min(1, 'هذا الحقل مطلوب'),
   ownerPhone: phoneSchema('رقم الواتساب غير صحيح'),
+  acceptTerms: z.boolean().refine(v => v === true, 'لازم توافق على الشروط والأحكام عشان تنشئ حساب'),
 }).refine(d => d.password === d.confirmPassword, {
   message: 'كلمات المرور غير متطابقة',
   path: ['confirmPassword'],

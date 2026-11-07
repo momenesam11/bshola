@@ -13,6 +13,8 @@ import AuthLayout from '../../components/auth/AuthLayout'
 import GoogleButton from '../../components/auth/GoogleButton'
 import { HiOutlineGift } from 'react-icons/hi2'
 import PhoneInput from '../../components/ui/PhoneInput'
+import TermsCheckbox from '../../components/auth/TermsCheckbox'
+import { PENDING_TERMS_KEY, termsAcceptance } from '../../lib/terms'
 import { useVisitorCountry } from '../../hooks/useVisitorPricing'
 
 export default function Register() {
@@ -23,9 +25,10 @@ export default function Register() {
   const visitorCountry = useVisitorCountry()
   const { register, control, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(registerSchema),
-    defaultValues: { ownerPhone: '' },
+    defaultValues: { ownerPhone: '', acceptTerms: false },
   })
   const passwordStrength = getPasswordStrength(watch('password'))
+  const acceptedTerms = watch('acceptTerms')
   // The partner/referral/lead code they came with. Read from the URL too: on a
   // direct /register?ref=… visit this renders before RouteTracker stores it.
   const [refCode] = useState(() => {
@@ -39,7 +42,7 @@ export default function Register() {
     // Phone also goes into auth metadata: sessionStorage is lost if they confirm
     // their email on another device, and someone who never finishes onboarding
     // is a lead we want to call (growth_sync_platform reads owner_phone).
-    const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { owner_phone: ownerPhone, ...(refCode ? { ref: refCode } : {}) } } })
+    const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { owner_phone: ownerPhone, ...termsAcceptance(), ...(refCode ? { ref: refCode } : {}) } } })
     if (error) {
       const msg = error.message || ''
       if (msg.includes('already registered') || msg.includes('already been registered')) {
@@ -149,6 +152,8 @@ export default function Register() {
           )}
         />
 
+        <TermsCheckbox {...register('acceptTerms')} error={errors.acceptTerms?.message} />
+
         {serverError && (
           <div className="bg-red-50 text-red-600 text-sm px-3 py-2 rounded-lg">{serverError}</div>
         )}
@@ -164,7 +169,14 @@ export default function Register() {
         <div className="flex-1 h-px bg-gray-200" />
       </div>
 
-      <GoogleButton label="التسجيل بحساب Google" />
+      <GoogleButton
+        label="التسجيل بحساب Google"
+        disabled={!acceptedTerms}
+        onStart={() => sessionStorage.setItem(PENDING_TERMS_KEY, '1')}
+      />
+      {!acceptedTerms && (
+        <p className="text-xs text-gray-400 text-center mt-2">وافق على الشروط والأحكام الأول عشان تكمّل بحساب Google</p>
+      )}
     </AuthLayout>
   )
 }

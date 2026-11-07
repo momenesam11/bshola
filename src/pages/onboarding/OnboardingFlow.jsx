@@ -793,6 +793,15 @@ export default function OnboardingFlow() {
   const upsertService = useUpsertService()
   const requireOwnerPhone = !sessionStorage.getItem('beshola_pending_owner_phone')
 
+  // Nobody sets up an account without accepting the terms, including someone who
+  // signed up before the checkbox existed and never finished. The callback page
+  // asks them, or sends them on if the account is already set up.
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user && !user.user_metadata?.terms_accepted_at) navigate('/auth/callback', { replace: true })
+    })
+  }, [navigate])
+
   function next(updates) {
     setData(prev => ({ ...prev, ...updates }))
     setStep(s => s + 1)

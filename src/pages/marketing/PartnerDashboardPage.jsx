@@ -143,6 +143,11 @@ export default function PartnerDashboardPage() {
               </div>
             ))}
           </div>
+          {Number(partner.commission_pct) > 0 && (
+            <p className="text-xs text-ink-soft leading-relaxed mt-3">
+              الأرقام دي لعيادة في مصر. لو جبت عيادة من الخليج، ليك نفس النسبة من سعر باقتها هناك محسوب بالجنيه.
+            </p>
+          )}
         </section>
 
         <section className="rounded-2xl bg-white border border-rule p-5">

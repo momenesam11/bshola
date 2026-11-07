@@ -108,6 +108,20 @@ export function joinPhone(countryCode, national) {
   return local ? `${country.dial}${local}` : ''
 }
 
+/**
+ * What someone typed or pasted into the number box. People paste full numbers,
+ * so "+966501234567", "00966..." and, with Saudi selected, "966501234567" all
+ * keep one code instead of gaining a second.
+ */
+export function phoneFromInput(countryCode, raw) {
+  const text = String(raw ?? '').trim()
+  const digits = phoneDigits(text)
+  if (text.startsWith('+') || digits.startsWith('00')) return digits.replace(/^00/, '')
+  const country = countryByCode(countryCode)
+  if (country && digits.startsWith(country.dial) && digits.length > country.nationalLength[1]) return digits
+  return joinPhone(countryCode, digits)
+}
+
 /** Checks the length for the number's own country, on top of the 10-15 digit rule. */
 export function isValidPhone(raw) {
   const digits = phoneDigits(raw)
