@@ -60,7 +60,7 @@ function ServiceRow({ service, onUpdateField, onDelete }) {
 }
 
 const BRAND_COLORS = [
-  { hex: '#10B981', label: 'أخضر' },
+  { hex: '#0D9B6C', label: 'أخضر' },
   { hex: '#3B82F6', label: 'أزرق' },
   { hex: '#8B5CF6', label: 'بنفسجي' },
   { hex: '#F59E0B', label: 'ذهبي' },
@@ -316,7 +316,7 @@ function ServicesSection({ businessId }) {
 // ── Identity Section ──────────────────────────────────────────────
 function IdentitySection({ business, onSaved }) {
   const updateIdentity = useUpdateBusinessIdentity()
-  const [brandColor, setBrandColor] = useState(business?.brand_color || '#10B981')
+  const [brandColor, setBrandColor] = useState(business?.brand_color || '#0D9B6C')
   const [logoPreview, setLogoPreview] = useState(business?.logo_url || null)
   const [coverPreview, setCoverPreview] = useState(business?.cover_url || null)
   const [logoFile, setLogoFile] = useState(null)
@@ -340,7 +340,7 @@ function IdentitySection({ business, onSaved }) {
   // Sync from parent when business loads
   useEffect(() => {
     if (!business) return
-    setBrandColor(business.brand_color || '#10B981')
+    setBrandColor(business.brand_color || '#0D9B6C')
     setLogoPreview(business.logo_url || null)
     setCoverPreview(business.cover_url || null)
     setSlug(business.booking_slug || '')

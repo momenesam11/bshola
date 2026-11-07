@@ -43,7 +43,7 @@ const SLOTS = [
   { time: '12:30 م', available: true },
 ]
 
-const TEAL = '#16B89A'
+const TEAL = '#0F9D82'
 const NAVY = '#0F2C4E'
 
 // One loop cycle: which booking step is showing and how long to dwell on it

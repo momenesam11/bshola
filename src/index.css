@@ -8,13 +8,13 @@
   }
   body {
     margin: 0;
-    font-family: 'Tajawal', sans-serif;
+    font-family: 'Cairo', sans-serif;
     background-color: #F9FAFB;
     color: #111827;
     -webkit-font-smoothing: antialiased;
   }
   input, textarea, select {
-    font-family: 'Tajawal', sans-serif;
+    font-family: 'Cairo', sans-serif;
   }
 }
 
@@ -46,7 +46,7 @@
 @media print {
   .no-print { display: none !important; }
   .print-only { display: block !important; }
-  body { font-family: 'Tajawal', sans-serif; font-size: 12pt; color: #000; background: #fff; }
+  body { font-family: 'Cairo', sans-serif; font-size: 12pt; color: #000; background: #fff; }
   aside, nav, header { display: none !important; }
   main { margin: 0 !important; padding: 0 !important; }
 }

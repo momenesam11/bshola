@@ -54,7 +54,7 @@ export const DEFAULT_REMINDER_TEMPLATE =
 // Cycled per-branch colors — used when viewing "كل الفروع" (all branches)
 // together, so each branch's appointments are visually distinguishable.
 export const BRANCH_COLOR_PALETTE = [
-  { dot: 'bg-accent-500', border: 'border-accent-500', light: 'bg-accent-50 border-accent-200 text-accent-700', hex: '#16B89A' },
+  { dot: 'bg-accent-500', border: 'border-accent-500', light: 'bg-accent-50 border-accent-200 text-accent-700', hex: '#0F9D82' },
   { dot: 'bg-primary-500', border: 'border-primary-500', light: 'bg-primary-50 border-primary-200 text-primary-700', hex: '#8B5CF6' },
   { dot: 'bg-amber-500', border: 'border-amber-500', light: 'bg-amber-50 border-amber-200 text-amber-700', hex: '#F59E0B' },
   { dot: 'bg-blue-500', border: 'border-blue-500', light: 'bg-blue-50 border-blue-200 text-blue-700', hex: '#3B82F6' },

@@ -88,7 +88,7 @@ export default function SolutionPage({ slug }) {
           <div className="flex flex-col sm:flex-row gap-3">
             <Link
               to="/register"
-              className="inline-flex items-center justify-center gap-2 bg-[#16B89A] hover:bg-accent-600 text-white font-bold px-7 py-3.5 rounded-2xl shadow-lg shadow-accent/20 transition-all hover:scale-102"
+              className="inline-flex items-center justify-center gap-2 bg-accent-500 hover:bg-accent-600 text-white font-bold px-7 py-3.5 rounded-2xl shadow-lg shadow-accent/20 transition-all hover:scale-102"
             >
               <span>ابدأ تجربة 14 يوم مجاناً</span>
               <HiOutlineArrowLeft className="w-5 h-5" />
@@ -99,7 +99,7 @@ export default function SolutionPage({ slug }) {
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center gap-2 border border-slate-200 hover:border-[#0F2C4E] font-semibold px-7 py-3.5 rounded-2xl transition-colors"
             >
-              <FaWhatsapp className="w-5 h-5 text-[#16B89A]" />
+              <FaWhatsapp className="w-5 h-5 text-accent-500" />
               <span>تحدث معنا على واتساب</span>
             </a>
           </div>
@@ -114,7 +114,7 @@ export default function SolutionPage({ slug }) {
               <ul className="grid sm:grid-cols-2 gap-3 mt-7">
                 {section.bullets.map((bullet) => (
                   <li key={bullet} className="flex items-start gap-2.5 bg-slate-50 rounded-2xl p-4">
-                    <HiCheck className="w-5 h-5 text-[#16B89A] flex-shrink-0 mt-0.5" />
+                    <HiCheck className="w-5 h-5 text-accent-500 flex-shrink-0 mt-0.5" />
                     <span className="text-sm font-semibold text-slate-700 leading-relaxed">{bullet}</span>
                   </li>
                 ))}
@@ -199,7 +199,7 @@ export default function SolutionPage({ slug }) {
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link
               to="/register"
-              className="inline-flex items-center justify-center gap-2 bg-[#16B89A] hover:bg-accent-600 text-white font-bold px-8 py-4 rounded-2xl transition-colors"
+              className="inline-flex items-center justify-center gap-2 bg-accent-500 hover:bg-accent-600 text-white font-bold px-8 py-4 rounded-2xl transition-colors"
             >
               <span>ابدأ الآن مجاناً</span>
               <HiOutlineArrowLeft className="w-5 h-5" />

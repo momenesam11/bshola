@@ -24,7 +24,7 @@ export default function NotFound() {
       <Nav />
 
       <main className="flex-1 flex flex-col items-center justify-center text-center px-6 py-24">
-        <p className="text-6xl font-black text-[#16B89A] mb-4">404</p>
+        <p className="text-6xl font-black text-accent-500 mb-4">404</p>
         <h1 className="text-2xl sm:text-3xl font-black mb-4">الصفحة غير موجودة</h1>
         <p className="text-slate-500 mb-8 max-w-md leading-relaxed">
           الرابط الذي فتحته غير صحيح أو تم تغييره. تقدر ترجع للرئيسية أو تتصفح حلول بسهولة.
@@ -32,7 +32,7 @@ export default function NotFound() {
         <div className="flex flex-col sm:flex-row gap-3">
           <Link
             to="/"
-            className="bg-[#16B89A] hover:bg-accent-600 text-white font-bold px-7 py-3.5 rounded-2xl transition-colors"
+            className="bg-accent-500 hover:bg-accent-600 text-white font-bold px-7 py-3.5 rounded-2xl transition-colors"
           >
             الرجوع للرئيسية
           </Link>

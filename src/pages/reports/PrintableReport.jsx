@@ -22,10 +22,10 @@ const STATUS_COLORS = {
 // shapes correctly; html2canvas has no native text-shaping support and was
 // rendering Arabic letters disconnected.
 export default function PrintableReport({ business, bookingUrl, from, to, stats, appointments, visitCountByPhone = {} }) {
-  const brand = business?.brand_color || '#10B981'
+  const brand = business?.brand_color || '#0D9B6C'
 
   return (
-    <div className="hidden print-only" style={{ fontFamily: 'Tajawal, sans-serif', direction: 'rtl', color: '#1F2937' }}>
+    <div className="hidden print-only" style={{ fontFamily: 'Cairo, sans-serif', direction: 'rtl', color: '#1F2937' }}>
       {/* Header */}
       <div style={{ background: brand, padding: '24px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>

@@ -39,7 +39,7 @@ const SERVICES_BY_CATEGORY = {
   ],
 }
 
-export const PREVIEW_COLORS = ['#16B89A', '#3B82F6', '#8B5CF6', '#0F2C4E', '#EC4899', '#F59E0B']
+export const PREVIEW_COLORS = ['#0F9D82', '#3B82F6', '#8B5CF6', '#0F2C4E', '#EC4899', '#F59E0B']
 
 const SPECIALTY_BY_CATEGORY = { dental: 'أسنان', derma: 'جلدية وتجميل', clinic: 'عيادة', salon: 'صالون', gym: 'لياقة', education: 'تعليم' }
 
