@@ -116,7 +116,7 @@ const BUSINESS_VERTICAL_TYPES = [
 ]
 
 const BRAND_COLORS = [
-  { hex: '#10B981', label: 'أخضر' },
+  { hex: '#0D9B6C', label: 'أخضر' },
   { hex: '#3B82F6', label: 'أزرق' },
   { hex: '#8B5CF6', label: 'بنفسجي' },
   { hex: '#F59E0B', label: 'ذهبي' },
@@ -533,7 +533,7 @@ function StepIdentity({ onNext, onBack, businessName, vertical, loading }) {
   const [logoPreview, setLogoPreview] = useState(null)
   const [coverFile, setCoverFile] = useState(null)
   const [coverPreview, setCoverPreview] = useState(null)
-  const [brandColor, setBrandColor] = useState('#10B981')
+  const [brandColor, setBrandColor] = useState('#0D9B6C')
   const [slug, setSlug] = useState(() => {
     if (!businessName) return ''
     return businessName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').slice(0, 20) || ''
@@ -730,7 +730,7 @@ function ShareKitScreen({ businessName, slug }) {
   const shareMsg = `احجز موعدك مع ${businessName} بسهولة من الرابط ده 👇\n${bookingUrl}\n⏰ اختار الوقت المناسب ليك وهنبعتلك تأكيد على واتساب`
 
   useEffect(() => {
-    confetti({ particleCount: 120, spread: 80, origin: { y: 0.4 }, colors: ['#10B981', '#6366F1', '#F59E0B', '#EF4444'] })
+    confetti({ particleCount: 120, spread: 80, origin: { y: 0.4 }, colors: ['#0D9B6C', '#6366F1', '#F59E0B', '#EF4444'] })
     // The real conversion: a business with a working booking link.
     trackEvent('start_trial')
     // Credit whichever lead/partner/referral link brought them (migration 032).

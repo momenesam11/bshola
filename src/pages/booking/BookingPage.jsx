@@ -138,7 +138,7 @@ export default function BookingPage() {
   const createAppt = useCreateAppointment()
 
   const hasBranches = branches.length > 1
-  const brandColor = business?.brand_color || '#10B981'
+  const brandColor = business?.brand_color || '#0D9B6C'
 
   useEffect(() => {
     if (brandColor) {
