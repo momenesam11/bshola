@@ -10,9 +10,9 @@ import { dirname, join } from 'node:path'
 import { PGlite } from '@electric-sql/pglite'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
-const MIGRATIONS = join(root, 'supabase', 'migrations')
+export const MIGRATIONS = join(root, 'supabase', 'migrations')
 
-const SUPABASE_STUB = `
+export const SUPABASE_STUB = `
   CREATE ROLE anon NOLOGIN;
   CREATE ROLE authenticated NOLOGIN;
   CREATE ROLE service_role NOLOGIN BYPASSRLS;
@@ -86,7 +86,7 @@ const SUPABASE_STUB = `
 `
 
 // pg_net / pg_cron calls in old migrations read settings that only exist in prod.
-const SETTINGS = `
+export const SETTINGS = `
   SET app.supabase_url = 'http://local';
   SET app.supabase_service_role_key = 'local';
 `

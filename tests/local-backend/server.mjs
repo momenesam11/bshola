@@ -258,7 +258,19 @@ export async function startBackend({ port = 0, log = () => {} } = {}) {
         return send(200, (await db.query(sql, params || [])).rows)
       }
       if (url.pathname === '/__test/user') return send(200, await createUser(json()))
-      if (url.pathname === '/__test/session') return send(200, session(await userById(json().id)))
+      if (url.pathname === '/__test/session') {
+        const { id, expired, badRefresh } = json()
+        const s = session(await userById(id))
+        // An access token that ran out an hour ago, as after a laptop sleeps.
+        if (expired) {
+          const claims = JSON.parse(Buffer.from(s.access_token.split('.')[1], 'base64url').toString())
+          claims.exp = Math.floor(Date.now() / 1000) - 3600
+          s.access_token = `${s.access_token.split('.')[0]}.${b64(claims)}.local`
+          s.expires_at = claims.exp
+        }
+        if (badRefresh) s.refresh_token = 'revoked'
+        return send(200, s)
+      }
       if (url.pathname === '/__test/emails') return send(200, sentEmails)
       if (url.pathname === '/__test/log') {
         const out = requestLog.slice()
