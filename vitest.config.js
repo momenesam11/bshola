@@ -7,5 +7,8 @@ export default defineConfig({
   test: {
     include: ['src/**/*.test.js', 'tests/sql/**/*.test.js', 'scripts/**/*.test.mjs'],
     testTimeout: 30000,
+    // Each SQL test starts its own in-process Postgres in a beforeEach, and with
+    // many running at once that can pass the default 10 seconds.
+    hookTimeout: 30000,
   },
 })

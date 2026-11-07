@@ -1,10 +1,9 @@
 -- Rollback for supabase/migrations/045_unify_patient_phones.sql.
 -- Puts every changed row back as it was, using the log 045 kept, then drops the
 -- log. Newest changes are undone first. Bookings made after 045 keep their numbers.
+-- One DO statement, so it either finishes or changes nothing.
 
-BEGIN;
-
-DO $$
+DO $rollback$
 DECLARE
   l phone_unify_log%ROWTYPE;
 BEGIN
@@ -22,9 +21,7 @@ BEGIN
       WHERE c.id = l.row_id;
     END IF;
   END LOOP;
+
+  DROP TABLE phone_unify_log;
 END;
-$$;
-
-DROP TABLE phone_unify_log;
-
-COMMIT;
+$rollback$;

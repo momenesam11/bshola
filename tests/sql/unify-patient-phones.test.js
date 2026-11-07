@@ -135,6 +135,27 @@ describe('045 unify patient phones', () => {
     expect(Object.keys(results.at(-1).rows[0]).join()).not.toMatch(/phone$/)
   })
 
+  it('depends on no transaction or temporary table, which failed in the SQL Editor', async () => {
+    expect(MIGRATION).not.toMatch(/^s*(BEGIN|COMMIT)s*;/m)
+    expect(MIGRATION).not.toMatch(/TEMP(ORARY)?s+TABLE|pg_temp/i)
+    const { db, appt, phones } = await setup()
+    await appt('01012345678')
+    await db.exec(MIGRATION)
+    expect(await phones('appointments')).toEqual(['201012345678'])
+  })
+
+  it('changes nothing if it fails part way', async () => {
+    const { db, biz, appt, phones } = await setup()
+    await appt('01012345678')
+    await db.query(`INSERT INTO clients (business_id, name, phone) VALUES ($1, 'سارة', '01012345678')`, [biz])
+    await db.exec(`CREATE FUNCTION boom() RETURNS trigger LANGUAGE plpgsql AS 'BEGIN RAISE EXCEPTION ''boom''; END';
+      CREATE TRIGGER boom BEFORE UPDATE ON clients FOR EACH ROW EXECUTE FUNCTION boom();`)
+    await expect(db.exec(MIGRATION)).rejects.toThrow('boom')
+    expect(await phones('appointments')).toEqual(['01012345678'])
+    expect(await phones('clients', 'phone')).toEqual(['01012345678'])
+    expect((await one(db, `SELECT to_regclass('public.phone_unify_log') AS t`)).t).toBeNull()
+  })
+
   it('hides the log, which holds phones, from the site', async () => {
     const { db, appt } = await setup()
     await appt('01012345678')
