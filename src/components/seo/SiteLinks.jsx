@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { MARKETING_PAGES } from '../../content/marketingPages'
 import { GUIDES } from '../../content/guides'
+import { COUNTRY_PAGES } from '../../content/countryPages'
 
 /**
  * The site's internal link hub, rendered in the footer of every public page.
@@ -15,7 +16,7 @@ export default function SiteLinks({ className = '' }) {
   const features = MARKETING_PAGES.filter((p) => p.group === 'features')
 
   return (
-    <div className={`grid grid-cols-2 md:grid-cols-4 gap-8 text-right ${className}`}>
+    <div className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8 text-right ${className}`}>
       <nav aria-labelledby="footer-solutions">
         <h3 id="footer-solutions" className="text-sm font-bold mb-4 text-white">
           حلول حسب نوع النشاط
@@ -69,6 +70,24 @@ export default function SiteLinks({ className = '' }) {
               كل الأدلة
             </Link>
           </li>
+        </ul>
+      </nav>
+
+      <nav aria-labelledby="footer-countries">
+        <h3 id="footer-countries" className="text-sm font-bold mb-4 text-white">
+          بسهولة في الخليج
+        </h3>
+        <ul className="space-y-2.5">
+          {COUNTRY_PAGES.map((p) => (
+            <li key={p.slug}>
+              <Link
+                to={`/${p.slug}`}
+                className="text-xs text-slate-300 hover:text-accent transition-colors leading-relaxed"
+              >
+                {p.keyword}
+              </Link>
+            </li>
+          ))}
         </ul>
       </nav>
 

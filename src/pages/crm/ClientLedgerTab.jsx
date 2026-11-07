@@ -7,6 +7,8 @@ import Input from '../../components/ui/Input'
 import Dropdown from '../../components/ui/Dropdown'
 import Modal from '../../components/ui/Modal'
 import { formatDateAr } from '../../utils/dateHelpers'
+import { useBusinessCurrency } from '../../hooks/useBusiness'
+import { formatMoney } from '../../lib/countries'
 
 const PAYMENT_METHOD_OPTIONS = Object.entries(PAYMENT_METHOD_LABELS).map(([value, label]) => ({ value, label }))
 
@@ -81,6 +83,7 @@ function AddChargeModal({ open, onClose, businessId, clientPhone }) {
 }
 
 export default function ClientLedgerTab({ businessId, clientPhone }) {
+  const currency = useBusinessCurrency()
   const { data, isLoading } = useClientLedger(businessId, clientPhone)
   const [showPayment, setShowPayment] = useState(false)
   const [showCharge, setShowCharge] = useState(false)
@@ -96,7 +99,7 @@ export default function ClientLedgerTab({ businessId, clientPhone }) {
     <div className="space-y-4" dir="rtl">
       {/* Running balance */}
       <div className={`rounded-2xl p-4 text-center ${balance > 0 ? 'bg-red-50 border border-red-100' : 'bg-accent-50 border border-accent-100'}`}>
-        <p className={`text-2xl font-bold ${balance > 0 ? 'text-red-600' : 'text-accent-700'}`}>{Math.abs(balance)} ج.م</p>
+        <p className={`text-2xl font-bold ${balance > 0 ? 'text-red-600' : 'text-accent-700'}`}>{formatMoney(Math.abs(balance), currency)}</p>
         <p className={`text-xs mt-1 font-medium ${balance > 0 ? 'text-red-500' : 'text-accent-600'}`}>
           {balance > 0 ? 'إجمالي عليه' : balance < 0 ? 'له (دفع أكتر من المطلوب)' : 'الحساب متزن'}
         </p>
@@ -124,9 +127,9 @@ export default function ClientLedgerTab({ businessId, clientPhone }) {
               </div>
               <div className="text-left flex-shrink-0">
                 <p className={`text-sm font-bold ${entry.entry_type === 'charge' ? 'text-red-600' : 'text-accent-600'}`} dir="ltr">
-                  {entry.entry_type === 'charge' ? '+' : '-'}{entry.amount} ج.م
+                  {entry.entry_type === 'charge' ? '+' : '-'}{formatMoney(entry.amount, currency)}
                 </p>
-                <p className="text-[11.5px] text-slate-400 mt-0.5" dir="ltr">الرصيد: {entry.balanceAfter} ج.م</p>
+                <p className="text-[11.5px] text-slate-400 mt-0.5" dir="ltr">الرصيد: {formatMoney(entry.balanceAfter, currency)}</p>
               </div>
             </div>
           ))}

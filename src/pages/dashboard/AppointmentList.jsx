@@ -13,6 +13,7 @@ import { useAllAppointments } from '../../hooks/useAppointments'
 import { useBranch } from '../../context/branchState'
 import { getBranchColor } from '../../utils/constants'
 import { todayISO, formatDateAr, formatTime12 } from '../../utils/dateHelpers'
+import { displayPhone, phoneMatches } from '../../lib/countries'
 
 const STATUSES = [
   { value: '', label: 'الكل' },
@@ -49,7 +50,7 @@ export default function AppointmentList() {
     if (search) {
       const q = search.trim().toLowerCase()
       const matchesName = a.client_name?.toLowerCase().includes(q)
-      const matchesPhone = a.client_phone?.includes(search.trim())
+      const matchesPhone = phoneMatches(a.client_phone, search)
       if (!matchesName && !matchesPhone) return false
     }
     return true
@@ -227,7 +228,7 @@ export default function AppointmentList() {
                     <tr key={appt.id} className="hover:bg-gray-50 transition-colors align-middle">
                       <td className="px-4 py-3 align-middle">
                         <p className="font-medium text-gray-900 truncate">{appt.client_name}</p>
-                        <p className="text-xs text-gray-400 truncate text-right" dir="ltr">{appt.client_phone}</p>
+                        <p className="text-xs text-gray-400 truncate text-right" dir="ltr">{displayPhone(appt.client_phone) || appt.client_phone}</p>
                       </td>
                       <td className="px-4 py-3 align-middle text-gray-600 truncate">{appt.services?.name || '—'}</td>
                       <td className="px-4 py-3 align-middle text-gray-600">
@@ -289,7 +290,7 @@ export default function AppointmentList() {
                       </>
                     )}
                   </div>
-                  <p className="text-xs text-gray-400 text-right" dir="ltr">{appt.client_phone}</p>
+                  <p className="text-xs text-gray-400 text-right" dir="ltr">{displayPhone(appt.client_phone) || appt.client_phone}</p>
                 </div>
               )
             })}

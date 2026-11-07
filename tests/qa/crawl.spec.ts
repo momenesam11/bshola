@@ -196,7 +196,7 @@ test.describe('every button on every screen', () => {
   }
 
   test('onboarding', async ({ page, problems }) => {
-    const res = await fetch(`${API}/__test/user`, { method: 'POST', body: JSON.stringify({ email: `new-${Date.now()}@test.local`, password: 'TestPass123' }) })
+    const res = await fetch(`${API}/__test/user`, { method: 'POST', body: JSON.stringify({ email: `new-${Date.now()}@test.local`, password: 'TestPass123', data: { terms_accepted_at: new Date().toISOString() } }) })
     const user = await res.json()
     await login(page, { ownerId: user.id })
     await crawl(page, 'onboarding', problems, () => page.goto('/onboarding').then(() => {}))

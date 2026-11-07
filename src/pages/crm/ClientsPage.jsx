@@ -12,7 +12,8 @@ import {
 import { FaWhatsapp } from 'react-icons/fa'
 import PageWrapper from '../../components/layout/PageWrapper'
 import { StatCard } from '../../components/ui/Card'
-import { useBusiness } from '../../hooks/useBusiness'
+import { useBusiness, useBusinessCurrency } from '../../hooks/useBusiness'
+import { currencyFor, phoneMatches } from '../../lib/countries'
 import { useClients, useClientStats } from '../../hooks/useClients'
 import { useTomorrowsAppointments } from '../../hooks/useAppointments'
 import { formatDateAr, formatTime12 } from '../../utils/dateHelpers'
@@ -39,6 +40,7 @@ function buildReminderMessage(client, appt, businessName) {
 }
 
 function ClientCard({ client, onView, tomorrowAppt, businessName }) {
+  const currencyLabel = currencyFor(useBusinessCurrency()).label
   const waLink = `https://wa.me/${client.phone.replace(/\D/g, '')}`
   const reminderLink = tomorrowAppt
     ? `https://wa.me/${client.phone.replace(/\D/g, '')}?text=${encodeURIComponent(buildReminderMessage(client, tomorrowAppt, businessName))}`
@@ -96,7 +98,7 @@ function ClientCard({ client, onView, tomorrowAppt, businessName }) {
         </div>
         <div className="flex-1 bg-slate-50 rounded-xl py-2.5">
           <p className="text-sm font-bold text-slate-900 leading-none">{client.totalSpent}</p>
-          <p className="text-xs text-slate-500 mt-0.5">جنيه</p>
+          <p className="text-xs text-slate-500 mt-0.5">{currencyLabel}</p>
         </div>
       </div>
 
@@ -168,7 +170,7 @@ export default function ClientsPage() {
 
   const filtered = clients.filter(c => {
     const matchTab = !activeTab || c.status === activeTab
-    const matchSearch = !search || c.name.includes(search) || c.phone.includes(search)
+    const matchSearch = !search || c.name.includes(search) || phoneMatches(c.phone, search)
     return matchTab && matchSearch
   })
 

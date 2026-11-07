@@ -17,6 +17,7 @@ import PageWrapper from '../../components/layout/PageWrapper'
 import Button from '../../components/ui/Button'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
 import ScheduleBlockEditor from '../../components/ui/ScheduleBlockEditor'
+import PhoneInput from '../../components/ui/PhoneInput'
 
 function useBranches(businessId) {
   return useQuery({
@@ -81,7 +82,7 @@ function BranchRow({ branch, onEdit, onDelete, canDelete }) {
   )
 }
 
-function BranchForm({ branch, onSave, onCancel, saving, isClinic }) {
+function BranchForm({ branch, onSave, onCancel, saving, isClinic, defaultCountry }) {
   const [name, setName] = useState(branch?.name || '')
   const [address, setAddress] = useState(branch?.address || '')
   const [phone, setPhone] = useState(branch?.phone || '')
@@ -122,13 +123,7 @@ function BranchForm({ branch, onSave, onCancel, saving, isClinic }) {
       </div>
       <div>
         <label className="block text-xs font-medium text-slate-600 mb-1">رقم الهاتف</label>
-        <input
-          value={phone}
-          onChange={e => setPhone(e.target.value)}
-          placeholder="رقم الهاتف"
-          dir="ltr"
-          className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent-400"
-        />
+        <PhoneInput value={phone} onChange={setPhone} ariaLabel="رقم الهاتف" defaultCountry={defaultCountry} />
       </div>
 
       {!isClinic && (
@@ -242,6 +237,7 @@ export default function BranchSettings() {
 
         {addingNew && (
           <BranchForm
+            defaultCountry={business?.country}
             onSave={(payload) => upsert.mutate({ payload })}
             onCancel={() => setAddingNew(false)}
             saving={upsert.isPending}
@@ -266,6 +262,7 @@ export default function BranchSettings() {
               <div key={branch.id}>
                 {editingBranch?.id === branch.id ? (
                   <BranchForm
+            defaultCountry={business?.country}
                     branch={editingBranch}
                     onSave={(payload) => upsert.mutate({ id: branch.id, payload })}
                     onCancel={() => setEditingBranch(null)}

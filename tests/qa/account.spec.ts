@@ -7,6 +7,7 @@ const email = () => `user-${Date.now()}-${Math.random().toString(36).slice(2, 6)
 test.describe('sign up and sign in', () => {
   test('register validates, then lands on onboarding', async ({ page }) => {
     await page.goto('/register')
+    await page.getByRole('checkbox').check()
     await page.getByRole('button', { name: 'إنشاء حساب', exact: true }).click()
     await expect(page.getByText('هذا الحقل مطلوب').first()).toBeVisible()
     await page.getByLabel('البريد الإلكتروني').fill(email())
@@ -28,6 +29,7 @@ test.describe('sign up and sign in', () => {
   test('an email already used says so', async ({ page }) => {
     const s = await seedBusiness()
     await page.goto('/register')
+    await page.getByRole('checkbox').check()
     await page.getByLabel('البريد الإلكتروني').fill(s.email)
     await page.getByLabel('كلمة المرور', { exact: true }).fill(PASSWORD)
     await page.getByLabel('تأكيد كلمة المرور').fill(PASSWORD)
@@ -91,14 +93,14 @@ test.describe('sign up and sign in', () => {
   })
 
   test('an account with no business is sent to onboarding, not an empty dashboard', async ({ page }) => {
-    const user = await (await fetch(`${API}/__test/user`, { method: 'POST', body: JSON.stringify({ email: email(), password: PASSWORD }) })).json()
+    const user = await (await fetch(`${API}/__test/user`, { method: 'POST', body: JSON.stringify({ email: email(), password: PASSWORD, data: { terms_accepted_at: new Date().toISOString() } }) })).json()
     await login(page, { ownerId: user.id })
     await page.goto('/dashboard')
     await expect(page).toHaveURL(/\/onboarding/)
   })
 
   test('a Google sign-up with no phone is asked for it, then continues', async ({ page }) => {
-    const user = await (await fetch(`${API}/__test/user`, { method: 'POST', body: JSON.stringify({ email: email(), password: PASSWORD }) })).json()
+    const user = await (await fetch(`${API}/__test/user`, { method: 'POST', body: JSON.stringify({ email: email(), password: PASSWORD, data: { terms_accepted_at: new Date().toISOString() } }) })).json()
     await login(page, { ownerId: user.id })
     await page.goto('/auth/callback')
     await page.getByLabel('رقم الواتساب').fill('12')
@@ -125,7 +127,7 @@ test.describe('onboarding', () => {
     await page.getByRole('button', { name: 'التالي' }).click()
   }
   const newUser = async (page: Page) => {
-    const user = await (await fetch(`${API}/__test/user`, { method: 'POST', body: JSON.stringify({ email: email(), password: PASSWORD }) })).json()
+    const user = await (await fetch(`${API}/__test/user`, { method: 'POST', body: JSON.stringify({ email: email(), password: PASSWORD, data: { terms_accepted_at: new Date().toISOString() } }) })).json()
     await login(page, { ownerId: user.id })
     await page.goto('/onboarding')
     return user
@@ -192,7 +194,7 @@ test.describe('settings', () => {
     await page.getByLabel('رقم الهاتف').fill('01111111111')
     await page.getByRole('button', { name: 'حفظ', exact: true }).click()
     await expect(page.getByText('تم الحفظ')).toBeVisible()
-    expect(await one('SELECT name, phone FROM businesses WHERE id=$1', [s.businessId])).toEqual({ name: 'الاسم الجديد', phone: '01111111111' })
+    expect(await one('SELECT name, phone FROM businesses WHERE id=$1', [s.businessId])).toEqual({ name: 'الاسم الجديد', phone: '201111111111' }) // stored with the country code
   })
 
   test('an empty business name is refused', async ({ page }) => {

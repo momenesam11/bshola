@@ -1,22 +1,19 @@
 import { z } from 'zod'
 import { todayISO } from '../utils/dateHelpers'
+import { isValidPhone, phoneDigits } from './countries'
 
-// Many patients type their number with Arabic digits (٠١٠…) or Persian ones
-// (۰۱۰…, common on Gulf keyboards). Both become 0-9 before any check.
+// Arabic (٠١٠…) and Persian (۰۱۰…) digits become 0-9 before any number check.
 export function toLatinDigits(value) {
   return String(value ?? '')
     .replace(/[٠-٩]/g, d => String(d.charCodeAt(0) - 0x0660))
     .replace(/[۰-۹]/g, d => String(d.charCodeAt(0) - 0x06F0))
 }
 
-const cleanPhone = v => toLatinDigits(v).replace(/[\s\-().+]/g, '')
-
-// Egyptian/Arabic phone format — allows a leading "+" and spaces/dashes,
-// normalizes to 10-15 digits before validating.
+// Normalizes to international digits, then checks the length for that country.
 export const phoneSchema = (message = 'رقم الهاتف غير صحيح') =>
   z.preprocess(
-    v => toLatinDigits(v).replace(/[\s\-().]/g, '').replace(/^\+/, ''),
-    z.string().min(1, 'هذا الحقل مطلوب').regex(/^[0-9]{10,15}$/, message)
+    v => phoneDigits(v),
+    z.string().min(1, 'هذا الحقل مطلوب').refine(isValidPhone, message)
   )
 
 export function getPasswordStrength(password = '') {
@@ -43,6 +40,7 @@ export const registerSchema = z.object({
     .regex(/[0-9]/, 'يجب أن تحتوي كلمة المرور على رقم واحد على الأقل'),
   confirmPassword: z.string().min(1, 'هذا الحقل مطلوب'),
   ownerPhone: phoneSchema('رقم الواتساب غير صحيح'),
+  acceptTerms: z.boolean().refine(v => v === true, 'لازم توافق على الشروط والأحكام عشان تنشئ حساب'),
 }).refine(d => d.password === d.confirmPassword, {
   message: 'كلمات المرور غير متطابقة',
   path: ['confirmPassword'],
@@ -70,8 +68,8 @@ export function getAppointmentSchema(isEdit = false) {
   const base = z.object({
     client_name: z.string().min(2, 'اسم العميل مطلوب'),
     client_phone: z.preprocess(
-      cleanPhone,
-      z.string().regex(/^[0-9]{10,15}$/, 'رقم الواتساب يجب أن يحتوي على أرقام فقط (10-15 رقم)')
+      v => phoneDigits(v),
+      z.string().refine(isValidPhone, 'رقم الواتساب ناقص أو غير صحيح')
     ),
     service_id: z.string().min(1, 'اختر الخدمة').uuid('اختر الخدمة'),
     appointment_date: z.string().min(1, 'التاريخ مطلوب'),
@@ -98,7 +96,7 @@ export function getAppointmentSchema(isEdit = false) {
 export const bookingClientSchema = z.object({
   client_name: z.string().trim().min(2, 'الاسم مطلوب'),
   client_phone: z.preprocess(
-    cleanPhone,
-    z.string().regex(/^[0-9]{10,15}$/, 'رقم الواتساب يجب أن يحتوي على أرقام فقط (10-15 رقم)')
+    v => phoneDigits(v),
+    z.string().refine(isValidPhone, 'رقم الواتساب ناقص أو غير صحيح')
   ),
 })

@@ -21,6 +21,7 @@ import { useAllAppointments } from '../../hooks/useAppointments'
 import { useClients } from '../../hooks/useClients'
 import { toISODateString, formatDateAr, formatTime12 } from '../../utils/dateHelpers'
 import PrintableReport from './PrintableReport'
+import { displayPhone } from '../../lib/countries'
 
 const PRESETS = [
   { label: 'هذا الأسبوع', key: 'week' },
@@ -196,7 +197,7 @@ export default function Reports() {
                     <tr key={appt.id} className={`border-b border-slate-50 last:border-0 transition-colors hover:bg-slate-50/50 ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}`}>
                       <td className="px-4 py-3.5 align-middle">
                         <p className="font-semibold text-slate-900 text-sm truncate">{appt.client_name}</p>
-                        <p className="text-xs text-slate-400 font-mono mt-0.5 text-right" dir="ltr">{appt.client_phone}</p>
+                        <p className="text-xs text-slate-400 font-mono mt-0.5 text-right" dir="ltr">{displayPhone(appt.client_phone) || appt.client_phone}</p>
                       </td>
                       <td className="px-4 py-3.5 align-middle text-sm text-slate-600 truncate">{appt.services?.name || '—'}</td>
                       <td className="px-4 py-3.5 align-middle text-sm text-slate-600 truncate">{formatDateAr(appt.appointment_date, 'd MMM yyyy')}</td>
@@ -227,7 +228,7 @@ export default function Reports() {
                     <span className="text-slate-400">إجمالي الزيارات</span>
                     <span className="text-slate-700 text-right">{visitCountByPhone[appt.client_phone] || 1}</span>
                   </div>
-                  <p className="text-xs text-slate-400 font-mono text-right" dir="ltr">{appt.client_phone}</p>
+                  <p className="text-xs text-slate-400 font-mono text-right" dir="ltr">{displayPhone(appt.client_phone) || appt.client_phone}</p>
                 </div>
               ))}
             </div>

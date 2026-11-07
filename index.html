@@ -44,6 +44,13 @@
     <noscript><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" /></noscript>
   </head>
   <body class="bg-gray-50 font-sans">
+    <!-- Hides prices until the visitor's country is known, so they don't jump.
+         It needs JavaScript, so crawlers without it still read the prices, and
+         the timer shows them anyway if the country lookup never answers. -->
+    <script>
+      document.documentElement.classList.add('geo-pending');
+      setTimeout(function () { document.documentElement.classList.remove('geo-pending'); }, 2500);
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
