@@ -15,7 +15,7 @@ async function chooseSlot(page: Page, label = '9:00 ص') {
 }
 async function fillClient(page: Page, name: string, tel: string) {
   await page.getByPlaceholder('مثال: محمد أحمد').fill(name)
-  await page.getByPlaceholder('201XXXXXXXXX').fill(tel)
+  await page.getByRole('textbox', { name: /واتساب/ }).fill(tel)
 }
 
 test('a visitor books, sees the receipt, and the appointment and notification exist', async ({ page }) => {
@@ -58,7 +58,7 @@ test('bad name and phone are refused', async ({ page }) => {
   await fillClient(page, 'م', '123')
   await page.getByRole('button', { name: 'تأكيد الحجز' }).click()
   await expect(page.getByText('الاسم مطلوب')).toBeVisible()
-  await expect(page.getByText(/رقم الواتساب يجب/)).toBeVisible()
+  await expect(page.getByText(/رقم الواتساب/).filter({ hasText: /غير صحيح|يجب/ })).toBeVisible()
 })
 
 test('a booked slot shows as booked and cannot be pressed', async ({ page }) => {

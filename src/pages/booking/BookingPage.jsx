@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
@@ -34,6 +34,8 @@ import {
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import { Skeleton } from '../../components/ui/Skeleton'
+import PhoneInput from '../../components/ui/PhoneInput'
+import { displayPhone, formatMoney, telHref } from '../../lib/countries'
 
 const STEP_SERVICE = 0
 const STEP_DATETIME = 1
@@ -197,8 +199,9 @@ export default function BookingPage() {
     }
   }, [business?.id, qc])
 
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
+  const { register, control, handleSubmit, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(bookingClientSchema),
+    defaultValues: { client_name: '', client_phone: '' },
   })
 
   const availableDates = business ? generateAvailableDates(activeBranch, business.working_hours) : []
@@ -455,10 +458,10 @@ export default function BookingPage() {
             </span>
           )}
           {business.public_phone && (
-            <a href={`tel:${business.public_phone}`}
+            <a href={telHref(business.public_phone)}
               className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-white border border-gray-100 text-gray-500 hover:text-gray-700 shadow-sm transition-colors" dir="ltr">
               <HiOutlinePhone className="w-3.5 h-3.5" />
-              {business.public_phone}
+              <span dir="ltr">{displayPhone(business.public_phone)}</span>
             </a>
           )}
         </div>
@@ -512,7 +515,7 @@ export default function BookingPage() {
                           <p className="text-xs text-gray-400 mt-0.5">{svc.duration_minutes} دقيقة</p>
                         </div>
                         {svc.price ? (
-                          <span className="text-sm font-bold flex-shrink-0" style={{ color: brandColor }}>{svc.price} ج.م</span>
+                          <span className="text-sm font-bold flex-shrink-0" style={{ color: brandColor }}>{formatMoney(svc.price, business.currency)}</span>
                         ) : null}
                         <HiOutlineChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0" />
                       </button>
@@ -631,7 +634,13 @@ export default function BookingPage() {
 
               <form onSubmit={handleSubmit(onSubmitClient)} className="space-y-3">
                 <Input label="الاسم الكامل" placeholder="مثال: محمد أحمد" error={errors.client_name?.message} {...register('client_name')} />
-                <Input label="رقم واتساب" placeholder="201XXXXXXXXX" dir="ltr" error={errors.client_phone?.message} {...register('client_phone')} />
+                <Controller
+                  name="client_phone"
+                  control={control}
+                  render={({ field }) => (
+                    <PhoneInput {...field} label="رقم واتساب" defaultCountry={business.country} error={errors.client_phone?.message} />
+                  )}
+                />
                 <p className="text-xs text-gray-400">سنرسل تذكيراً بالموعد على هذا الرقم</p>
                 {!activeBranch?.id && (
                   <div className="bg-red-50 text-red-600 text-sm px-3 py-2.5 rounded-xl">

@@ -5,7 +5,7 @@ const form = (page: Page) => page.locator('form')
 
 async function fillNew(page: Page, name: string, tel: string) {
   await page.getByPlaceholder('محمد أحمد').fill(name)
-  await page.getByPlaceholder('201XXXXXXXXX').fill(tel)
+  await page.getByRole('textbox', { name: /واتساب/ }).fill(tel)
 }
 
 test('adding an appointment saves it and it appears in the list right away', async ({ page }) => {
@@ -32,7 +32,7 @@ test('required fields and a bad phone are refused with a message', async ({ page
   await expect(page.getByText('اسم العميل مطلوب')).toBeVisible()
   await fillNew(page, 'أحمد علي', '123')
   await page.getByRole('button', { name: 'إضافة الموعد' }).click()
-  await expect(page.getByText(/رقم الواتساب يجب/)).toBeVisible()
+  await expect(page.getByText(/رقم الواتساب/).filter({ hasText: /غير صحيح|يجب/ })).toBeVisible()
   expect((await one<{ n: number }>('SELECT count(*)::int n FROM appointments WHERE business_id=$1', [s.businessId])).n).toBe(0)
 })
 

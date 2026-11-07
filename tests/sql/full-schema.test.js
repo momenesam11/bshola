@@ -130,9 +130,9 @@ describe('double booking protection', () => {
   })
 })
 
-describe('rollback for 043', () => {
+describe('rollback for 046', () => {
   it('exists and parses on the real schema', async () => {
-    const sql = readFileSync('supabase/rollbacks/043_fix_completion_and_plan_sync_down.sql', 'utf8')
+    const sql = readFileSync('supabase/rollbacks/046_fix_completion_and_plan_sync_down.sql', 'utf8')
     await db.exec(`BEGIN; ${sql}; ROLLBACK;`)
   })
 })

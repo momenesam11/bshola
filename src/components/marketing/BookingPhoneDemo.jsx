@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { HiOutlineCheckCircle, HiOutlineChevronLeft } from 'react-icons/hi2'
 import useReducedMotion from '../../lib/useReducedMotion'
+import { useVisitorPricing } from '../../hooks/useVisitorPricing'
+import { currencyFor } from '../../lib/countries'
 
 /**
  * The hero's one bold element: the real booking flow rebuilt in markup,
@@ -130,6 +132,7 @@ export default function BookingPhoneDemo({
   services = SERVICES,
   color = TEAL,
 } = {}) {
+  const { currency } = useVisitorPricing()
   const reduced = useReducedMotion()
   const [step, setStep] = useState(0)
   const [paused, setPaused] = useState(false)
@@ -207,7 +210,7 @@ export default function BookingPhoneDemo({
                         <div className="flex items-center gap-1.5">
                           {svc.price != null && svc.price !== '' && (
                             <span className="text-[11px] font-bold tabular-nums" style={{ color }}>
-                              {svc.price} ج
+                              {svc.price} {currencyFor(currency).short}
                             </span>
                           )}
                           <HiOutlineChevronLeft className="w-3.5 h-3.5 text-slate-300" />

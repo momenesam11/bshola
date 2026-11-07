@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import { HiOutlineExclamationTriangle, HiOutlineCheck, HiOutlineBell } from 'react-icons/hi2'
 import { startOfMonth, endOfMonth } from 'date-fns'
 import { useAllAppointments } from '../../hooks/useAppointments'
-import { useServices } from '../../hooks/useBusiness'
+import { useBusinessCurrency, useServices } from '../../hooks/useBusiness'
+import { currencyFor } from '../../lib/countries'
 import { toISODateString } from '../../utils/dateHelpers'
 
 export default function MonthlyLossCard({ businessId, hasReminders }) {
   const navigate = useNavigate()
+  const currencyLabel = currencyFor(useBusinessCurrency()).label
   const today = new Date()
   const from = toISODateString(startOfMonth(today))
   const to = toISODateString(endOfMonth(today))
@@ -59,7 +61,7 @@ export default function MonthlyLossCard({ businessId, hasReminders }) {
             <p className="text-xs font-semibold text-red-600 uppercase tracking-wide mt-2">خسرت هذا الشهر</p>
           </div>
           <p className="text-4xl font-bold text-red-600 leading-none">{lossAmount.toLocaleString()}</p>
-          <p className="text-sm text-red-400 mt-1">جنيه</p>
+          <p className="text-sm text-red-400 mt-1">{currencyLabel}</p>
           <p className="text-xs text-red-500 mt-2">من {noShowCount} غياب</p>
         </div>
 
@@ -72,7 +74,7 @@ export default function MonthlyLossCard({ businessId, hasReminders }) {
             <p className="text-xs font-semibold text-accent-600 uppercase tracking-wide mt-2">وفّرت بالتذكير</p>
           </div>
           <p className="text-4xl font-bold text-accent-600 leading-none">{savedAmount.toLocaleString()}</p>
-          <p className="text-sm text-accent-400 mt-1">جنيه</p>
+          <p className="text-sm text-accent-400 mt-1">{currencyLabel}</p>
           <p className="text-xs text-accent-500 mt-2">من {remindersSent} تذكير أُرسل</p>
         </div>
       </div>

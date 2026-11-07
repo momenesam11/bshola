@@ -38,7 +38,7 @@ describe('login and register forms', () => {
     expect(ok(loginSchema, { email: 'a@b', password: '123456' })).toBe(false)
     expect(ok(loginSchema, { email: 'a@b.co', password: '12345' })).toBe(false)
   })
-  const reg = { email: 'a@b.co', password: 'abcdefg1', confirmPassword: 'abcdefg1', ownerPhone: '201012345678' }
+  const reg = { email: 'a@b.co', password: 'abcdefg1', confirmPassword: 'abcdefg1', ownerPhone: '201012345678', acceptTerms: true }
   it('register accepts a complete form', () => expect(ok(registerSchema, reg)).toBe(true))
   it.each([
     ['short password', { password: 'abc1', confirmPassword: 'abc1' }],
@@ -46,6 +46,7 @@ describe('login and register forms', () => {
     ['mismatch', { confirmPassword: 'other1234' }],
     ['bad phone', { ownerPhone: '12' }],
     ['bad email', { email: 'nope' }],
+    ['terms not accepted', { acceptTerms: false }],
   ])('register refuses %s', (_, change) => expect(ok(registerSchema, { ...reg, ...change })).toBe(false))
 })
 

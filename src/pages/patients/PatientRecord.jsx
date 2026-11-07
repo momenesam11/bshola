@@ -24,7 +24,8 @@ import {
   HiOutlineBanknotes,
 } from 'react-icons/hi2'
 import { FaWhatsapp } from 'react-icons/fa'
-import { useBusiness } from '../../hooks/useBusiness'
+import { useBusiness, useBusinessCurrency } from '../../hooks/useBusiness'
+import { displayPhone, formatMoney } from '../../lib/countries'
 import { MEDICAL_TYPES } from '../../utils/constants'
 import {
   usePatientRecord,
@@ -178,7 +179,7 @@ function PatientHeader({ clientPhone, clientName, visits = [], diagnoses = [] })
         <div className="flex-1 min-w-0 pt-0.5">
           <h1 className="text-lg font-bold text-slate-900 leading-tight">{clientName}</h1>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
-            <span className="text-xs text-slate-400 font-mono" dir="ltr">{clientPhone}</span>
+            <span className="text-xs text-slate-400 font-mono" dir="ltr">{displayPhone(clientPhone) || clientPhone}</span>
             <button onClick={() => { navigator.clipboard.writeText(clientPhone); toast.success('تم النسخ', { duration: 1200 }) }}
               className="text-slate-300 hover:text-accent-600 transition-colors">
               <HiOutlineClipboardDocument className="w-3.5 h-3.5" />
@@ -284,6 +285,7 @@ function TabBasicInfo({ businessId, clientPhone, clientName }) {
 
 // ─── TAB 1 (simple, non-medical types): Basic Info only ────────────
 function TabBasicInfoSimple({ businessId, clientPhone, clientName, visits = [] }) {
+  const currency = useBusinessCurrency()
   const { record, autoSave } = usePatientAutoSave(businessId, clientPhone, clientName)
 
   const lastVisit = visits[0]?.appointment_date
@@ -302,7 +304,7 @@ function TabBasicInfoSimple({ businessId, clientPhone, clientName, visits = [] }
             <input type="text" value={clientName} disabled className="field-input bg-slate-50 text-slate-400" />
           </Field>
           <Field label="رقم الهاتف">
-            <input type="text" value={clientPhone} disabled dir="ltr" className="field-input bg-slate-50 text-slate-400" />
+            <input type="text" value={displayPhone(clientPhone) || clientPhone} disabled dir="ltr" className="field-input bg-slate-50 text-slate-400" />
           </Field>
           <Field label="تاريخ الميلاد">
             <DatePicker value={record?.date_of_birth || ''} onChange={v => autoSave('date_of_birth', v || null)} />
@@ -325,11 +327,11 @@ function TabBasicInfoSimple({ businessId, clientPhone, clientName, visits = [] }
         {totalSpent > 0 && (
           <div className="grid grid-cols-2 gap-3 mt-3">
             <div className="bg-accent-50 rounded-xl p-3 text-center">
-              <p className="text-lg font-bold text-accent-700">{totalPaid} ج.م</p>
+              <p className="text-lg font-bold text-accent-700">{formatMoney(totalPaid, currency)}</p>
               <p className="text-xs text-accent-600 mt-0.5">إجمالي المدفوع</p>
             </div>
             <div className={`rounded-xl p-3 text-center ${totalOwed > 0 ? 'bg-amber-50' : 'bg-slate-50'}`}>
-              <p className={`text-lg font-bold ${totalOwed > 0 ? 'text-amber-700' : 'text-slate-900'}`}>{totalOwed} ج.م</p>
+              <p className={`text-lg font-bold ${totalOwed > 0 ? 'text-amber-700' : 'text-slate-900'}`}>{formatMoney(totalOwed, currency)}</p>
               <p className={`text-xs mt-0.5 ${totalOwed > 0 ? 'text-amber-600' : 'text-slate-500'}`}>المتبقي</p>
             </div>
           </div>

@@ -20,7 +20,7 @@ import {
 import { FaInstagram, FaFacebook } from 'react-icons/fa'
 import PageWrapper from '../../components/layout/PageWrapper'
 import Button from '../../components/ui/Button'
-import Input, { Textarea } from '../../components/ui/Input'
+import Input, { Select, Textarea } from '../../components/ui/Input'
 import Dropdown from '../../components/ui/Dropdown'
 import {
   useBusiness,
@@ -41,6 +41,8 @@ import ScheduleBlockEditor from '../../components/ui/ScheduleBlockEditor'
 import BookingLinkActions from '../../components/booking/BookingLinkActions'
 import ReferralCard from '../../components/referral/ReferralCard'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
+import PhoneInput from '../../components/ui/PhoneInput'
+import { COUNTRIES, CURRENCIES, DEFAULT_COUNTRY, defaultCurrencyOf } from '../../lib/countries'
 function ServiceRow({ service, onUpdateField, onDelete }) {
   return (
     <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100 flex-wrap">
@@ -557,7 +559,13 @@ export default function Settings() {
   const branchCtx = useBranch()
   // Only what the owner typed is state; everything else shows the saved values.
   const [edits, setEdits] = useState({})
-  const bizForm = { name: business?.name || '', phone: business?.phone || '', ...edits.biz }
+  const bizForm = {
+    name: business?.name || '',
+    phone: business?.phone || '',
+    country: business?.country || DEFAULT_COUNTRY,
+    currency: business?.currency || 'EGP',
+    ...edits.biz,
+  }
   const setBizForm = (fn) => setEdits(e => ({ ...e, biz: fn(bizForm) }))
   const reminderHours = edits.reminderHours ?? (business?.reminder_hours || 24)
   const setReminderHours = (v) => setEdits(e => ({ ...e, reminderHours: v }))
@@ -578,7 +586,7 @@ export default function Settings() {
       return
     }
     setStatus('biz', 'loading')
-    try { await updateBusiness.mutateAsync({ id: business.id, name: bizForm.name.trim(), phone: bizForm.phone.trim() }); setStatus('biz', 'ok') }
+    try { await updateBusiness.mutateAsync({ id: business.id, ...bizForm, name: bizForm.name.trim(), phone: bizForm.phone.trim() }); setStatus('biz', 'ok') }
     catch (e) { setStatus('biz', 'error', e?.message || String(e)) }
   }
 
@@ -645,7 +653,24 @@ export default function Settings() {
               <span className="text-xs text-slate-400 mr-auto">يُحدَّد من الإعداد الأولي</span>
             </div>
             <Input label="اسم النشاط" value={bizForm.name} onChange={e => setBizForm(p => ({ ...p, name: e.target.value }))} placeholder="مثال: عيادة دكتور أحمد" />
-            <Input label="رقم الهاتف" value={bizForm.phone} onChange={e => setBizForm(p => ({ ...p, phone: e.target.value }))} dir="ltr" placeholder="01XXXXXXXXX" />
+            <PhoneInput label="رقم الهاتف" value={bizForm.phone} onChange={phone => setBizForm(p => ({ ...p, phone }))} defaultCountry={bizForm.country} />
+            <Select
+              label="الدولة"
+              value={bizForm.country}
+              onChange={e => setBizForm(p => ({ ...p, country: e.target.value, currency: defaultCurrencyOf(e.target.value) }))}
+            >
+              {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
+            </Select>
+            <Select
+              label="عملة أسعار خدماتك"
+              value={bizForm.currency}
+              onChange={e => setBizForm(p => ({ ...p, currency: e.target.value }))}
+            >
+              {Object.entries(CURRENCIES).map(([code, c]) => <option key={code} value={code}>{c.name}</option>)}
+            </Select>
+            <p className="text-xs text-gray-400 -mt-2">
+              تغيير العملة بيغير الاسم اللي بيظهر جنب الأسعار بس، ومش بيحوّل الأرقام المسجلة.
+            </p>
             <div className="flex items-center gap-3">
               <Button onClick={saveBizInfo} loading={saveStatus.biz === 'loading'} size="sm">حفظ</Button>
               <SaveFeedback status={saveStatus.biz} msg={saveStatus.bizMsg} />

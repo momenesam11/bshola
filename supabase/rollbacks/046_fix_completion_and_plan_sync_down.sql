@@ -1,5 +1,5 @@
 -- Puts both functions back as 029 and 030 left them. This restores the 42P10
--- failure when completing a priced appointment, so only use it to back 043 out.
+-- failure when completing a priced appointment, so only use it to back 046 out.
 
 CREATE OR REPLACE FUNCTION create_ledger_charge_on_completion()
 RETURNS TRIGGER AS $$

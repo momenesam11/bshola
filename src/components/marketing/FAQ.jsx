@@ -6,6 +6,7 @@ import { Section, SectionHead } from './Section'
 import Reveal from './Reveal'
 import { FAQS } from '../../content/faqs'
 import { SUPPORT_WHATSAPP } from '../../lib/support'
+import { useVisitorPricing } from '../../hooks/useVisitorPricing'
 
 /**
  * FAQ accordion.
@@ -29,6 +30,7 @@ import { SUPPORT_WHATSAPP } from '../../lib/support'
  */
 export default function FAQ({ id, limit, title = 'أسئلة بنتسألها كتير', headingLevel = 'h2' }) {
   const [open, setOpen] = useState(0)
+  const { t } = useVisitorPricing()
   const items = limit ? FAQS.slice(0, limit) : FAQS
   const truncated = limit && FAQS.length > limit
 
@@ -72,7 +74,7 @@ export default function FAQ({ id, limit, title = 'أسئلة بنتسألها ك
               >
                 <div className="overflow-hidden">
                   <p className="pb-5 -mt-1 text-[14.5px] leading-[1.9] text-ink-soft max-w-[68ch]">
-                    {faq.a}
+                    {t(faq.a)}
                   </p>
                 </div>
               </div>

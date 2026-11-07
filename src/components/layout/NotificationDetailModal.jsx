@@ -13,6 +13,7 @@ import Button from '../ui/Button'
 import { supabase } from '../../lib/supabase'
 import { formatTime12, formatDateAr } from '../../utils/dateHelpers'
 import { generateConfirmationMessage, openWhatsApp } from '../../lib/whatsapp'
+import { displayPhone } from '../../lib/countries'
 
 export default function NotificationDetailModal({ open, onClose, notification, business }) {
   const appointmentId = notification?.related_appointment_id
@@ -53,7 +54,7 @@ export default function NotificationDetailModal({ open, onClose, notification, b
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <HiOutlinePhone className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                <span className="text-slate-600" dir="ltr">{appointment.client_phone}</span>
+                <span className="text-slate-600" dir="ltr">{displayPhone(appointment.client_phone) || appointment.client_phone}</span>
               </div>
               {appointment.services?.name && (
                 <div className="flex items-center gap-2 text-sm">

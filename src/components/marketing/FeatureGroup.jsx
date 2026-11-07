@@ -1,5 +1,6 @@
 import { RuledRow } from './Section'
 import Reveal from './Reveal'
+import { useVisitorPricing } from '../../hooks/useVisitorPricing'
 
 /**
  * One group of features as a ruled register block, not a grid of identical
@@ -13,6 +14,7 @@ import Reveal from './Reveal'
  * queue). Individual rows still light up on hover via RuledRow.
  */
 export default function FeatureGroup({ title, Icon, note, items }) {
+  const { t } = useVisitorPricing()
   return (
     <Reveal className="grid sm:grid-cols-3 gap-5 sm:gap-8 py-8 sm:py-10 border-t border-rule first:border-t-0 first:pt-0">
       <div className="sm:col-span-1">
@@ -30,7 +32,7 @@ export default function FeatureGroup({ title, Icon, note, items }) {
       <div className="sm:col-span-2">
         {items.map((item) => (
           <RuledRow key={item.title} label={item.title}>
-            {item.desc}
+            {t(item.desc)}
           </RuledRow>
         ))}
       </div>
