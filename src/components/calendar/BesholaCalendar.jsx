@@ -37,21 +37,37 @@ import { getBranchColor } from '../../utils/constants'
 import { useNavigate } from 'react-router-dom'
 import DatePicker from '../ui/DatePicker'
 
-// Groups appointments by exact start time so simultaneous bookings (capacity
-// > 1 branches, e.g. a salon with multiple chairs) render side-by-side
-// instead of stacked on top of each other.
+// A card can't be drawn shorter than this, so shorter visits count as this long
+// when deciding which cards would touch.
+const MIN_CARD_MINUTES = 24
+
+// Visits overlapping in time sit side by side. Comparing start times alone would
+// draw a walk-in at 10:15 on top of a one-hour visit from 10:00.
 function withColumns(appts) {
-  const groups = {}
-  for (const a of appts) {
-    const t = a.appointment_time?.slice(0, 5)
-    if (!groups[t]) groups[t] = []
-    groups[t].push(a)
+  const startOf = a => timeToMinutes(a.appointment_time?.slice(0, 5))
+  const endOf = a => startOf(a) + Math.max(a.services?.duration_minutes || 30, MIN_CARD_MINUTES)
+  const sorted = [...appts].sort((x, y) => startOf(x) - startOf(y))
+  const layout = new Map()
+  let group = []
+  let columnEnds = []
+
+  function closeGroup() {
+    for (const a of group) layout.get(a)._cols = columnEnds.length
+    group = []
+    columnEnds = []
   }
-  return appts.map(a => {
-    const t = a.appointment_time?.slice(0, 5)
-    const group = groups[t]
-    return { ...a, _col: group.indexOf(a), _cols: group.length }
-  })
+
+  for (const a of sorted) {
+    if (group.length && startOf(a) >= Math.max(...columnEnds)) closeGroup()
+    let column = columnEnds.findIndex(end => end <= startOf(a))
+    if (column === -1) column = columnEnds.length
+    columnEnds[column] = endOf(a)
+    layout.set(a, { _col: column, _cols: 1 })
+    group.push(a)
+  }
+  closeGroup()
+
+  return appts.map(a => ({ ...a, ...layout.get(a) }))
 }
 
 // ─── Constants ─────────────────────────────────────────────────────
@@ -73,6 +89,7 @@ const STATUS_LIGHT = {
 const AR_DAYS_SHORT = ['ح', 'ن', 'ث', 'ر', 'خ', 'ج', 'س']
 const AR_DAYS_FULL = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت']
 const WEEK_START = 6 // Saturday
+const WEEK_DAY_LIMIT = 6 // more than this would make the whole page scroll
 
 const HOURS = Array.from({ length: 16 }, (_, i) => {
   const h = i + 7 // 7:00 → 22:00
@@ -200,6 +217,7 @@ function DayView({ businessId, branchId, date, onApptClick, onSlotClick, showBra
   const scrollRef = useRef(null)
   const navigate = useNavigate()
   const SLOT_H = 56 // px per 30 min
+  const MIN_STACKED_CARD_H = 64 // three lines of text need this much
 
   const now = new Date()
   const nowMinutes = minutesFromDayStart(`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`)
@@ -227,7 +245,7 @@ function DayView({ businessId, branchId, date, onApptClick, onSlotClick, showBra
 
   function apptHeight(appt) {
     const dur = appt.services?.duration_minutes || 30
-    return Math.max((dur / 30) * SLOT_H, SLOT_H * 0.8)
+    return (Math.max(dur, MIN_CARD_MINUTES) / 30) * SLOT_H
   }
 
   const totalHeight = HOURS.length * 2 * SLOT_H // 2 slots per hour
@@ -280,10 +298,10 @@ function DayView({ businessId, branchId, date, onApptClick, onSlotClick, showBra
       ) : (
         <div ref={scrollRef} className="hidden md:flex overflow-y-auto" style={{ maxHeight: 520, scrollbarWidth: 'thin' }}>
           {/* Time column */}
-          <div className="w-16 flex-shrink-0 border-l border-slate-100" style={{ height: totalHeight }}>
+          <div className="w-20 flex-shrink-0 border-l border-slate-100" style={{ height: totalHeight }}>
             {HOURS.map(({ h, label }) => (
               <div key={h} style={{ height: SLOT_H * 2 }} className="border-t border-slate-50 first:border-t-0 pt-1">
-                <span className="text-xs text-slate-400 font-mono px-2">{label}</span>
+                <span className="text-xs text-slate-400 font-mono px-2 whitespace-nowrap">{label}</span>
               </div>
             ))}
           </div>
@@ -343,12 +361,24 @@ function DayView({ businessId, branchId, date, onApptClick, onSlotClick, showBra
                     width: `calc(${100 / appt._cols}% - 8px)`,
                   }}
                 >
-                  <p className="font-semibold text-xs leading-tight truncate">{appt.client_name}</p>
-                  <p className="text-xs opacity-70 truncate">
-                    {appt.services?.name}
-                    {showBranch && appt.branches?.name && ` · ${appt.branches.name}`}
-                  </p>
-                  <p className="text-xs opacity-60 font-mono">{appt.appointment_time?.slice(0, 5)}</p>
+                  {apptHeight(appt) - 4 < MIN_STACKED_CARD_H ? (
+                    <div className="flex items-center gap-2 h-full min-w-0">
+                      <p className="flex-1 min-w-0 text-xs truncate">
+                        <span className="font-semibold">{appt.client_name}</span>
+                        {appt._cols < 3 && appt.services?.name && <span className="opacity-70"> · {appt.services.name}</span>}
+                      </p>
+                      <p className="text-xs opacity-60 font-mono flex-shrink-0">{appt.appointment_time?.slice(0, 5)}</p>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="font-semibold text-xs leading-tight truncate">{appt.client_name}</p>
+                      <p className="text-xs opacity-70 truncate">
+                        {appt.services?.name}
+                        {showBranch && appt.branches?.name && ` · ${appt.branches.name}`}
+                      </p>
+                      <p className="text-xs opacity-60 font-mono">{appt.appointment_time?.slice(0, 5)}</p>
+                    </>
+                  )}
                 </div>
               )
             })}
@@ -404,7 +434,7 @@ function WeekView({ businessId, branchId, date, onApptClick, onSlotClick, onDayC
                 className={`p-2 border-l border-slate-50 last:border-0 ${today ? 'bg-accent-50/40' : ''}`}
               >
                 <div className="space-y-1">
-                  {dayAppts.map(appt => {
+                  {dayAppts.slice(0, WEEK_DAY_LIMIT).map(appt => {
                     const branchColor = colorByBranch ? getBranchColor(appt.branch_id, branches) : null
                     return (
                       <div
@@ -420,6 +450,15 @@ function WeekView({ businessId, branchId, date, onApptClick, onSlotClick, onDayC
                       </div>
                     )
                   })}
+                  {dayAppts.length > WEEK_DAY_LIMIT && (
+                    <button
+                      type="button"
+                      onClick={() => onDayClick(day)}
+                      className="w-full text-center text-xs text-primary-600 font-medium py-1"
+                    >
+                      +{dayAppts.length - WEEK_DAY_LIMIT} أخرى
+                    </button>
+                  )}
                   {dayAppts.length === 0 && (
                     <div
                       onClick={() => onSlotClick(null, ds)}
@@ -461,7 +500,7 @@ function MonthView({ businessId, branchId, date, onApptClick, onDayClick, showBr
       </div>
 
       {/* Calendar grid */}
-      <div className="grid grid-cols-7 divide-x divide-y divide-slate-50">
+      <div className="grid grid-cols-7 auto-rows-fr divide-x divide-y divide-slate-50">
         {days.map(day => {
           const inMonth = isSameMonth(day, date)
           const today = isToday(day)
@@ -473,7 +512,7 @@ function MonthView({ businessId, branchId, date, onApptClick, onDayClick, showBr
             <div
               key={day.toString()}
               onClick={() => onDayClick(day)}
-              className={`min-h-[80px] p-1.5 cursor-pointer hover:bg-slate-50 transition-colors relative ${
+              className={`min-h-[80px] md:min-h-[124px] min-w-0 p-1.5 cursor-pointer hover:bg-slate-50 transition-colors relative ${
                 !inMonth ? 'bg-slate-50/50' : ''
               }`}
             >
@@ -522,7 +561,7 @@ function MonthView({ businessId, branchId, date, onApptClick, onDayClick, showBr
             <p className="font-bold text-sm text-slate-800 mb-3">
               {format(popoverDay, 'EEEE dd MMMM', { locale: ar })}
             </p>
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-[60vh] overflow-y-auto">
               {getDayAppts(popoverDay).map(appt => {
                 const branchColor = colorByBranch ? getBranchColor(appt.branch_id, branches) : null
                 return (

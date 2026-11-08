@@ -23,6 +23,22 @@ test('adding an appointment saves it and it appears in the list right away', asy
   expect(Number(row.price)).toBe(200) // prefilled from the service
 })
 
+test('calendar cards fit their text, and overlapping visits sit side by side', async ({ page }) => {
+  const s = await seedBusiness({ capacity: 60 })
+  const long = await one<{ id: string }>(
+    `INSERT INTO services (business_id, name, duration_minutes, price) VALUES ($1, 'خلع', 60, 0) RETURNING id`, [s.businessId])
+  await seedAppointment(s, { appointment_date: isoDate(0), appointment_time: '10:00', client_name: 'زيارة طويلة', service_id: long.id })
+  await seedAppointment(s, { appointment_date: isoDate(0), appointment_time: '10:30', client_name: 'زيارة قصيرة' })
+  await login(page, s)
+  await page.goto('/dashboard')
+  const card = (name: string) => page.locator('.absolute.rounded-xl:visible').filter({ hasText: name })
+  await expect(card('زيارة قصيرة')).toBeVisible()
+  expect(await card('زيارة قصيرة').evaluate(el => el.scrollHeight <= el.clientHeight)).toBe(true)
+  const longBox = await card('زيارة طويلة').boundingBox()
+  const shortBox = await card('زيارة قصيرة').boundingBox()
+  expect(shortBox!.x + shortBox!.width).toBeLessThanOrEqual(longBox!.x + 1)
+})
+
 test('required fields and a bad phone are refused with a message', async ({ page }) => {
   const s = await seedBusiness()
   await login(page, s)
