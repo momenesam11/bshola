@@ -136,8 +136,10 @@ describe('045 unify patient phones', () => {
   })
 
   it('depends on no transaction or temporary table, which failed in the SQL Editor', async () => {
-    expect(MIGRATION).not.toMatch(/^s*(BEGIN|COMMIT)s*;/m)
-    expect(MIGRATION).not.toMatch(/TEMP(ORARY)?s+TABLE|pg_temp/i)
+    // Comments may talk about these; only statements count.
+    const statements = MIGRATION.replace(/--.*$/gm, '')
+    expect(statements).not.toMatch(/^\s*(BEGIN|COMMIT)\s*;/m)
+    expect(statements).not.toMatch(/\bTEMP(ORARY)?\s+TABLE\b|pg_temp/i)
     const { db, appt, phones } = await setup()
     await appt('01012345678')
     await db.exec(MIGRATION)

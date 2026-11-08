@@ -2,6 +2,13 @@ import { z } from 'zod'
 import { todayISO } from '../utils/dateHelpers'
 import { isValidPhone, phoneDigits } from './countries'
 
+// Arabic (٠١٠…) and Persian (۰۱۰…) digits become 0-9 before any number check.
+export function toLatinDigits(value) {
+  return String(value ?? '')
+    .replace(/[٠-٩]/g, d => String(d.charCodeAt(0) - 0x0660))
+    .replace(/[۰-۹]/g, d => String(d.charCodeAt(0) - 0x06F0))
+}
+
 // Normalizes to international digits, then checks the length for that country.
 export const phoneSchema = (message = 'رقم الهاتف غير صحيح') =>
   z.preprocess(
@@ -69,7 +76,12 @@ export function getAppointmentSchema(isEdit = false) {
     appointment_time: z.string().min(1, 'الوقت مطلوب'),
     status: z.enum(['confirmed', 'cancelled', 'no_show', 'completed']).default('confirmed'),
     notes: z.string().optional(),
-    price: z.union([z.coerce.number(), z.null()]).optional(),
+    // An appointment without a price must stay without one: coercing null gave
+    // 0, which overwrote the service price on every edit of an online booking.
+    price: z.preprocess(
+      v => (v === '' || v === null || v === undefined ? null : Number(toLatinDigits(v))),
+      z.number().min(0).nullable()
+    ).optional(),
     payment_status: z.enum(['paid', 'unpaid', 'partial']).optional(),
     payment_type: z.union([z.enum(['cash', 'card', 'installment', 'other']), z.literal('')]).optional(),
     amount_paid: z.coerce.number().optional(),
@@ -82,7 +94,7 @@ export function getAppointmentSchema(isEdit = false) {
 }
 
 export const bookingClientSchema = z.object({
-  client_name: z.string().min(2, 'الاسم مطلوب'),
+  client_name: z.string().trim().min(2, 'الاسم مطلوب'),
   client_phone: z.preprocess(
     v => phoneDigits(v),
     z.string().refine(isValidPhone, 'رقم الواتساب ناقص أو غير صحيح')

@@ -10,6 +10,7 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+dist-qa
 *.local
 
 # Secrets — VITE_SUPABASE_ANON_KEY ships in the bundle anyway, but real

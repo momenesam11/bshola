@@ -2,6 +2,7 @@ import { useForm, useWatch, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import {
   HiOutlineBell,
@@ -23,13 +24,13 @@ import Button from '../ui/Button'
 import Dropdown from '../ui/Dropdown'
 import DatePicker from '../ui/DatePicker'
 import { getAppointmentSchema } from '../../lib/validators'
-import { useCreateAppointment, useUpdateAppointment, useDeleteAppointment } from '../../hooks/useAppointments'
+import { useCreateAppointment, useUpdateAppointment, useDeleteAppointment, invalidateAll } from '../../hooks/useAppointments'
 import { useServices, useBusiness } from '../../hooks/useBusiness'
-import { useBranch } from '../../context/BranchContext'
-import { todayISO } from '../../utils/dateHelpers'
+import { useBranch } from '../../context/branchState'
+import { todayISO, formatTime12 } from '../../utils/dateHelpers'
 import { MEDICAL_TYPES } from '../../utils/constants'
 import { supabase } from '../../lib/supabase'
-import { openWhatsApp, generateReminderMessage } from '../../lib/whatsapp'
+import { openWhatsApp } from '../../lib/whatsapp'
 import PhoneInput from '../ui/PhoneInput'
 import { formatMoney } from '../../lib/countries'
 
@@ -51,32 +52,48 @@ const STATUS_OPTIONS = [
   { value: 'no_show', label: 'لم يحضر', colors: 'bg-amber-50 text-amber-700 border-amber-300', dot: 'bg-amber-400' },
 ]
 
-function WaitlistAlert({ appointment, businessId }) {
+// The booking page puts a visitor on the waitlist for a whole day (it has no
+// time to offer), so the match is by date and branch, not by time.
+function WaitlistAlert({ appointment, businessId, onPromoted }) {
   const [waitlist, setWaitlist] = useState([])
   const [notified, setNotified] = useState(false)
+  const [busy, setBusy] = useState(false)
 
   useEffect(() => {
-    if (!appointment?.appointment_date || !appointment?.appointment_time) return
-    supabase
+    if (!appointment?.appointment_date) return
+    let q = supabase
       .from('appointments')
       .select('*')
       .eq('business_id', businessId)
       .eq('appointment_date', appointment.appointment_date)
-      .eq('appointment_time', appointment.appointment_time)
       .eq('status', 'waitlist')
-      .order('created_at')
-      .then(({ data }) => setWaitlist(data || []))
+    if (appointment.branch_id) q = q.eq('branch_id', appointment.branch_id)
+    q.order('created_at').then(({ data }) => setWaitlist(data || []))
   }, [appointment, businessId])
 
-  if (!waitlist.length) return null
-
-  function notifyFirst() {
+  // Frees the slot first (the double-booking guard would refuse the move
+  // otherwise), then gives it to the first person waiting, then tells them.
+  async function notifyFirst() {
     const first = waitlist[0]
-    const msg = `يا ${first.client_name}، اتفرج موعد الساعة ${appointment.appointment_time?.slice(0, 5)}. احجز من الرابط: ${window.location.origin}/book/${businessId}`
-    openWhatsApp(first.client_phone, msg)
-    setNotified(true)
-    supabase.from('appointments').update({ status: 'confirmed' }).eq('id', first.id)
-    setWaitlist(prev => prev.slice(1))
+    const time = appointment.appointment_time?.slice(0, 5)
+    setBusy(true)
+    try {
+      const { error: cancelError } = await supabase.from('appointments').update({ status: 'cancelled' }).eq('id', appointment.id)
+      if (cancelError) throw cancelError
+      const { error } = await supabase.from('appointments')
+        .update({ status: 'confirmed', appointment_time: time })
+        .eq('id', first.id)
+      if (error) throw error
+      const msg = `يا ${first.client_name}، اتفرج ميعاد يوم ${appointment.appointment_date} الساعة ${formatTime12(time)} وحجزناه ليك. لو مش مناسب ردّ على الرسالة دي.`
+      openWhatsApp(first.client_phone, msg)
+      setNotified(true)
+      setWaitlist(prev => prev.slice(1))
+      onPromoted?.()
+    } catch (e) {
+      toast.error(e?.message || 'تعذر نقل العميل من قائمة الانتظار')
+    } finally {
+      setBusy(false)
+    }
   }
 
   if (notified) return (
@@ -86,13 +103,15 @@ function WaitlistAlert({ appointment, businessId }) {
     </div>
   )
 
+  if (!waitlist.length) return null
+
   return (
     <div className="bg-amber-50 border border-amber-200 rounded-xl p-2.5 flex items-center justify-between gap-2">
       <div className="flex items-center gap-1.5 text-xs text-amber-700">
         <HiOutlineBell className="w-3.5 h-3.5 flex-shrink-0" />
         <span><strong>{waitlist.length}</strong> في قائمة الانتظار</span>
       </div>
-      <button type="button" onClick={notifyFirst}
+      <button type="button" onClick={notifyFirst} disabled={busy}
         className="flex items-center gap-1.5 px-3 py-1.5 bg-accent-500 hover:bg-accent-600 text-white text-xs font-semibold rounded-lg transition-colors">
         <FaWhatsapp className="w-3.5 h-3.5" />
         أبلّغ {waitlist[0]?.client_name}
@@ -105,12 +124,18 @@ export default function AppointmentModal({ open, onClose, businessId, initialDat
   const navigate = useNavigate()
   const isEdit = !!appointment
   const [submitError, setSubmitError] = useState('')
-  const [showWaitlist, setShowWaitlist] = useState(false)
   const [confirmDialog, setConfirmDialog] = useState(null)
   const { data: services = [] } = useServices(businessId)
   const { data: business } = useBusiness()
   const branchCtx = useBranch()
   const currentBranch = branchCtx?.currentBranch
+  const branches = branchCtx?.branches || []
+  const qc = useQueryClient()
+  // In "كل الفروع" there is no current branch to book into, so the form asks.
+  const fixedBranchId = currentBranch && !currentBranch.isAll ? currentBranch.id : (branches.length === 1 ? branches[0].id : null)
+  const [chosenBranchId, setChosenBranchId] = useState('')
+  const targetBranchId = fixedBranchId || chosenBranchId
+  const needsBranchChoice = !isEdit && !fixedBranchId && branches.length > 1
   const isMedical = MEDICAL_TYPES.includes(business?.type)
   const createAppt = useCreateAppointment()
   const updateAppt = useUpdateAppointment()
@@ -133,7 +158,7 @@ export default function AppointmentModal({ open, onClose, businessId, initialDat
 
   useEffect(() => {
     if (open && !prevOpenRef.current) {
-      setShowWaitlist(false)
+      setChosenBranchId('')
       setSubmitError('')
       if (appointment) {
         reset({
@@ -173,13 +198,8 @@ export default function AppointmentModal({ open, onClose, businessId, initialDat
     }
   }, [services, open, isEdit, setValue, getValues])
 
-  useEffect(() => {
-    if (isEdit && watchedStatus === 'cancelled' && appointment?.status !== 'cancelled') {
-      setShowWaitlist(true)
-    } else {
-      setShowWaitlist(false)
-    }
-  }, [watchedStatus, isEdit, appointment?.status])
+  // Offered while the owner is cancelling an appointment that wasn't cancelled.
+  const showWaitlist = isEdit && watchedStatus === 'cancelled' && appointment?.status !== 'cancelled'
 
   async function saveAppointment(values) {
     setSubmitError('')
@@ -194,7 +214,7 @@ export default function AppointmentModal({ open, onClose, businessId, initialDat
         // branch_id is NOT NULL in the DB — never omit it. plan_visit_id is
         // metadata from a client-plan prefill, not a form field.
         await createAppt.mutateAsync({
-          ...payload, business_id: businessId, branch_id: currentBranch.id,
+          ...payload, business_id: businessId, branch_id: targetBranchId,
           plan_visit_id: prefill?.plan_visit_id || null,
         })
         toast.success('تم الحجز بنجاح')
@@ -217,8 +237,8 @@ export default function AppointmentModal({ open, onClose, businessId, initialDat
       await saveAppointment(values)
       return
     }
-    if (!currentBranch?.id) {
-      setSubmitError('تعذر تحديد الفرع — جرّب تحديث الصفحة')
+    if (!targetBranchId) {
+      setSubmitError(needsBranchChoice ? 'اختر الفرع' : 'تعذر تحديد الفرع — جرّب تحديث الصفحة')
       return
     }
     const activeCount = await countActiveBookings(businessId, values.client_phone)
@@ -246,9 +266,11 @@ export default function AppointmentModal({ open, onClose, businessId, initialDat
     } else if (action.type === 'delete') {
       try {
         await deleteAppt.mutateAsync(appointment.id)
+        toast.success('تم حذف الموعد')
         onClose()
       } catch (e) {
         setSubmitError(e?.message || 'حدث خطأ أثناء الحذف')
+        toast.error('حدث خطأ أثناء الحذف')
       }
     } else if (action.type === 'cancel') {
       try {
@@ -304,6 +326,18 @@ export default function AppointmentModal({ open, onClose, businessId, initialDat
             />
           </div>
         </div>
+
+        {needsBranchChoice && (
+          <div>
+            <label className="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1">الفرع</label>
+            <Dropdown
+              value={chosenBranchId}
+              onChange={setChosenBranchId}
+              placeholder="اختر الفرع..."
+              options={branches.map(b => ({ value: b.id, label: b.name }))}
+            />
+          </div>
+        )}
 
         {/* Service */}
         <div>
@@ -385,7 +419,7 @@ export default function AppointmentModal({ open, onClose, businessId, initialDat
 
         {/* Waitlist alert (compact) */}
         {showWaitlist && isEdit && (
-          <WaitlistAlert appointment={appointment} businessId={businessId} />
+          <WaitlistAlert appointment={appointment} businessId={businessId} onPromoted={() => invalidateAll(qc)} />
         )}
 
         {/* Notes — only 1 row */}
@@ -404,7 +438,7 @@ export default function AppointmentModal({ open, onClose, businessId, initialDat
             <span className="break-all">{submitError}</span>
           </div>
         )}
-        {!isEdit && !currentBranch?.id && (
+        {!isEdit && !targetBranchId && !needsBranchChoice && (
           <div className="bg-red-50 border border-red-200 rounded-xl px-3 py-2.5 flex items-start gap-2 text-xs text-red-600">
             <HiOutlineExclamationCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
             <span>تعذر تحديد الفرع — لا يمكن إضافة موعد الآن. جرّب تحديث الصفحة.</span>
@@ -421,7 +455,7 @@ export default function AppointmentModal({ open, onClose, businessId, initialDat
             </button>
           )}
           <Button type="submit" loading={isSubmitting || createAppt.isPending || updateAppt.isPending}
-            disabled={!isEdit && !currentBranch?.id}
+            disabled={!isEdit && !targetBranchId && !needsBranchChoice}
             className="flex-1 min-h-[44px]">
             {isEdit ? 'حفظ' : 'إضافة الموعد'}
           </Button>

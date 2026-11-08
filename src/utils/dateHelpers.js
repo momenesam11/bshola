@@ -1,6 +1,6 @@
 import {
   format, parse, addMinutes, isBefore,
-  isAfter, parseISO, getDay, addDays,
+  isAfter, parseISO, getDay,
 } from 'date-fns'
 import { ar } from 'date-fns/locale'
 

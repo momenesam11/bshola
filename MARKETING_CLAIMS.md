@@ -159,7 +159,7 @@
 |---|---|
 | كل حساب يشوف بياناته هو بس (صلاحيات على مستوى الصفوف) | `supabase/migrations/001_initial_schema.sql:49-52` وسياسات مماثلة في كل الجداول · `011_fix_all_rls.sql` · `018_fix_medical_files_security.sql` |
 | بعد انتهاء الاشتراك: الدخول والحجز يتوقفوا والبيانات تفضل | `src/middleware/TrialGuard.jsx:12-14` · `supabase/migrations/022_lock_expired_business_booking.sql` — مفيش أي حذف بيانات |
-| زر حذف الحساب نهائياً | `src/pages/settings/Settings.jsx:716-718` («منطقة الخطر») |
+| حذف الحساب بطلب من الإعدادات، والحذف بيتم فعلاً بعد التأكيد | `src/pages/settings/Settings.jsx` (`handleDeleteAccount`: «طلب حذف الحساب» يفتح واتساب الدعم باسم الحساب وكوده). الحذف نفسه بيعمله فريق بسهولة يدوي، ومفيش زر بيمسح لوحده. الزر القديم كان بيسجّل خروج بس رغم إنه بيقول «حذف نهائي»، واتغيّر في نوفمبر 2026 |
 | الاشتراك والتجديد بالتنسيق على واتساب والتفعيل إداري | `src/pages/admin/AdminDashboard.jsx:118-124` (رسالة التجديد) · `supabase/migrations/012_trial_system.sql:39` (صلاحية التفعيل للأدمن) |
 | قياس زيارات مجمّع بـVercel Analytics | `src/App.jsx` (`<Analytics />` من `@vercel/analytics/react`) |
 | Google Analytics على صفحات الموقع والتسجيل بس، مش جوه النظام ولا على صفحات الحجز | `src/lib/tracking.js` (`UNTRACKED_PREFIXES` · علامة `ga-disable-` · `page_view` يدوي) |

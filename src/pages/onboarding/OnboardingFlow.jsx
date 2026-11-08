@@ -282,6 +282,16 @@ function StepBranches({ onNext, onBack, vertical, defaultCountry }) {
   const [isMulti, setIsMulti] = useState(false)
   const [branches, setBranches] = useState([{ name: cfg.branchName, address: '', phone: '', is_main: true }])
   const [capacity, setCapacity] = useState(2)
+  const [error, setError] = useState('')
+
+  function next() {
+    const chosen = isMulti ? branches : [branches[0]]
+    if (chosen.some(b => !b.name.trim())) {
+      setError('اكتب اسم كل فرع')
+      return
+    }
+    onNext({ branches: chosen.map(b => ({ ...b, name: b.name.trim() })), capacity: isClinic ? 1 : capacity })
+  }
 
   function addBranch() {
     if (branches.length >= 10) return
@@ -349,6 +359,8 @@ function StepBranches({ onNext, onBack, vertical, defaultCountry }) {
         </div>
       )}
 
+      {error && <p className="text-sm text-red-500">{error}</p>}
+
       {/* Capacity — parallel bookings per time slot */}
       <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
         {isClinic ? (
@@ -366,7 +378,7 @@ function StepBranches({ onNext, onBack, vertical, defaultCountry }) {
 
       <div className="flex gap-3 sticky bottom-0 bg-white pt-3 pb-1 -mx-4 px-4 md:static md:bg-transparent md:mx-0 md:px-0 md:pt-0 md:pb-0">
         <Button variant="secondary" onClick={onBack} className="flex-1">السابق</Button>
-        <Button onClick={() => onNext({ branches: isMulti ? branches : [branches[0]], capacity: isClinic ? 1 : capacity })} className="flex-1">التالي</Button>
+        <Button onClick={next} className="flex-1">التالي</Button>
       </div>
     </div>
   )
@@ -377,13 +389,24 @@ function StepWorkingHours({ onNext, onBack }) {
   const [blocks, setBlocks] = useState({})
   const [slotDuration, setSlotDuration] = useState(30)
   const [isValid, setIsValid] = useState(true)
+  const [error, setError] = useState('')
+
+  function next() {
+    if (!Object.values(blocks).some(day => day?.length)) {
+      setError('اختار يوم واحد على الأقل تستقبل فيه حجوزات — من غيره صفحة الحجز هتبقى فاضية')
+      return
+    }
+    onNext({ schedule_blocks: blocks, slot_duration: slotDuration })
+  }
+
   return (
     <div className="space-y-4" dir="rtl">
       <div className="mb-6">
         <h2 className="text-xl font-bold text-gray-900">ساعات العمل</h2>
         <p className="text-gray-500 text-sm mt-1">حدد الأيام والفترات التي تستقبل فيها العملاء — يمكنك إضافة أكتر من فترة لليوم الواحد</p>
       </div>
-      <ScheduleBlockEditor value={blocks} onChange={setBlocks} onValidityChange={setIsValid} />
+      <ScheduleBlockEditor value={blocks} onChange={v => { setBlocks(v); setError('') }} onValidityChange={setIsValid} />
+      {error && <p className="text-sm text-red-500">{error}</p>}
       <Dropdown
         label="مدة الموعد الواحد"
         value={slotDuration}
@@ -398,7 +421,7 @@ function StepWorkingHours({ onNext, onBack }) {
       />
       <div className="flex gap-3 mt-2 sticky bottom-0 bg-white pt-3 pb-1 -mx-4 px-4 md:static md:bg-transparent md:mx-0 md:px-0 md:pt-0 md:pb-0">
         <Button variant="secondary" onClick={onBack} className="flex-1">السابق</Button>
-        <Button onClick={() => onNext({ schedule_blocks: blocks, slot_duration: slotDuration })} disabled={!isValid} className="flex-1">التالي</Button>
+        <Button onClick={next} disabled={!isValid} className="flex-1">التالي</Button>
       </div>
     </div>
   )
@@ -656,7 +679,7 @@ function StepIdentity({ onNext, onBack, businessName, vertical, loading }) {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">رابط الحجز الخاص بيك</label>
               <div className="flex items-center border border-slate-200 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-accent-400">
-                <span className="px-3 py-3 bg-slate-50 text-slate-400 text-xs border-l border-slate-200 flex-shrink-0">beshola.app/book/</span>
+                <span className="px-3 py-3 bg-slate-50 text-slate-400 text-xs border-l border-slate-200 flex-shrink-0" dir="ltr">{window.location.host}/book/</span>
                 <input value={slug} onChange={e => handleSlugChange(e.target.value)} placeholder="slug-الخاص-بيك" dir="ltr"
                   className="flex-1 px-3 py-3 text-sm focus:outline-none bg-white" />
               </div>
@@ -802,11 +825,6 @@ export default function OnboardingFlow() {
     })
   }, [navigate])
 
-  function next(updates) {
-    setData(prev => ({ ...prev, ...updates }))
-    setStep(s => s + 1)
-  }
-
   function handleStep0(vertical) { setData(prev => ({ ...prev, vertical, type: vertical.key })); setStep(1) }
   function handleStep1(values) { setData(prev => ({ ...prev, ...values })); setStep(2) }
   function handleStep2(values) { setData(prev => ({ ...prev, ...values })); setStep(3) }
@@ -874,11 +892,13 @@ export default function OnboardingFlow() {
       // Upload assets
       if (identityValues.logoFile) {
         const logoUrl = await uploadBusinessAsset(business.id, identityValues.logoFile, 'logo')
-        await supabase.from('businesses').update({ logo_url: logoUrl }).eq('id', business.id)
+        const { error: logoError } = await supabase.from('businesses').update({ logo_url: logoUrl }).eq('id', business.id)
+        if (logoError) throw logoError
       }
       if (identityValues.coverFile) {
         const coverUrl = await uploadBusinessAsset(business.id, identityValues.coverFile, 'cover')
-        await supabase.from('businesses').update({ cover_url: coverUrl }).eq('id', business.id)
+        const { error: coverError } = await supabase.from('businesses').update({ cover_url: coverUrl }).eq('id', business.id)
+        if (coverError) throw coverError
       }
 
       if (data.services?.length) {
@@ -889,15 +909,16 @@ export default function OnboardingFlow() {
       if (!existing) {
         const capacity = data.capacity || 1
         const scheduleBlocks = data.schedule_blocks || {}
-        if (data.branches?.length) {
-          await supabase.from('branches').insert(
+        // Without a branch nothing can be booked, so a failure here must stop
+        // the flow instead of showing the "ready" screen.
+        const { error: branchError } = data.branches?.length
+          ? await supabase.from('branches').insert(
             data.branches.map(b => ({ ...b, business_id: business.id, capacity, schedule_blocks: scheduleBlocks }))
           )
-        } else {
-          await supabase.from('branches').insert({
+          : await supabase.from('branches').insert({
             business_id: business.id, name: data.name + ' - الفرع الرئيسي', is_main: true, capacity, schedule_blocks: scheduleBlocks,
           })
-        }
+        if (branchError) throw branchError
       }
 
       sessionStorage.removeItem('beshola_pending_owner_phone')

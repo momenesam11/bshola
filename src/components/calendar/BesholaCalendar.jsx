@@ -32,7 +32,7 @@ import {
   useAppointmentsForMonth,
   useCalendarStats,
 } from '../../hooks/useCalendar'
-import { useBranch } from '../../context/BranchContext'
+import { useBranch } from '../../context/branchState'
 import { getBranchColor } from '../../utils/constants'
 import { useNavigate } from 'react-router-dom'
 import DatePicker from '../ui/DatePicker'

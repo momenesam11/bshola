@@ -9,7 +9,10 @@ export function useClientPlan(businessId, clientPhone) {
     queryFn: async () => {
       const { data: plan, error } = await supabase
         .from('client_plans')
-        .select('*, client_plan_visits(*, appointments(*, services(name)))')
+        // Two foreign keys join these tables (visit -> its appointment, and
+        // appointment -> its visit). Without naming one, PostgREST refuses the
+        // query with PGRST201 and the plan never loads.
+        .select('*, client_plan_visits(*, appointments!client_plan_visits_appointment_id_fkey(*, services(name)))')
         .eq('business_id', businessId)
         .eq('client_phone', clientPhone)
         .order('created_at', { ascending: false })

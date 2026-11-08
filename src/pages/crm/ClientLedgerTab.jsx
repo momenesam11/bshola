@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import toast from 'react-hot-toast'
 import { HiOutlineBanknotes, HiOutlineReceiptPercent } from 'react-icons/hi2'
 import { useClientLedger, useAddLedgerPayment, useAddLedgerCharge, PAYMENT_METHOD_LABELS } from '../../hooks/useClientLedger'
 import Button from '../../components/ui/Button'
@@ -16,12 +17,22 @@ function AddPaymentModal({ open, onClose, businessId, clientPhone }) {
   const [amount, setAmount] = useState('')
   const [method, setMethod] = useState('cash')
   const [note, setNote] = useState('')
+  const [error, setError] = useState('')
 
   async function handleSubmit() {
-    if (!amount || Number(amount) <= 0) return
-    await addPayment.mutateAsync({ businessId, clientPhone, amount: Number(amount), method, note: note.trim() || null })
-    setAmount(''); setNote('')
-    onClose()
+    setError('')
+    if (!(Number(amount) > 0)) {
+      setError('اكتب مبلغ أكبر من صفر')
+      return
+    }
+    try {
+      await addPayment.mutateAsync({ businessId, clientPhone, amount: Number(amount), method, note: note.trim() || null })
+      toast.success('تمت إضافة الدفعة')
+      setAmount(''); setNote('')
+      onClose()
+    } catch (e) {
+      toast.error(e?.message || 'تعذر حفظ الدفعة')
+    }
   }
 
   return (
@@ -30,6 +41,7 @@ function AddPaymentModal({ open, onClose, businessId, clientPhone }) {
         <Input label="المبلغ" type="number" min={0} step="0.01" value={amount} onChange={e => setAmount(e.target.value)} dir="ltr" placeholder="0" />
         <Dropdown label="طريقة الدفع" value={method} onChange={setMethod} options={PAYMENT_METHOD_OPTIONS} />
         <Input label="ملاحظة (اختياري)" value={note} onChange={e => setNote(e.target.value)} placeholder="مثال: دفعة أولى" />
+        {error && <p className="text-xs text-red-500">{error}</p>}
         <Button onClick={handleSubmit} loading={addPayment.isPending} className="w-full">إضافة الدفعة</Button>
       </div>
     </Modal>
@@ -40,12 +52,22 @@ function AddChargeModal({ open, onClose, businessId, clientPhone }) {
   const addCharge = useAddLedgerCharge()
   const [amount, setAmount] = useState('')
   const [description, setDescription] = useState('')
+  const [error, setError] = useState('')
 
   async function handleSubmit() {
-    if (!amount || Number(amount) <= 0 || !description.trim()) return
-    await addCharge.mutateAsync({ businessId, clientPhone, amount: Number(amount), description: description.trim() })
-    setAmount(''); setDescription('')
-    onClose()
+    setError('')
+    if (!(Number(amount) > 0) || !description.trim()) {
+      setError('اكتب الوصف والمبلغ')
+      return
+    }
+    try {
+      await addCharge.mutateAsync({ businessId, clientPhone, amount: Number(amount), description: description.trim() })
+      toast.success('تمت الإضافة')
+      setAmount(''); setDescription('')
+      onClose()
+    } catch (e) {
+      toast.error(e?.message || 'تعذر الحفظ')
+    }
   }
 
   return (
@@ -53,6 +75,7 @@ function AddChargeModal({ open, onClose, businessId, clientPhone }) {
       <div dir="rtl" className="space-y-3">
         <Input label="الوصف" value={description} onChange={e => setDescription(e.target.value)} placeholder="مثال: خدمة إضافية" />
         <Input label="المبلغ" type="number" min={0} step="0.01" value={amount} onChange={e => setAmount(e.target.value)} dir="ltr" placeholder="0" />
+        {error && <p className="text-xs text-red-500">{error}</p>}
         <Button onClick={handleSubmit} loading={addCharge.isPending} className="w-full">إضافة</Button>
       </div>
     </Modal>

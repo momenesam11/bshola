@@ -15,10 +15,13 @@ export function useClientLedger(businessId, clientPhone) {
         .order('created_at', { ascending: true })
       if (error) throw error
 
+      // Amounts are numeric in the database and may arrive as text; adding text
+      // would concatenate. Rounded to piasters so 0.1 + 0.2 shows as 0.3.
       let balance = 0
       const entries = data.map(entry => {
-        balance += entry.entry_type === 'charge' ? entry.amount : -entry.amount
-        return { ...entry, balanceAfter: balance }
+        const amount = Number(entry.amount)
+        balance = Math.round((balance + (entry.entry_type === 'charge' ? amount : -amount)) * 100) / 100
+        return { ...entry, amount, balanceAfter: balance }
       })
       return { entries, balance }
     },

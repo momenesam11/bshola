@@ -17,7 +17,9 @@
     "backup": "node scripts/backup/backup.mjs",
     "backup:setup": "node scripts/backup/setup.mjs",
     "backup:verify": "node scripts/backup/verify.mjs",
-    "backup:schedule": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/backup/register-task.ps1"
+    "backup:schedule": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/backup/register-task.ps1",
+    "local": "node scripts/local.mjs",
+    "test:qa": "playwright test --config playwright.local.config.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",

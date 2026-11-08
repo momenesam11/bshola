@@ -54,11 +54,14 @@ export default function RetargetModal({ onClose, businessId, business, singleCli
     }, 0)
   }
 
+  // The short link the clinic chose, not the internal id.
+  const bookingLink = `${window.location.origin}/book/${business?.booking_slug || businessId}`
+
   function renderPreview(msg) {
     return msg
       .replace(/{client_name}/g, 'محمد')
       .replace(/{business_name}/g, business?.name || 'النشاط')
-      .replace(/{booking_link}/g, `${window.location.origin}/book/${businessId}`)
+      .replace(/{booking_link}/g, bookingLink)
   }
 
   async function handleSend() {
@@ -72,13 +75,15 @@ export default function RetargetModal({ onClose, businessId, business, singleCli
       const msg = message
         .replace(/{client_name}/g, client.name)
         .replace(/{business_name}/g, business?.name || '')
-        .replace(/{booking_link}/g, `${window.location.origin}/book/${businessId}`)
-      try {
-        openWhatsApp(client.phone, msg)
-        res.success++
-      } catch (e) {
+        .replace(/{booking_link}/g, bookingLink)
+      // Browsers let a page open only a tab or so on its own; the rest are
+      // blocked silently. Those are counted as failed, not as sent.
+      let opened
+      try { opened = openWhatsApp(client.phone, msg) } catch { opened = false }
+      if (opened) res.success++
+      else {
         res.failed++
-        res.errors.push({ phone: client.phone, error: e.message })
+        res.errors.push({ phone: client.phone, name: client.name, text: msg })
       }
       done++
       setProgress(Math.round((done / total) * 100))
@@ -274,6 +279,18 @@ export default function RetargetModal({ onClose, businessId, business, singleCli
                         </div>
                       )}
                     </div>
+                    {results.failed > 0 && (
+                      <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 space-y-2">
+                        <p>المتصفح منع فتح واتساب للعملاء دول. اضغط على كل اسم عشان تبعتله:</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {results.errors.map(err => (
+                            <a key={err.phone} target="_blank" rel="noopener noreferrer"
+                              href={`https://wa.me/${String(err.phone).replace(/\D/g, '')}?text=${encodeURIComponent(err.text)}`}
+                              className="px-2 py-1 bg-white border border-amber-300 rounded-lg">{err.name}</a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     <button
                       onClick={onClose}
                       className="w-full py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-colors min-h-[48px]"

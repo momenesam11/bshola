@@ -11,7 +11,7 @@ import {
 import { FaWhatsapp } from 'react-icons/fa'
 import { useClientProfile, useUpdateClientNotes } from '../../hooks/useClients'
 import StatusBadge from '../../components/appointments/StatusBadge'
-import { useBranch } from '../../context/BranchContext'
+import { useBranch } from '../../context/branchState'
 import { formatDateAr, formatTime12 } from '../../utils/dateHelpers'
 import { MEDICAL_TYPES } from '../../utils/constants'
 import RetargetModal from './RetargetModal'

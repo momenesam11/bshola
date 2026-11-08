@@ -77,10 +77,12 @@ export function useDeactivateBusiness() {
   })
 }
 
+// Expiry is checked before "paid": a paid period that ran out locks the
+// account like an expired trial, and the admin list has to show that.
 export function getBusinessStatus(business) {
   if (!business.is_active) return 'suspended'
-  if (business.subscription_type === 'paid') return 'paid'
   if (business.trial_ends_at && new Date(business.trial_ends_at) < new Date()) return 'expired'
+  if (business.subscription_type === 'paid') return 'paid'
   return 'trial'
 }
 

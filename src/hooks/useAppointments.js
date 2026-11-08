@@ -4,18 +4,20 @@ import toast from 'react-hot-toast'
 import { supabase } from '../lib/supabase'
 import { formatTime12, toISODateString } from '../utils/dateHelpers'
 
-function invalidateAll(qc) {
-  qc.invalidateQueries({ queryKey: ['appointments'] })
-  qc.invalidateQueries({ queryKey: ['calendar-day'] })
-  qc.invalidateQueries({ queryKey: ['calendar-week'] })
-  qc.invalidateQueries({ queryKey: ['calendar-month'] })
-  qc.invalidateQueries({ queryKey: ['appointments-tomorrow'] })
-  qc.invalidateQueries({ queryKey: ['booked-slots'] })
-  // A create/update/delete here can change a linked client plan visit's
-  // status (via the DB sync trigger) or trigger a ledger charge on
-  // completion — both need to reflect the change without a manual refresh.
-  qc.invalidateQueries({ queryKey: ['client-plan'] })
-  qc.invalidateQueries({ queryKey: ['client-ledger'] })
+// Every screen that shows appointments, or numbers derived from them. A key
+// missing here is a screen that keeps showing the old state until a reload —
+// the appointments page ('appointments-all') was one.
+const APPOINTMENT_QUERIES = [
+  'appointments', 'appointments-all', 'appointments-tomorrow', 'booked-slots',
+  'calendar-day', 'calendar-week', 'calendar-month',
+  'clients', 'client-profile', 'patient-visits', 'notifications',
+  // A plan visit follows its appointment (DB trigger) and completing one
+  // charges the client's statement.
+  'client-plan', 'client-ledger',
+]
+
+export function invalidateAll(qc) {
+  qc.invalidateQueries({ predicate: q => APPOINTMENT_QUERIES.includes(q.queryKey[0]) })
 }
 
 export function useAppointments(businessId, date) {
@@ -63,20 +65,31 @@ export function useAppointments(businessId, date) {
   return query
 }
 
+// Supabase answers at most 1000 rows per request however the query is written,
+// so a busy clinic's full history came back cut short with no error. This reads
+// page by page until a short page says it's all there.
+export async function fetchAllRows(buildQuery, pageSize = 1000) {
+  const rows = []
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await buildQuery().range(from, from + pageSize - 1)
+    if (error) throw error
+    rows.push(...(data || []))
+    if (!data || data.length < pageSize) return rows
+  }
+}
+
 export function useAllAppointments(businessId, { from, to } = {}) {
   return useQuery({
     queryKey: ['appointments-all', businessId, from, to],
-    queryFn: async () => {
+    queryFn: () => fetchAllRows(() => {
       let q = supabase
         .from('appointments')
         .select('*, services(name), branches(name)')
         .eq('business_id', businessId)
       if (from) q = q.gte('appointment_date', from)
       if (to) q = q.lte('appointment_date', to)
-      const { data, error } = await q.order('appointment_date').order('appointment_time')
-      if (error) throw error
-      return data
-    },
+      return q.order('appointment_date').order('appointment_time').order('id')
+    }),
     enabled: !!businessId,
   })
 }
@@ -142,11 +155,15 @@ export function useTomorrowsAppointments(businessId) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('appointments')
-        .select('client_phone, client_name, appointment_time, services(name), branches(name)')
+        // id is what marks the reminder as sent, branch_id what filters it by
+        // branch, and the date goes in the message.
+        .select('id, branch_id, client_phone, client_name, appointment_date, appointment_time, reminder_sent, services(name), branches(name, address)')
         .eq('business_id', businessId)
         .eq('appointment_date', tomorrowStr)
-        .neq('status', 'cancelled')
+        .in('status', ['confirmed', 'completed', 'no_show'])
+        .order('appointment_time')
       if (error) throw error
+      // One reminder per client: their first visit tomorrow.
       const map = new Map()
       for (const a of data) {
         if (!map.has(a.client_phone)) map.set(a.client_phone, a)

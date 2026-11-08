@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import {
   HiOutlineUserCircle,
   HiOutlinePhone,
@@ -16,22 +16,20 @@ import { generateConfirmationMessage, openWhatsApp } from '../../lib/whatsapp'
 import { displayPhone } from '../../lib/countries'
 
 export default function NotificationDetailModal({ open, onClose, notification, business }) {
-  const [appointment, setAppointment] = useState(null)
-  const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    if (!open || !notification?.related_appointment_id) return
-    setLoading(true)
-    supabase
-      .from('appointments')
-      .select('*, services(name), branches(name, address)')
-      .eq('id', notification.related_appointment_id)
-      .maybeSingle()
-      .then(({ data }) => {
-        setAppointment(data)
-        setLoading(false)
-      })
-  }, [open, notification])
+  const appointmentId = notification?.related_appointment_id
+  const { data: appointment = null, isLoading: loading } = useQuery({
+    queryKey: ['notification-appointment', appointmentId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('*, services(name), branches(name, address)')
+        .eq('id', appointmentId)
+        .maybeSingle()
+      if (error) throw error
+      return data
+    },
+    enabled: open && !!appointmentId,
+  })
 
   function sendConfirmation() {
     const message = generateConfirmationMessage(appointment, business, appointment.branches)

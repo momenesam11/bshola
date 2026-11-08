@@ -14,7 +14,7 @@ import {
 import { FaWhatsapp } from 'react-icons/fa'
 import { supabase } from '../../lib/supabase'
 import { useBusiness } from '../../hooks/useBusiness'
-import { useBranch, ALL_BRANCHES } from '../../context/BranchContext'
+import { useBranch, ALL_BRANCHES } from '../../context/branchState'
 import { getBranchColor } from '../../utils/constants'
 import { SUPPORT_WHATSAPP, SUPPORT_EMAIL } from '../../lib/support'
 import { NAV_ITEMS } from './navItems'
