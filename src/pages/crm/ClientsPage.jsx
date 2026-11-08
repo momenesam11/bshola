@@ -36,7 +36,7 @@ function buildReminderMessage(client, appt, businessName) {
   const time = appt ? formatTime12(appt.appointment_time?.slice(0, 5)) : ''
   const service = appt?.services?.name ? ` - ${appt.services.name}` : ''
   const branch = appt?.branches?.name ? ` (${appt.branches.name})` : ''
-  return `مرحباً ${client.name}،\nنذكرك بموعدك غداً${service}${branch} الساعة ${time}.\nنتطلع لرؤيتك 🙏\n— ${businessName}`
+  return `مرحباً ${client.name}،\nنذكرك بموعدك غداً${service}${branch} الساعة ${time}.\nنتطلع لرؤيتك\n— ${businessName}`
 }
 
 function ClientCard({ client, onView, tomorrowAppt, businessName }) {

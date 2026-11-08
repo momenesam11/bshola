@@ -201,7 +201,7 @@ export default function MobileDrawer({ open, onClose }) {
               </div>
               <BookingLinkActions
                 url={bookingUrl}
-                shareMessage={`احجز موعدك مع ${business.name} بسهولة من الرابط ده 👇\n${bookingUrl}`}
+                shareMessage={`احجز موعدك مع ${business.name} بسهولة من الرابط ده\n${bookingUrl}`}
                 stacked
               />
             </div>

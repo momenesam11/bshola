@@ -204,7 +204,7 @@ test.describe('tomorrow reminders on the dashboard', () => {
     const url = await page.evaluate(() => (window as unknown as { __urls: string[] }).__urls[0])
     const text = decodeURIComponent(url.split('text=')[1])
     expect(url).toContain(appt.client_phone)
-    expect(text).toMatch(/📅 \S+/) // a date, not an empty line
+    expect(text).toMatch(/التاريخ: \S+/) // a date, not an empty line
     expect(text).not.toContain('Invalid')
     await expect.poll(async () =>
       (await one<{ r: boolean }>('SELECT reminder_sent r FROM appointments WHERE id=$1', [appt.id])).r,

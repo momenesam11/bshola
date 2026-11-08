@@ -212,6 +212,12 @@ test.describe('patient record (clinic)', () => {
     await page.getByRole('button', { name: 'إضافة تشخيص' }).click()
     await page.getByPlaceholder('التشخيص').fill('التهاب لثة')
     await page.getByPlaceholder('العلاج').fill('مضاد حيوي')
+    // The visit card hides overflow and used to cut the calendar in half, which
+    // left the days unreachable. A real click fails if that comes back.
+    await page.getByRole('button', { name: 'اختر تاريخ' }).click()
+    const today = page.locator('body > div.fixed[dir="rtl"]').getByRole('button', { name: 'اليوم', exact: true })
+    await expect(today).toBeInViewport({ ratio: 1 })
+    await today.click()
     await page.getByRole('button', { name: 'حفظ', exact: true }).click()
     await expectToast(page, 'تم الحفظ')
     await expect(page.getByText('التهاب لثة')).toBeVisible()

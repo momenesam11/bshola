@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useId } from 'react'
 import { supabase } from '../lib/supabase'
+import { invalidateAll } from './useAppointments'
 
 // NotificationBell mounts twice at once (desktop + mobile TopBar), so both
 // instances receive the same INSERT event — dedupe by id so the sound only
@@ -58,7 +59,10 @@ export function useNotifications(businessId) {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'notifications', filter: `business_id=eq.${businessId}` },
         (payload) => {
-          qc.invalidateQueries({ queryKey: ['notifications', businessId] })
+          // Realtime only publishes this table, so a notification is the one
+          // live signal that a booking arrived. Every appointment screen
+          // refreshes on it, not just the bell.
+          invalidateAll(qc)
           playNotificationSound(payload.new?.id)
         }
       )

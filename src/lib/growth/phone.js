@@ -1,3 +1,5 @@
+import { removeEmoji } from '../whatsapp'
+
 // Egyptian phone handling — must match growth_normalize_phone() in
 // supabase/migrations/032_growth_engine.sql, which is what the unique index
 // on growth_leads.phone is built on.
@@ -28,7 +30,7 @@ export function displayPhone(phone) {
 
 export function whatsappLink(phone, text = '') {
   if (!phone) return null
-  return `https://wa.me/${phone}${text ? `?text=${encodeURIComponent(text)}` : ''}`
+  return `https://wa.me/${phone}${text ? `?text=${encodeURIComponent(removeEmoji(text))}` : ''}`
 }
 
 export function telLink(phone) {

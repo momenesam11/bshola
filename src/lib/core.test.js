@@ -9,7 +9,7 @@ import {
   todayISO,
 } from '../utils/dateHelpers'
 import {
-  generateReminderMessage, generateConfirmationMessage, formatTimeArabic, formatDateArabic, openWhatsApp,
+  generateReminderMessage, generateConfirmationMessage, formatTimeArabic, formatDateArabic, openWhatsApp, removeEmoji,
 } from './whatsapp'
 import { csvCell } from './csv'
 import { getBusinessStatus, getAdminStats, searchBusinesses } from '../hooks/useAdmin'
@@ -155,7 +155,13 @@ describe('whatsapp messages', () => {
     expect(m).toBe('سامي / كشف / 2:30 م / عيادة النور / المعادي')
   })
   it('confirmation falls back to the business when there is no branch', () => {
-    expect(generateConfirmationMessage(appt, biz, null)).toContain('📍 عيادة النور')
+    expect(generateConfirmationMessage(appt, biz, null)).toContain('المكان: عيادة النور')
+  })
+  it('no outgoing message carries an emoji', () => {
+    const emoji = /\p{Extended_Pictographic}/u
+    expect(generateReminderMessage(appt, biz, null)).not.toMatch(emoji)
+    expect(generateConfirmationMessage(appt, biz, null)).not.toMatch(emoji)
+    expect(removeEmoji('أهلاً 👋 يا 🗓️ سامي')).toBe('أهلاً يا سامي')
   })
   it('formatting survives missing values', () => {
     expect(formatTimeArabic(null)).toBe('')

@@ -772,7 +772,7 @@ function StepIdentity({ onNext, onBack, businessName, vertical, loading }) {
 function ShareKitScreen({ businessName, slug }) {
   const navigate = useNavigate()
   const bookingUrl = `${window.location.origin}/book/${slug || 'your-link'}`
-  const shareMsg = `احجز موعدك مع ${businessName} بسهولة من الرابط ده 👇\n${bookingUrl}\n⏰ اختار الوقت المناسب ليك وهنبعتلك تأكيد على واتساب`
+  const shareMsg = `احجز موعدك مع ${businessName} بسهولة من الرابط ده\n${bookingUrl}\nاختار الوقت المناسب ليك وهنبعتلك تأكيد على واتساب`
 
   useEffect(() => {
     confetti({ particleCount: 120, spread: 80, origin: { y: 0.4 }, colors: ['#0D9B6C', '#6366F1', '#F59E0B', '#EF4444'] })

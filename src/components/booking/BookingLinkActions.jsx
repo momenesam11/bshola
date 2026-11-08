@@ -12,7 +12,7 @@ export default function BookingLinkActions({ url, shareMessage, className = '', 
     }
   }
 
-  const waText = shareMessage || `احجز موعدك بسهولة من الرابط ده 👇\n${url}`
+  const waText = shareMessage || `احجز موعدك بسهولة من الرابط ده\n${url}`
 
   return (
     <div className={`flex ${stacked ? 'flex-col' : 'items-center'} gap-2 ${className}`}>

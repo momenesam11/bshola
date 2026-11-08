@@ -479,7 +479,7 @@ function IdentitySection({ business, onSaved }) {
         {slugStatus === 'taken' && <p className="text-xs text-red-500 mt-1 flex items-center gap-1"><HiOutlineXMark className="w-3.5 h-3.5" />مش متاح، جرب تاني</p>}
         <div className="mt-2 bg-slate-50 rounded-xl p-2.5 border border-slate-100">
           <span className="block text-xs text-accent-700 font-mono truncate mb-2" dir="ltr">{bookingLink}</span>
-          <BookingLinkActions url={bookingLink} shareMessage={`احجز موعدك مع ${business?.name || ''} بسهولة من الرابط ده 👇\n${bookingLink}`} />
+          <BookingLinkActions url={bookingLink} shareMessage={`احجز موعدك مع ${business?.name || ''} بسهولة من الرابط ده\n${bookingLink}`} />
         </div>
       </div>
 

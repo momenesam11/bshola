@@ -72,10 +72,10 @@ function whatsappLink(business) {
   // in that number tells us which price list to quote.
   const { plans, label } = getPricing(splitPhone(phone).country)
   const startingPrice = `${formatPrice(plans[0].price)} ${label}`
-  const message = `أهلاً يا دكتور/أستاذ! 👋
+  const message = `أهلاً يا دكتور/أستاذ!
 تجربتك المجانية لـ بسهولة انتهت.
 لتجديد اشتراكك وإعادة تفعيل حسابك، تواصل معنا.
-باقات الاشتراك تبدأ من ${startingPrice}/شهر 🗓️`
+باقات الاشتراك تبدأ من ${startingPrice}/شهر`
   return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
 }
 

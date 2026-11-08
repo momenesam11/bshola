@@ -83,7 +83,7 @@ export default function PartnerDashboardPage() {
     }
   }
 
-  const shareText = `أهلاً دكتور 👋 ده «بسهولة»، نظام حجز مواعيد مصري: المرضى بيحجزوا من لينك، والتذكير بالمواعيد بيتبعت على الواتساب بضغطة زر. جرّبه 14 يوم ببلاش من هنا: ${link}`
+  const shareText = `أهلاً دكتور ده «بسهولة»، نظام حجز مواعيد مصري: المرضى بيحجزوا من لينك، والتذكير بالمواعيد بيتبعت على الواتساب بضغطة زر. جرّبه 14 يوم ببلاش من هنا: ${link}`
 
   return (
     <div className="min-h-screen bg-paper text-ink font-sans" dir="rtl">
