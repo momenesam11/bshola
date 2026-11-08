@@ -5,7 +5,7 @@
 ## طريقة الشغل
 - الرد على صاحب المشروع بالعامية المصرية، وخطوات واضحة لأي حاجة غير الكود.
 - التغييرات في فرع منفصل و PR، وصاحب المشروع هو اللي يدمج في `main`.
-- المايجريشن في `supabase/migrations` بأرقام متتالية، والجاي `047`. الـSQL Editor في Supabase ما بيحافظش على `BEGIN ... COMMIT` كعملية واحدة وبيمسح الجداول المؤقتة بين الأوامر، فأي تعديل بيانات متعدد الخطوات يتكتب في أمر `DO` واحد. لازم تكون إضافية وما تكسرش الحسابات الحالية، ويتكتب لها ملف رجوع في `supabase/rollbacks` عند الحاجة.
+- المايجريشن في `supabase/migrations` بأرقام متتالية، والجاي `048`. الـSQL Editor في Supabase ما بيحافظش على `BEGIN ... COMMIT` كعملية واحدة وبيمسح الجداول المؤقتة بين الأوامر، فأي تعديل بيانات متعدد الخطوات يتكتب في أمر `DO` واحد. لازم تكون إضافية وما تكسرش الحسابات الحالية، ويتكتب لها ملف رجوع في `supabase/rollbacks` عند الحاجة.
 - أي صفحة جديدة في التطبيق لازم تتضاف في `rewrites` في `vercel.json`.
 - أي ادعاء تسويقي لازم يكون له دليل في `MARKETING_CLAIMS.md`، ويتشال لو الميزة اتغيرت.
 - الاختبارات: `npm test` (بيشمل `tests/sql` على PGlite)، و `npm run test:qa` (كل الشاشات في متصفح على نسخة محلية من الباك اند في `tests/local-backend`، من غير أي بيانات حقيقية)، و `npm run lint`. `npm run test:e2e` بيشتغل على الداتابيز الحقيقية، فما يتشغلش غير بطلب. التفاصيل في `docs/qa/README.md`.
@@ -61,8 +61,8 @@
 - الزائر بياخد بيانات الحساب من `public_business_profile()` بس، بعد تنفيذ `040`.
 - كل الصلاحيات دلوقتي مربوطة بـ`businesses.owner_id` في سياسات الداتابيز و`src/hooks/useBusiness.js`.
 - الزائر (anon) مش بيقرأ `appointments`، وأي عد لازم يبقى RPC بـ`SECURITY DEFINER` زي `count_active_bookings`.
-- `check_capacity_before_insert()` بتمنع الحجز المزدوج على مستوى الفرع والوقت بالظبط، وبتستخدم advisory lock.
-- مواعيد المريض بتتحسب من `branches.schedule_blocks` أو `businesses.working_hours` في `src/utils/dateHelpers.js`.
+- `check_capacity_before_insert()` بتمنع الزائر من حجز وقت متعارض مع مدة الخدمة على مستوى الفرع، وبتستخدم advisory lock لليوم. صاحب الحساب بيضيف أي موعد في أي وقت، حتى لو متعارض.
+- مواعيد المريض بتتحسب من `branches.schedule_blocks` أو `businesses.working_hours` ومدة الخدمة بـ`getServiceSlots` في `src/utils/dateHelpers.js`. بتبدأ كل مدة أقصر خدمة، و`businesses.slot_duration` بقى احتياطي بس للي ملوش خدمة.
 - واتساب بيتبعت يدوي عن طريق `wa.me` من `src/lib/whatsapp.js`.
 - أسعار اشتراك بسهولة لكل دولة في `src/lib/pricing.js`. والصفحات الجاهزة لـGoogle بتفضل بالجنيه، والسعر بيتبدل عند الزائر بعد ما `api/geo.js` يحدد دولته. وعلى Preview أو localhost تقدر تجرب دولة بـ`?country=SA`.
 - عملة العيادة في `businesses.currency`، وده غير سعر اشتراكها في بسهولة. أي مبلغ جوه التطبيق لازم يتعرض بـ`formatMoney`، مش بـ"ج.م" مكتوبة.

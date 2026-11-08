@@ -95,6 +95,53 @@ export function getSlotsWithAvailability(blocks = [], slotDuration, bookedCounts
   })
 }
 
+function toMinutes(time) {
+  const [hours, minutes] = String(time).slice(0, 5).split(':').map(Number)
+  return hours * 60 + minutes
+}
+
+function toTimeString(totalMinutes) {
+  const hours = String(Math.floor(totalMinutes / 60)).padStart(2, '0')
+  const minutes = String(totalMinutes % 60).padStart(2, '0')
+  return `${hours}:${minutes}`
+}
+
+const MIN_SLOT_STEP = 10
+
+// Start times run every length of the shortest service, so any gap left between
+// two bookings still fits at least that service.
+export function getSlotStep(services = [], fallback = 30) {
+  const durations = services.map(s => Number(s.duration_minutes)).filter(d => d > 0)
+  return durations.length ? Math.max(MIN_SLOT_STEP, Math.min(...durations)) : fallback
+}
+
+// The most bookings running at once during a visit, which is what has to stay
+// under capacity. busy is [{ start_time, duration_minutes }]. The database makes
+// the same count in check_capacity_before_insert().
+export function getPeakBookings(time, duration, busy = []) {
+  const start = toMinutes(time)
+  const end = start + duration
+  const ranges = busy.map(b => ({ start: toMinutes(b.start_time), end: toMinutes(b.start_time) + b.duration_minutes }))
+  const points = [start, ...ranges.map(r => r.start).filter(s => s > start && s < end)]
+  return Math.max(...points.map(p => ranges.filter(r => r.start <= p && r.end > p).length))
+}
+
+// Every start time on a day where a service fits inside a working period. Taken
+// times stay in the list, marked unavailable, so patients see them as booked.
+export function getServiceSlots(periods = [], { duration, step, busy = [], capacity = 1, dateStr = null }) {
+  const slots = []
+  for (const period of periods) {
+    const close = toMinutes(period.end)
+    for (let start = toMinutes(period.start); start + duration <= close; start += step) {
+      const time = toTimeString(start)
+      const bookedCount = getPeakBookings(time, duration, busy)
+      const isPast = dateStr ? isSlotInPast(dateStr, time) : false
+      slots.push({ time, bookedCount, capacity, isPast, isAvailable: bookedCount < capacity && !isPast })
+    }
+  }
+  return slots
+}
+
 export function isSlotInPast(dateStr, timeStr) {
   if (!dateStr || !timeStr) return false
   const slot = new Date(`${dateStr}T${timeStr}:00`)

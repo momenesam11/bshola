@@ -387,7 +387,6 @@ function StepBranches({ onNext, onBack, vertical, defaultCountry }) {
 // ── Step 3: Working Hours ──────────────────────────────────────────
 function StepWorkingHours({ onNext, onBack }) {
   const [blocks, setBlocks] = useState({})
-  const [slotDuration, setSlotDuration] = useState(30)
   const [isValid, setIsValid] = useState(true)
   const [error, setError] = useState('')
 
@@ -396,7 +395,7 @@ function StepWorkingHours({ onNext, onBack }) {
       setError('اختار يوم واحد على الأقل تستقبل فيه حجوزات — من غيره صفحة الحجز هتبقى فاضية')
       return
     }
-    onNext({ schedule_blocks: blocks, slot_duration: slotDuration })
+    onNext({ schedule_blocks: blocks })
   }
 
   return (
@@ -407,18 +406,6 @@ function StepWorkingHours({ onNext, onBack }) {
       </div>
       <ScheduleBlockEditor value={blocks} onChange={v => { setBlocks(v); setError('') }} onValidityChange={setIsValid} />
       {error && <p className="text-sm text-red-500">{error}</p>}
-      <Dropdown
-        label="مدة الموعد الواحد"
-        value={slotDuration}
-        onChange={v => setSlotDuration(Number(v))}
-        options={[
-          { value: 15, label: '15 دقيقة' },
-          { value: 30, label: '30 دقيقة' },
-          { value: 45, label: '45 دقيقة' },
-          { value: 60, label: 'ساعة كاملة' },
-          { value: 90, label: 'ساعة ونصف' },
-        ]}
-      />
       <div className="flex gap-3 mt-2 sticky bottom-0 bg-white pt-3 pb-1 -mx-4 px-4 md:static md:bg-transparent md:mx-0 md:px-0 md:pt-0 md:pb-0">
         <Button variant="secondary" onClick={onBack} className="flex-1">السابق</Button>
         <Button onClick={next} disabled={!isValid} className="flex-1">التالي</Button>
@@ -869,7 +856,6 @@ export default function OnboardingFlow() {
           .update({
             name: data.name,
             type: data.type || 'other',
-            slot_duration: data.slot_duration,
             reminder_template: DEFAULT_REMINDER_TEMPLATE,
             ...identityFields,
           })
@@ -883,7 +869,6 @@ export default function OnboardingFlow() {
           owner_id: user.id,
           name: data.name,
           type: data.type || 'other',
-          slot_duration: data.slot_duration,
           reminder_template: DEFAULT_REMINDER_TEMPLATE,
           ...identityFields,
         })

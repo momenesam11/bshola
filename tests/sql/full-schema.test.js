@@ -22,7 +22,7 @@ let slot = 0
 async function appointment(f, extra = {}) {
   const row = {
     business_id: f.biz, branch_id: f.branch, service_id: f.svc, client_name: 'عميل', client_phone: '201000000000',
-    appointment_date: '2099-01-01', appointment_time: `${String(Math.floor(slot / 60) % 24).padStart(2, '0')}:${String(slot++ % 60).padStart(2, '0')}`,
+    appointment_date: '2099-01-01', appointment_time: `${String(Math.floor(slot / 2) % 24).padStart(2, '0')}:${slot++ % 2 ? '30' : '00'}`,
     status: 'confirmed', ...extra,
   }
   const keys = Object.keys(row)
@@ -127,6 +127,71 @@ describe('double booking protection', () => {
     await expect(appointment(f, { appointment_time: '12:00', client_phone: '201000000001' })).rejects.toThrow(/CAPACITY_EXCEEDED/)
     await db.query(`UPDATE appointments SET status='cancelled' WHERE id=$1`, [a.id])
     await expect(appointment(f, { appointment_time: '12:00', client_phone: '201000000001' })).resolves.toBeTruthy()
+  })
+})
+
+describe('booking follows the length of the service', () => {
+  const longService = async (f, minutes = 60) =>
+    (await one(`INSERT INTO services (business_id, name, duration_minutes, price) VALUES ($1,'طويلة',$2,0) RETURNING id`, [f.biz, minutes])).id
+  const asOwner = (f, row) => db.transaction(async (tx) => {
+    await tx.query(`SELECT set_config('request.jwt.claim.sub', $1, true)`, [f.userId])
+    const keys = Object.keys(row)
+    await tx.query(`INSERT INTO appointments (${keys.join(',')}) VALUES (${keys.map((_, i) => `$${i + 1}`).join(',')})`, Object.values(row))
+  })
+
+  it('a visitor cannot book inside a longer visit, and can right after it', async () => {
+    const f = await fixture('len')
+    await appointment(f, { service_id: await longService(f), appointment_time: '10:00' })
+    await expect(appointment(f, { appointment_time: '10:30', client_phone: '201000000001' })).rejects.toThrow(/CAPACITY_EXCEEDED/)
+    await expect(appointment(f, { appointment_time: '11:00', client_phone: '201000000002' })).resolves.toBeTruthy()
+  })
+
+  it('a long visit cannot start before one that is already booked', async () => {
+    const f = await fixture('len2')
+    await appointment(f, { appointment_time: '10:30' })
+    await expect(appointment(f, { service_id: await longService(f), appointment_time: '10:00', client_phone: '201000000001' })).rejects.toThrow(/CAPACITY_EXCEEDED/)
+  })
+
+  it('the owner can add a walk-in over anything', async () => {
+    const f = await fixture('own')
+    await appointment(f, { service_id: await longService(f), appointment_time: '10:00' })
+    await expect(asOwner(f, {
+      business_id: f.biz, branch_id: f.branch, service_id: f.svc, client_name: 'وصل', client_phone: '201000000003',
+      appointment_date: '2099-01-01', appointment_time: '10:15', status: 'confirmed',
+    })).resolves.not.toThrow()
+  })
+
+  it('two chairs take back-to-back visits beside a long one', async () => {
+    const f = await fixture('two')
+    await db.query('UPDATE branches SET capacity = 2 WHERE id = $1', [f.branch])
+    await appointment(f, { appointment_time: '10:00' })
+    await appointment(f, { appointment_time: '10:30', client_phone: '201000000001' })
+    const long = await longService(f)
+    await appointment(f, { service_id: long, appointment_time: '10:00', client_phone: '201000000002' })
+    await expect(appointment(f, { service_id: long, appointment_time: '10:00', client_phone: '201000000003' })).rejects.toThrow(/CAPACITY_EXCEEDED/)
+  })
+
+  it('shows visitors only start times and lengths', async () => {
+    const f = await fixture('rpc')
+    await appointment(f, { service_id: await longService(f, 45), appointment_time: '09:15' })
+    const { rows } = await db.query(`SELECT * FROM public_busy_ranges($1, '2099-01-01')`, [f.biz])
+    expect(rows).toEqual([{ start_time: '09:15', duration_minutes: 45 }])
+  })
+
+  it('moves services still on the default to the clinic old length, and leaves chosen ones', async () => {
+    const f = await fixture('data')
+    const chosen = await longService(f, 45)
+    await db.query('UPDATE businesses SET slot_duration = 60 WHERE id = $1', [f.biz])
+    await db.exec(readFileSync('supabase/migrations/047_service_duration_booking.sql', 'utf8'))
+    expect((await one('SELECT duration_minutes d FROM services WHERE id=$1', [f.svc])).d).toBe(60)
+    expect((await one('SELECT duration_minutes d FROM services WHERE id=$1', [chosen])).d).toBe(45)
+  })
+})
+
+describe('rollback for 047', () => {
+  it('exists and puts changed services back', async () => {
+    const sql = readFileSync('supabase/rollbacks/047_service_duration_booking_down.sql', 'utf8')
+    await db.exec(`BEGIN; ${sql}; ROLLBACK;`)
   })
 })
 

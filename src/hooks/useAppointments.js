@@ -174,24 +174,19 @@ export function useTomorrowsAppointments(businessId) {
   })
 }
 
-// Returns a map of time -> active booking count, so capacity > 1 branches
-// (e.g. salons with multiple chairs) can allow more than one booking per slot.
-export function useBookedSlotCounts(businessId, date, branchId) {
+// What's taken on a day, as start and length, for the public booking page.
+export function useBusyRanges(businessId, date, branchId) {
   return useQuery({
     queryKey: ['booked-slots', businessId, date, branchId],
     queryFn: async () => {
-      if (!businessId || !date) return {}
-      // Visitors can't read appointments, so a direct select always came back
-      // empty and every slot looked free. This returns times and counts only.
-      const { data, error } = await supabase.rpc('public_booked_slots', {
+      // Visitors can't read appointments. This returns times and lengths only.
+      const { data, error } = await supabase.rpc('public_busy_ranges', {
         p_business_id: businessId,
         p_date: date,
         p_branch_id: branchId ?? null,
       })
       if (error) throw error
-      const counts = {}
-      for (const r of data) counts[r.slot_time] = r.booked
-      return counts
+      return data
     },
     enabled: !!businessId && !!date,
     // Realtime respects the same read rules, so visitors get no live events.
@@ -199,10 +194,4 @@ export function useBookedSlotCounts(businessId, date, branchId) {
     refetchInterval: 30_000,
     refetchOnWindowFocus: true,
   })
-}
-
-// Legacy compat — flat list of fully-booked times (capacity === 1 behavior)
-export function useBookedSlots(businessId, date, branchId) {
-  const { data: counts = {}, ...rest } = useBookedSlotCounts(businessId, date, branchId)
-  return { ...rest, data: Object.keys(counts).filter(t => counts[t] > 0) }
 }

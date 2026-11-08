@@ -23,6 +23,21 @@ test('adding an appointment saves it and it appears in the list right away', asy
   expect(Number(row.price)).toBe(200) // prefilled from the service
 })
 
+test('a walk-in can go on top of another appointment, with only a heads-up', async ({ page }) => {
+  const s = await seedBusiness()
+  await seedAppointment(s, { appointment_date: isoDate(0), appointment_time: '09:00' })
+  await login(page, s)
+  await page.goto('/appointments')
+  await page.getByRole('button', { name: '+ موعد جديد' }).click()
+  const tel = phone()
+  await fillNew(page, 'مريض وصل فجأة', tel)
+  await expect(page.getByText('فيه موعد تاني في الوقت ده، وهيتضاف عادي.')).toBeVisible()
+  await page.getByRole('button', { name: 'إضافة الموعد' }).click()
+  await expectToast(page, 'تم الحجز بنجاح')
+  const row = await one<{ status: string }>('SELECT status FROM appointments WHERE client_phone = $1', [tel])
+  expect(row.status).toBe('confirmed')
+})
+
 test('required fields and a bad phone are refused with a message', async ({ page }) => {
   const s = await seedBusiness()
   await login(page, s)
@@ -34,17 +49,6 @@ test('required fields and a bad phone are refused with a message', async ({ page
   await page.getByRole('button', { name: 'إضافة الموعد' }).click()
   await expect(page.getByText(/رقم الواتساب/).filter({ hasText: /غير صحيح|يجب/ })).toBeVisible()
   expect((await one<{ n: number }>('SELECT count(*)::int n FROM appointments WHERE business_id=$1', [s.businessId])).n).toBe(0)
-})
-
-test('a slot already taken is refused with a clear message', async ({ page }) => {
-  const s = await seedBusiness()
-  await seedAppointment(s, { appointment_date: isoDate(0), appointment_time: '09:00' })
-  await login(page, s)
-  await page.goto('/appointments')
-  await page.getByRole('button', { name: '+ موعد جديد' }).click()
-  await fillNew(page, 'سارة', phone())
-  await page.getByRole('button', { name: 'إضافة الموعد' }).click()
-  await expect(page.getByText('هذا الموعد ممتلئ بالفعل', { exact: false }).first()).toBeVisible()
 })
 
 test('a client with 2 active bookings needs a confirmation for a third', async ({ page }) => {

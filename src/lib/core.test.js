@@ -6,7 +6,7 @@ import {
 import {
   formatTime12, getDayKey, generateTimeSlots, getDayPeriods, getSlotsForDay, getSlotsWithAvailability,
   getSlotsWithAvailabilityForDay, getSlotsForBlocks, isSlotInPast, branchHasScheduleBlocks, normalizeWorkingHours,
-  todayISO,
+  todayISO, getSlotStep, getPeakBookings, getServiceSlots,
 } from '../utils/dateHelpers'
 import {
   generateReminderMessage, generateConfirmationMessage, formatTimeArabic, formatDateArabic, openWhatsApp, removeEmoji,
@@ -136,6 +136,32 @@ describe('date helpers', () => {
   it('normalizeWorkingHours gives every day periods', () => {
     expect(normalizeWorkingHours(null)).toEqual({})
     expect(normalizeWorkingHours({ sat: { active: 1 } }).sat).toEqual({ active: true, periods: [{ open: '09:00', close: '18:00' }] })
+  })
+})
+
+describe('slots follow the length of each service', () => {
+  const morning = [{ start: '10:00', end: '12:00' }]
+  const times = (slots) => slots.filter(s => s.isAvailable).map(s => s.time)
+  it('starts every shortest service, but never closer than 10 minutes', () => {
+    expect(getSlotStep([{ duration_minutes: 60 }, { duration_minutes: 15 }])).toBe(15)
+    expect(getSlotStep([{ duration_minutes: 5 }])).toBe(10)
+    expect(getSlotStep([], 45)).toBe(45)
+  })
+  it('a long service must finish before closing', () => {
+    expect(times(getServiceSlots(morning, { duration: 60, step: 30 }))).toEqual(['10:00', '10:30', '11:00'])
+  })
+  it('a one-hour booking closes everything it covers', () => {
+    const busy = [{ start_time: '10:00', duration_minutes: 60 }]
+    expect(times(getServiceSlots(morning, { duration: 15, step: 15, busy }))).toEqual(['11:00', '11:15', '11:30', '11:45'])
+  })
+  it('a long service needs its whole length free', () => {
+    const busy = [{ start_time: '11:00', duration_minutes: 15 }]
+    expect(times(getServiceSlots(morning, { duration: 60, step: 15, busy }))).toEqual(['10:00'])
+  })
+  it('capacity counts visits running at once, not every overlap', () => {
+    const busy = [{ start_time: '10:00', duration_minutes: 30 }, { start_time: '10:30', duration_minutes: 30 }]
+    expect(getPeakBookings('10:00', 60, busy)).toBe(1)
+    expect(getPeakBookings('10:00', 60, [...busy, { start_time: '10:00', duration_minutes: 60 }])).toBe(2)
   })
 })
 

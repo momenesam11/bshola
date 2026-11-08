@@ -22,13 +22,13 @@ import {
 } from 'react-icons/hi2'
 import { FaInstagram, FaFacebook } from 'react-icons/fa'
 import { usePublicBusiness, usePublicServices, usePublicBranches, isBusinessLocked } from '../../hooks/useBusiness'
-import { useBookedSlotCounts, useCreateAppointment } from '../../hooks/useAppointments'
+import { useBusyRanges, useCreateAppointment } from '../../hooks/useAppointments'
 import { bookingClientSchema } from '../../lib/validators'
 import { supabase } from '../../lib/supabase'
 import Seo from '../../components/seo/Seo'
 import { bookingFooterPath } from '../../lib/growth/links'
 import {
-  getDayKey, getSlotsWithAvailabilityForDay, getSlotsWithAvailability, branchHasScheduleBlocks,
+  getDayKey, getDayPeriods, getServiceSlots, getSlotStep, branchHasScheduleBlocks,
   formatTime12, toISODateString,
 } from '../../utils/dateHelpers'
 import Button from '../../components/ui/Button'
@@ -136,7 +136,7 @@ export default function BookingPage() {
   const { data: branches = [] } = usePublicBranches(business?.id)
   const { data: services = [], isLoading: svcLoading } = usePublicServices(business?.id)
   const activeBranch = selectedBranch || branches[0] || null
-  const { data: bookedCounts = {} } = useBookedSlotCounts(business?.id, selectedDate, activeBranch?.id)
+  const { data: busyRanges = [] } = useBusyRanges(business?.id, selectedDate, activeBranch?.id)
   const createAppt = useCreateAppointment()
 
   const hasBranches = branches.length > 1
@@ -211,14 +211,19 @@ export default function BookingPage() {
   // are never dropped from the list, only marked unavailable, so the UI can
   // show them visibly as "محجوز" instead of just disappearing.
   function getSlots() {
-    if (!selectedDate || !business) return []
+    if (!selectedDate || !business || !selectedService) return []
     const dayKey = getDayKey(selectedDate)
-    const capacity = activeBranch?.capacity || 1
-    if (branchHasScheduleBlocks(activeBranch?.schedule_blocks)) {
-      return getSlotsWithAvailability(activeBranch.schedule_blocks?.[dayKey], business.slot_duration || 30, bookedCounts, capacity, selectedDate)
-    }
-    const wh = business.working_hours?.[dayKey]
-    return getSlotsWithAvailabilityForDay(wh, business.slot_duration || 30, bookedCounts, capacity, selectedDate)
+    const hours = business.working_hours?.[dayKey]
+    const periods = branchHasScheduleBlocks(activeBranch?.schedule_blocks)
+      ? activeBranch.schedule_blocks?.[dayKey] || []
+      : hours?.active ? getDayPeriods(hours).map(p => ({ start: p.open, end: p.close })) : []
+    return getServiceSlots(periods, {
+      duration: selectedService.duration_minutes || business.slot_duration || 30,
+      step: getSlotStep(services, business.slot_duration || 30),
+      busy: busyRanges,
+      capacity: activeBranch?.capacity || 1,
+      dateStr: selectedDate,
+    })
   }
 
   async function onSubmitClient({ client_name, client_phone }) {

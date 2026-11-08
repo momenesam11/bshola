@@ -187,7 +187,6 @@ function WorkingHoursSection({ business }) {
   const [scheduleBlocks, setScheduleBlocks] = useState(() =>
     currentBranch && !currentBranch.isAll ? currentBranch.schedule_blocks || {} : {})
   const [isValid, setIsValid] = useState(true)
-  const [slotDuration, setSlotDuration] = useState(business?.slot_duration || 30)
   const [saveStatus, setSaveStatus] = useState(null)
   const [saveMsg, setSaveMsg] = useState('')
 
@@ -200,11 +199,6 @@ function WorkingHoursSection({ business }) {
         .update({ schedule_blocks: scheduleBlocks })
         .eq('id', currentBranch.id)
       if (branchError) throw branchError
-      const { error: bizError } = await supabase
-        .from('businesses')
-        .update({ slot_duration: slotDuration })
-        .eq('id', business.id)
-      if (bizError) throw bizError
       qc.invalidateQueries({ queryKey: ['branches', business.id] })
       qc.invalidateQueries({ queryKey: ['business'] })
       setSaveStatus('ok')
@@ -242,18 +236,6 @@ function WorkingHoursSection({ business }) {
         <Link to="/settings/branches" className="text-accent-600 hover:underline text-xs mr-auto">إدارة الفروع</Link>
       </div>
       <ScheduleBlockEditor value={scheduleBlocks} onChange={setScheduleBlocks} onValidityChange={setIsValid} />
-      <Dropdown
-        label="مدة الموعد الواحد"
-        value={slotDuration}
-        onChange={v => setSlotDuration(Number(v))}
-        options={[
-          { value: 15, label: '15 دقيقة' },
-          { value: 30, label: '30 دقيقة' },
-          { value: 45, label: '45 دقيقة' },
-          { value: 60, label: 'ساعة كاملة' },
-          { value: 90, label: 'ساعة ونصف' },
-        ]}
-      />
       <div className="flex items-center gap-3">
         <Button onClick={handleSave} loading={saveStatus === 'loading'} disabled={!isValid} size="sm">حفظ</Button>
         <SaveFeedback status={saveStatus} msg={saveMsg} />
@@ -687,7 +669,7 @@ export default function Settings() {
 
         {/* ── Services ─────────────────────────────────────────── */}
         {tab === 'services' && (
-          <Section title="الخدمات" subtitle="حدد مدة وسعر كل خدمة">
+          <Section title="الخدمات" subtitle="مدة الخدمة هي الوقت اللي بيتقفل في الجدول لما مريض يحجزها">
             {business && <ServicesSection businessId={business.id} />}
           </Section>
         )}
