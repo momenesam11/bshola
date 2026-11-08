@@ -72,6 +72,24 @@ test('a booked slot shows as booked and cannot be pressed', async ({ page }) => 
   await expect(page.getByRole('button', { name: 'محجوز' }).first()).toBeDisabled()
 })
 
+test('a long service closes the times it covers, and needs its whole length free', async ({ page }) => {
+  const s = await seedBusiness()
+  const long = await one<{ id: string }>(
+    `INSERT INTO services (business_id, name, duration_minutes, price) VALUES ($1, 'خلع', 60, 500) RETURNING id`, [s.businessId])
+  await seedAppointment(s, { service_id: long.id, appointment_date: isoDate(1), appointment_time: '10:00' })
+  await page.goto(`/book/${s.slug}`)
+  await chooseService(page)
+  await chooseTomorrow(page)
+  await expect(page.getByRole('button', { name: '9:30 ص', exact: true })).toBeEnabled()
+  await expect(page.getByRole('button', { name: '10:30 ص', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '11:00 ص', exact: true })).toBeEnabled()
+  await page.reload()
+  await chooseService(page, 'خلع')
+  await chooseTomorrow(page)
+  await expect(page.getByRole('button', { name: '9:30 ص', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '9:00 ص', exact: true })).toBeEnabled()
+})
+
 test('someone taking the slot first sends you back with a message, not a crash', async ({ page }) => {
   const s = await seedBusiness()
   await page.goto(`/book/${s.slug}`)

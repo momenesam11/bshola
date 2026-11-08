@@ -2,7 +2,7 @@ import { useForm, useWatch, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import {
   HiOutlineBell,
@@ -27,7 +27,7 @@ import { getAppointmentSchema } from '../../lib/validators'
 import { useCreateAppointment, useUpdateAppointment, useDeleteAppointment, invalidateAll } from '../../hooks/useAppointments'
 import { useServices, useBusiness } from '../../hooks/useBusiness'
 import { useBranch } from '../../context/branchState'
-import { todayISO, formatTime12 } from '../../utils/dateHelpers'
+import { todayISO, formatTime12, getPeakBookings } from '../../utils/dateHelpers'
 import { MEDICAL_TYPES } from '../../utils/constants'
 import { supabase } from '../../lib/supabase'
 import { openWhatsApp } from '../../lib/whatsapp'
@@ -154,6 +154,24 @@ export default function AppointmentModal({ open, onClose, businessId, initialDat
 
   const watchedStatus = useWatch({ control, name: 'status' })
   const watchedServiceId = useWatch({ control, name: 'service_id' })
+  const watchedDate = useWatch({ control, name: 'appointment_date' })
+  const watchedTime = useWatch({ control, name: 'appointment_time' })
+  const { data: dayBookings = [] } = useQuery({
+    queryKey: ['booked-slots', 'dashboard', businessId, watchedDate, targetBranchId],
+    queryFn: async () => {
+      let q = supabase
+        .from('appointments')
+        .select('id, appointment_time, services(duration_minutes)')
+        .eq('business_id', businessId)
+        .eq('appointment_date', watchedDate)
+        .eq('status', 'confirmed')
+      if (targetBranchId) q = q.eq('branch_id', targetBranchId)
+      const { data, error } = await q
+      if (error) throw error
+      return data
+    },
+    enabled: open && !!businessId && !!watchedDate,
+  })
   const prevOpenRef = useRef(false)
 
   useEffect(() => {
@@ -284,6 +302,14 @@ export default function AppointmentModal({ open, onClose, businessId, initialDat
   }
 
   const selectedService = services.find(s => s.id === watchedServiceId)
+  // Only a heads-up: a patient who walks in still goes on the calendar.
+  const fallbackDuration = business?.slot_duration || 30
+  const otherBookings = dayBookings
+    .filter(a => a.id !== appointment?.id)
+    .map(a => ({ start_time: a.appointment_time, duration_minutes: a.services?.duration_minutes || fallbackDuration }))
+  const capacity = branches.find(b => b.id === targetBranchId)?.capacity || 1
+  const overlapsAnother = watchedStatus === 'confirmed' && !!watchedTime
+    && getPeakBookings(watchedTime, selectedService?.duration_minutes || fallbackDuration, otherBookings) >= capacity
   const showPatientRecord = isEdit && !!appointment?.client_phone
 
   // Pre-fill price from the service default when creating a new appointment
@@ -388,6 +414,12 @@ export default function AppointmentModal({ open, onClose, businessId, initialDat
             <input type="time" {...register('appointment_time')} className={fieldCls(errors.appointment_time)} />
           </div>
         </div>
+
+        {overlapsAnother && (
+          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+            فيه موعد تاني في الوقت ده، وهيتضاف عادي.
+          </p>
+        )}
 
         {/* Status pills */}
         <div>
