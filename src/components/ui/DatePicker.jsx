@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   format,
   parseISO,
@@ -18,6 +19,8 @@ import { HiOutlineCalendarDays, HiOutlineChevronRight, HiOutlineChevronLeft, HiO
 
 const WEEK_START = 6 // Saturday — matches BesholaCalendar's week convention
 const AR_DAYS_SHORT = ['ح', 'ن', 'ث', 'ر', 'خ', 'ج', 'س']
+const PANEL_WIDTH = 280
+const EDGE_GAP = 8
 
 // Lightweight popover date picker — replaces the native <input type="date">,
 // whose calendar UI can't be styled at all and renders inconsistently
@@ -26,15 +29,44 @@ const AR_DAYS_SHORT = ['ح', 'ن', 'ث', 'ر', 'خ', 'ج', 'س']
 export default function DatePicker({ value, onChange, placeholder = 'اختر تاريخ', allowClear = true, className = '' }) {
   const [open, setOpen] = useState(false)
   const [viewMonth, setViewMonth] = useState(() => (value ? parseISO(value) : new Date()))
+  const [position, setPosition] = useState({ top: 0, left: 0 })
   const ref = useRef(null)
+  const panelRef = useRef(null)
 
   useEffect(() => {
     function handleClickOutside(e) {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+      if (ref.current?.contains(e.target) || panelRef.current?.contains(e.target)) return
+      setOpen(false)
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+  // The panel lives on document.body, because cards and modals with hidden or
+  // scrolling overflow cut it off. It follows the field and opens upward when
+  // there's no room below.
+  useLayoutEffect(() => {
+    if (!open) return
+    function place() {
+      if (!ref.current || !panelRef.current) return
+      const field = ref.current.getBoundingClientRect()
+      const height = panelRef.current.offsetHeight
+      const below = field.bottom + 6
+      const above = field.top - 6 - height
+      const maxTop = window.innerHeight - EDGE_GAP - height
+      const top = below <= maxTop ? below : above >= EDGE_GAP ? above : Math.max(EDGE_GAP, maxTop)
+      const maxLeft = window.innerWidth - EDGE_GAP - PANEL_WIDTH
+      const left = Math.max(EDGE_GAP, Math.min(field.right - PANEL_WIDTH, maxLeft))
+      setPosition({ top, left })
+    }
+    place()
+    window.addEventListener('scroll', place, true)
+    window.addEventListener('resize', place)
+    return () => {
+      window.removeEventListener('scroll', place, true)
+      window.removeEventListener('resize', place)
+    }
+  }, [open, viewMonth])
 
   function openPanel() {
     setViewMonth(value ? parseISO(value) : new Date())
@@ -70,8 +102,8 @@ export default function DatePicker({ value, onChange, placeholder = 'اختر ت
         </span>
       </button>
 
-      {open && (
-        <div className="absolute top-full mt-1.5 right-0 bg-white border border-gray-100 rounded-xl shadow-lg p-3 z-50 w-[280px]" dir="rtl">
+      {open && createPortal(
+        <div ref={panelRef} style={{ top: position.top, left: position.left, width: PANEL_WIDTH }} className="fixed bg-white border border-gray-100 rounded-xl shadow-lg p-3 z-[60]" dir="rtl">
           {/* Month header */}
           <div className="flex items-center justify-between mb-2">
             <button type="button" onClick={() => setViewMonth(m => subMonths(m, 1))} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500">
@@ -130,7 +162,8 @@ export default function DatePicker({ value, onChange, placeholder = 'اختر ت
               </button>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )

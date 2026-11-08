@@ -22,20 +22,20 @@ export function generateReminderMessage(appointment, business, branch) {
     return template.replace(/\{(client_name|service|time|date|business_name|branch)\}/g, (_, key) => values[key])
   }
   const branchLine = branch?.name
-    ? `📍 ${branch.name}${branch.address ? ' — ' + branch.address : ''}`
-    : `📍 ${business.name}`
+    ? `المكان: ${branch.name}${branch.address ? ' — ' + branch.address : ''}`
+    : `المكان: ${business.name}`
 
-  return `السلام عليكم يا ${appointment.client_name} 👋
+  return `السلام عليكم يا ${appointment.client_name}
 
 تذكير بموعدك غداً عند ${business.name}:
-📅 ${dateFormatted}
-⏰ الساعة ${timeFormatted}
-💼 الخدمة: ${appointment.services?.name || appointment.service_name || ''}
+التاريخ: ${dateFormatted}
+الساعة: ${timeFormatted}
+الخدمة: ${appointment.services?.name || appointment.service_name || ''}
 ${branchLine}
 
 لو محتاج تغيير أو إلغاء، ردّ على هذه الرسالة.
 
-نتطلع نشوفك! 🗓️
+نتطلع نشوفك!
 — ${business.name}`
 }
 
@@ -43,26 +43,32 @@ export function generateConfirmationMessage(appointment, business, branch) {
   const timeFormatted = formatTimeArabic(appointment.appointment_time)
   const dateFormatted = formatDateArabic(appointment.appointment_date)
   const branchLine = branch?.name
-    ? `📍 ${branch.name}${branch.address ? ' — ' + branch.address : ''}`
-    : `📍 ${business.name}`
+    ? `المكان: ${branch.name}${branch.address ? ' — ' + branch.address : ''}`
+    : `المكان: ${business.name}`
 
-  return `أهلاً يا ${appointment.client_name}! 🎉
+  return `أهلاً يا ${appointment.client_name}
 
 تم تأكيد حجزك عند ${business.name}:
-📅 ${dateFormatted}
-⏰ الساعة ${timeFormatted}
-💼 الخدمة: ${appointment.services?.name || appointment.service_name || ''}
+التاريخ: ${dateFormatted}
+الساعة: ${timeFormatted}
+الخدمة: ${appointment.services?.name || appointment.service_name || ''}
 ${branchLine}
 
-نتطلع نشوفك! 😊
+نتطلع نشوفك!
 — ${business.name}`
+}
+
+// The wa.me redirect turns emoji into broken symbols on the way to WhatsApp, so
+// nothing with one goes out, including text a clinic wrote itself.
+export function removeEmoji(text) {
+  return String(text).replace(/[ \t]*(?:\p{Regional_Indicator}|\p{Extended_Pictographic}|\p{Emoji_Modifier}|️|‍(?=\p{Extended_Pictographic}))+/gu, '')
 }
 
 // Returns false when the browser blocked the new tab, so a caller sending many
 // messages can say which ones never opened instead of reporting them as sent.
 export function openWhatsApp(phone, message) {
   const cleanPhone = String(phone).replace(/[^0-9]/g, '')
-  const tab = window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank')
+  const tab = window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(removeEmoji(message))}`, '_blank')
   return !!tab
 }
 
