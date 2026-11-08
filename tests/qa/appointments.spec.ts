@@ -36,6 +36,7 @@ test('a walk-in can go on top of another appointment, with only a heads-up', asy
   await expectToast(page, 'تم الحجز بنجاح')
   const row = await one<{ status: string }>('SELECT status FROM appointments WHERE client_phone = $1', [tel])
   expect(row.status).toBe('confirmed')
+})
 
 test('calendar cards fit their text, and overlapping visits sit side by side', async ({ page }) => {
   const s = await seedBusiness({ capacity: 60 })
