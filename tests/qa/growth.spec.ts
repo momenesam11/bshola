@@ -137,7 +137,8 @@ test.describe('referral credit', () => {
     await page.getByLabel('البريد الإلكتروني').fill(email)
     await page.getByLabel('كلمة المرور', { exact: true }).fill('TestPass123')
     await page.getByLabel('تأكيد كلمة المرور').fill('TestPass123')
-    await page.getByLabel('رقم واتساب بتاعك').fill('201004445556')
+    await page.getByRole('textbox', { name: /واتساب/ }).fill('+201004445556')
+    await page.getByRole('checkbox').check()
     await page.getByRole('button', { name: 'إنشاء حساب', exact: true }).click()
     await expect(page).toHaveURL(/\/onboarding/)
 
