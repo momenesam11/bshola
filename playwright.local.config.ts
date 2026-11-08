@@ -23,7 +23,12 @@ export default defineConfig({
     locale: 'ar-EG',
     timezoneId: 'Africa/Cairo',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] }, testIgnore: /mobile.spec/ },
+    // Phones: Safari's engine on an iPhone, Chrome on an Android.
+    { name: 'iphone', use: { ...devices['iPhone 13'] }, testMatch: /mobile.spec/ },
+    { name: 'android', use: { ...devices['Pixel 7'] }, testMatch: /mobile.spec/ },
+  ],
   webServer: [
     {
       command: 'node tests/local-backend/server.mjs',
