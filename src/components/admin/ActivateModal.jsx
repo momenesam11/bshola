@@ -33,6 +33,7 @@ export default function ActivateModal({ open, onClose, business }) {
   const [amount, setAmount] = useState('')
   const [method, setMethod] = useState('')
   const [extendDays, setExtendDays] = useState(7)
+  const [now] = useState(() => Date.now())
   const activate = useActivateBusiness()
   const extend = useExtendTrial()
   const { data: payments = [] } = useSubscriptionPayments(open ? business?.id : null)
@@ -83,7 +84,7 @@ export default function ActivateModal({ open, onClose, business }) {
             <Input label="عدد الأيام" type="number" inputMode="numeric" min="1" max={MAX_CUSTOM_DAYS} step="1" placeholder="مثلاً: 35" value={customDays} onChange={e => setCustomDays(e.target.value)} />
           )}
           {days !== LIFETIME_DAYS && days > 0 && validDays && (
-            <p className="text-xs text-gray-500">هيبدأ النهارده وينتهي يوم {arDate(Date.now() + days * 864e5)}</p>
+            <p className="text-xs text-gray-500">هيبدأ النهارده وينتهي يوم {arDate(now + days * 864e5)}</p>
           )}
           <Input label="المبلغ المدفوع (اختياري)" type="number" inputMode="decimal" min="0" step="any" value={amount} onChange={e => setAmount(e.target.value)} />
           <Input label="طريقة الدفع (اختياري)" maxLength={100} placeholder="مثلاً: فودافون كاش، إنستاباي، كاش" value={method} onChange={e => setMethod(e.target.value)} />
