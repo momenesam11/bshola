@@ -29,7 +29,7 @@ export function formatDate(iso) {
   return new Date(iso).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-/** <input type="datetime-local"> value ↔ ISO, in the browser's local time. */
+/** 'yyyy-MM-ddTHH:mm' ↔ ISO, in the browser's local time. */
 export function toLocalInput(iso) {
   if (!iso) return ''
   const d = new Date(iso)

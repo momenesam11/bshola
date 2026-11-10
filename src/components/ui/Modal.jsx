@@ -16,8 +16,7 @@ export default function Modal({ open, onClose, title, children, size = 'md' }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
       <div
-        className={`relative bg-white rounded-2xl shadow-xl w-full ${sizes[size]} flex flex-col`}
-        style={{ maxHeight: 'calc(100vh - 2rem)' }}
+        className={`relative bg-white rounded-2xl shadow-xl w-full ${sizes[size]} flex flex-col fit-screen`}
         onClick={e => e.stopPropagation()}
       >
         {/* Fixed header */}

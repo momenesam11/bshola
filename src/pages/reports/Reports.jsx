@@ -127,7 +127,7 @@ export default function Reports() {
               <DatePicker value={to} onChange={setTo} allowClear={false} className="w-40" />
             </div>
           )}
-          <div className="flex gap-2 w-full sm:w-auto sm:mr-auto">
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto sm:mr-auto">
             <button onClick={() => downloadCSV(filtered)} disabled={filtered.length === 0}
               className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-40 transition-colors min-h-[44px] sm:min-h-0">
               <HiOutlineArrowDownTray className="w-4 h-4" />
@@ -143,7 +143,7 @@ export default function Reports() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6 no-print">
+      <div className="grid grid-cols-1 min-[340px]:grid-cols-2 sm:grid-cols-4 gap-3 mb-6 no-print">
         {isLoading ? (
           <><SkeletonStat /><SkeletonStat /><SkeletonStat /><SkeletonStat /></>
         ) : (

@@ -13,6 +13,7 @@ async function overflow(page) {
     // Name the widest offender, so the report says what to fix.
     let worst = null
     for (const el of document.querySelectorAll('body *')) {
+      if (el.closest('aside')) continue // the closed side menu waits off screen
       const r = el.getBoundingClientRect()
       if (r.right > doc.clientWidth + 1 && (!worst || r.right > worst.right)) {
         worst = { right: Math.round(r.right), tag: el.tagName, cls: String(el.className).slice(0, 80), text: (el.textContent || '').trim().slice(0, 40) }
@@ -35,6 +36,79 @@ test('no page scrolls sideways on a phone', async ({ page }) => {
   }
   await login(page, s)
   for (const path of OWNER_PAGES.concat([`/patients/${appt.client_phone}`])) {
+    await page.goto(path)
+    await page.waitForTimeout(800)
+    const o = await overflow(page)
+    if (o) found[path] = o
+  }
+  expect(found).toEqual({})
+})
+
+// A doctor who raised the phone's font and display size: the screen gets
+// narrower in CSS pixels and every text grows.
+async function bigPhoneFont(page, width = 300) {
+  await page.setViewportSize({ width, height: 560 })
+  await page.addInitScript(() => {
+    document.addEventListener('DOMContentLoaded', () => { document.documentElement.style.fontSize = '170%' })
+  })
+}
+
+async function inView(page, locator) {
+  const box = await locator.boundingBox()
+  const vp = page.viewportSize()!
+  expect(box).not.toBeNull()
+  expect(box.x).toBeGreaterThanOrEqual(0)
+  expect(box.y).toBeGreaterThanOrEqual(0)
+  expect(box.x + box.width).toBeLessThanOrEqual(vp.width)
+  expect(box.y + box.height).toBeLessThanOrEqual(vp.height)
+}
+
+test('with a very large phone font the time picker stays usable', async ({ page }) => {
+  const s = await seedBusiness()
+  await login(page, s)
+  await bigPhoneFont(page)
+  await page.goto('/appointments')
+  await page.getByRole('button', { name: 'موعد جديد' }).first().tap()
+
+  const field = page.getByRole('button', { name: /^وقت الموعد/ })
+  await field.tap()
+  const clock = page.getByRole('dialog')
+  await inView(page, clock.getByRole('button', { name: 'تم', exact: true }))
+  await inView(page, clock.getByRole('button', { name: 'إلغاء' }))
+  await clock.getByRole('group', { name: 'الساعة' }).getByRole('button', { name: '1', exact: true }).tap()
+  await clock.getByRole('group', { name: 'الدقيقة' }).getByRole('button', { name: '05', exact: true }).tap()
+  await clock.getByRole('button', { name: 'دقيقة زيادة' }).tap()
+  await clock.getByRole('button', { name: 'دقيقة زيادة' }).tap()
+  await clock.getByRole('button', { name: 'مساءً' }).tap()
+  await clock.getByRole('button', { name: 'تم', exact: true }).tap()
+  await expect(clock).toBeHidden()
+  await expect(field).toContainText('1:07 م')
+
+  // Cancel leaves the time alone and doesn't close the appointment form behind it.
+  await field.tap()
+  await clock.getByRole('group', { name: 'الساعة' }).getByRole('button', { name: '9', exact: true }).tap()
+  await clock.getByRole('button', { name: 'إلغاء' }).tap()
+  await expect(field).toContainText('1:07 م')
+})
+
+test('the calendar date button opens the app date picker, inside the screen', async ({ page }) => {
+  const s = await seedBusiness()
+  await login(page, s)
+  await bigPhoneFont(page)
+  await page.goto('/dashboard')
+  await page.getByRole('button', { name: 'انتقل لتاريخ' }).tap()
+  const today = page.getByRole('button', { name: 'اليوم', exact: true }).last()
+  await expect(today).toBeVisible()
+  await inView(page, today)
+})
+
+test('no owner page scrolls sideways with a very large phone font', async ({ page }) => {
+  test.setTimeout(120_000)
+  const s = await seedBusiness()
+  await login(page, s)
+  await bigPhoneFont(page)
+  const found = {}
+  for (const path of OWNER_PAGES) {
     await page.goto(path)
     await page.waitForTimeout(800)
     const o = await overflow(page)

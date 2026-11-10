@@ -119,6 +119,17 @@ export async function login(page: Page, s: Pick<Seed, 'ownerId'>) {
   }, JSON.stringify(session))
 }
 
+/** Sets the nth time field on the page through the app's own picker. `time` is 'HH:mm'. */
+export async function pickTime(page: Page, index: number, time: string) {
+  const [h, m] = time.split(':').map(Number)
+  await page.locator('button[aria-haspopup="dialog"]').nth(index).click()
+  const dialog = page.getByRole('dialog')
+  await dialog.getByRole('group', { name: 'الساعة' }).getByRole('button', { name: String(h % 12 || 12), exact: true }).click()
+  await dialog.getByRole('group', { name: 'الدقيقة' }).getByRole('button', { name: String(m).padStart(2, '0'), exact: true }).click()
+  await dialog.getByRole('button', { name: h < 12 ? 'صباحًا' : 'مساءً' }).click()
+  await dialog.getByRole('button', { name: 'تم', exact: true }).click()
+}
+
 export async function apiLog(clear = false) {
   const res = await fetch(`${API}/__test/log${clear ? '?clear=1' : ''}`)
   return res.json() as Promise<Array<{ method: string; path: string; status: number; error?: unknown }>>

@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { HiOutlinePlus, HiOutlineTrash, HiOutlineExclamationTriangle } from 'react-icons/hi2'
 import DayToggle from './DayToggle'
+import TimePicker from './TimePicker'
 
 const DAYS = [
   { key: 'sat', label: 'السبت' },
@@ -66,11 +67,11 @@ export default function ScheduleBlockEditor({ value, onChange, onValidityChange 
             <div className="space-y-2 pt-2">
               {dBlocks.map((b, idx) => (
                 <div key={idx} className="flex items-center gap-2 flex-wrap">
-                  <input type="time" value={b.start} onChange={e => updateBlock(key, idx, 'start', e.target.value)}
-                    className={`border rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent-400 ${overlap || backwards ? 'border-red-300' : 'border-slate-200'}`} dir="ltr" />
+                  <TimePicker value={b.start} onChange={v => updateBlock(key, idx, 'start', v)} label={`بداية ${label}`}
+                    className={`border rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-accent-400 ${overlap || backwards ? 'border-red-300' : 'border-slate-200'}`} />
                   <span className="text-slate-400 text-xs">←</span>
-                  <input type="time" value={b.end} onChange={e => updateBlock(key, idx, 'end', e.target.value)}
-                    className={`border rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent-400 ${overlap || backwards ? 'border-red-300' : 'border-slate-200'}`} dir="ltr" />
+                  <TimePicker value={b.end} onChange={v => updateBlock(key, idx, 'end', v)} label={`نهاية ${label}`}
+                    className={`border rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-accent-400 ${overlap || backwards ? 'border-red-300' : 'border-slate-200'}`} />
                   <button type="button" onClick={() => removeBlock(key, idx)} className="text-red-400 hover:text-red-600 p-1">
                     <HiOutlineTrash className="w-4 h-4" />
                   </button>

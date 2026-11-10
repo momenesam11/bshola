@@ -33,6 +33,12 @@
   .skeleton {
     @apply animate-pulse bg-gray-200 rounded;
   }
+  /* Dialogs never run past the visible screen, even with the browser bar showing.
+     100vh is the fallback for browsers without dvh. */
+  .fit-screen {
+    max-height: calc(100vh - 2rem);
+    max-height: calc(100dvh - 2rem);
+  }
   .scrollbar-none {
     scrollbar-width: none;
   }
