@@ -112,6 +112,7 @@ export async function seedDemoData(db, createUser) {
   }
   await insert(db, 'client_ledger_entries', { business_id: clinic.biz.id, client_phone: planPhone, entry_type: 'charge', amount: 6000, description: 'كورس علاج عصب' })
   await insert(db, 'client_ledger_entries', { business_id: clinic.biz.id, client_phone: planPhone, entry_type: 'payment', amount: 2000, payment_method: 'cash', description: 'دفعة أولى' })
+  await insert(db, 'subscription_payments', { business_id: clinic.biz.id, days: 35, amount: 350, method: 'فودافون كاش' })
   // A trigger already made the client row from their bookings.
   await db.query(`INSERT INTO clients (business_id, phone, name, notes) VALUES ($1,$2,$3,$4)
     ON CONFLICT (business_id, phone) DO UPDATE SET notes = EXCLUDED.notes`,

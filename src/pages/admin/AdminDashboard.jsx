@@ -292,7 +292,7 @@ function Dashboard() {
         </div>
       </div>
 
-      <ActivateModal open={!!activateTarget} onClose={() => setActivateTarget(null)} business={activateTarget} />
+      <ActivateModal key={activateTarget?.id} open={!!activateTarget} onClose={() => setActivateTarget(null)} business={activateTarget} />
 
       <ConfirmDialog
         open={!!deactivateTarget}
