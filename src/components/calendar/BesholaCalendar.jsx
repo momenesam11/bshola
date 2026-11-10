@@ -590,7 +590,6 @@ function MonthView({ businessId, branchId, date, onApptClick, onDayClick, showBr
 export default function BesholaCalendar({ businessId, onApptClick, onNewAppt }) {
   const [view, setView] = useState('day')
   const [date, setDate] = useState(new Date())
-  const dateInputRef = useRef(null)
   const branchCtx = useBranch()
   const isMultiBranch = !!branchCtx?.isMultiBranch
   const branches = branchCtx?.branches || []
@@ -723,26 +722,21 @@ export default function BesholaCalendar({ businessId, onApptClick, onNewAppt }) 
         <div className="flex items-center justify-between mb-2 px-0.5">
           <button onClick={goToday} className="text-sm font-bold text-slate-900">{heading}</button>
           <div className="flex items-center gap-2">
-            <div className="relative">
-              <input
-                ref={dateInputRef}
-                type="date"
-                value={format(date, 'yyyy-MM-dd')}
-                onChange={e => {
-                  if (!e.target.value) return
-                  const d = new Date(e.target.value + 'T00:00:00')
-                  setDate(d)
-                }}
-                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-              />
-              <button
-                onClick={() => dateInputRef.current?.showPicker?.()}
-                className="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors text-slate-500 flex items-center justify-center"
-                aria-label="انتقل لتاريخ"
-              >
-                <HiOutlineCalendarDays className="w-[18px] h-[18px]" />
-              </button>
-            </div>
+            <DatePicker
+              value={format(date, 'yyyy-MM-dd')}
+              onChange={v => setDate(new Date(v + 'T00:00:00'))}
+              allowClear={false}
+              trigger={toggle => (
+                <button
+                  type="button"
+                  onClick={toggle}
+                  className="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors text-slate-500 flex items-center justify-center"
+                  aria-label="انتقل لتاريخ"
+                >
+                  <HiOutlineCalendarDays className="w-[18px] h-[18px]" />
+                </button>
+              )}
+            />
             <button
               onClick={() => onNewAppt?.({ date: format(date, 'yyyy-MM-dd'), time: null })}
               className="w-9 h-9 flex-shrink-0 bg-accent-500 active:bg-accent-600 text-white rounded-xl transition-colors flex items-center justify-center"

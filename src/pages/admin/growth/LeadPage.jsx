@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import toast from 'react-hot-toast'
+import { format } from 'date-fns'
 import { HiOutlineArrowRight, HiOutlineArrowTopRightOnSquare, HiOutlineBeaker, HiOutlineChartBar, HiOutlineChatBubbleLeftRight, HiOutlineCheckBadge, HiOutlineCheckCircle, HiOutlineClipboardDocumentCheck, HiOutlineClock, HiOutlineEnvelope, HiOutlineExclamationTriangle, HiOutlineEye, HiOutlineIdentification, HiOutlineInformationCircle, HiOutlineLightBulb, HiOutlineMagnifyingGlass, HiOutlinePencilSquare, HiOutlinePhone, HiOutlineSparkles, HiOutlineTrash, HiOutlineXMark } from 'react-icons/hi2'
 import { FaWhatsapp } from 'react-icons/fa'
 import { STAGES, OUTCOMES, ACTIVITY_KINDS, SIGNAL_LABELS, OUTCOME_BY_KEY } from '../../../lib/growth/constants'
@@ -14,6 +15,8 @@ import { detectReviewSignals, inferPlaceSignals } from '../../../lib/growth/revi
 import { normalizePhone } from '../../../lib/growth/phone'
 import { usePlacesSearch, useLeadActivities, useLogActivity, useSaveLead, useDeleteLead, useQualifyLead, useQualifyStatus } from '../../../hooks/useGrowth'
 import ConfirmDialog from '../../../components/ui/ConfirmDialog'
+import DatePicker from '../../../components/ui/DatePicker'
+import TimePicker from '../../../components/ui/TimePicker'
 import LeadForm from './LeadForm'
 import { Btn, Card, Field, OutcomeIcon, QualityBadge, ScoreBadge, ScoreBar, StageBadge } from './ui'
 import { categoryLabel, copyText, formatDateTime, fromLocalInput, inputClass, sourceLabel } from './format'
@@ -351,6 +354,7 @@ function OutcomeLogger({ lead, angle }) {
   const [kind, setKind] = useState('call')
   const [outcome, setOutcome] = useState(null)
   const [next, setNext] = useState('')
+  const [nextDate = '', nextTime = ''] = next.split('T')
   const [note, setNote] = useState('')
   const [stage, setStage] = useState('')
   const log = useLogActivity()
@@ -397,7 +401,11 @@ function OutcomeLogger({ lead, angle }) {
       </div>
       <div className="grid sm:grid-cols-2 gap-3 mt-3">
         <Field label={needsDate ? 'أكلّمه إمتى؟ *' : 'المتابعة الجاية (اختياري)'} hint="لو سبتها فاضية النظام بيحدد ميعاد مناسب حسب النتيجة">
-          <input type="datetime-local" className={inputClass} value={next} onChange={(e) => setNext(e.target.value)} />
+          <div className="flex flex-wrap gap-2">
+            <DatePicker className="flex-1 min-w-[9rem]" value={nextDate} onChange={(d) => setNext(d ? `${d}T${nextTime || '10:00'}` : '')} />
+            <TimePicker className="border border-rule rounded-lg px-3 py-2 flex-1 focus:outline-none focus:ring-2 focus:ring-accent-400" label="ميعاد المتابعة"
+              value={nextTime} onChange={(t) => setNext(`${nextDate || format(new Date(), 'yyyy-MM-dd')}T${t}`)} />
+          </div>
         </Field>
         <Field label="نقل لمرحلة (اختياري)">
           <select className={inputClass} value={stage} onChange={(e) => setStage(e.target.value)}>

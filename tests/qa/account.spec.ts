@@ -1,4 +1,4 @@
-import { test, expect, seedBusiness, seedAppointment, login, one, sql, API, ADMIN_PASSWORD, phone, isoDate, expectToast } from './helpers'
+import { test, expect, seedBusiness, seedAppointment, login, one, sql, API, ADMIN_PASSWORD, phone, isoDate, expectToast, pickTime } from './helpers'
 import type { Page } from '@playwright/test'
 
 const PASSWORD = 'TestPass123'
@@ -281,8 +281,8 @@ test.describe('settings', () => {
   test('hours: saved schedule changes the slots on the booking page', async ({ page }) => {
     const s = await seedBusiness()
     await open(page, s, 'ساعات العمل')
-    await page.locator('input[type="time"]').first().fill('14:00')
-    await page.locator('input[type="time"]').nth(1).fill('15:00')
+    await pickTime(page, 0, '14:00')
+    await pickTime(page, 1, '15:00')
     await page.getByRole('button', { name: 'حفظ', exact: true }).click()
     await expect(page.getByText('تم الحفظ')).toBeVisible()
     const row = await one<{ b: { sat: { start: string; end: string }[] } }>('SELECT schedule_blocks b FROM branches WHERE id=$1', [s.branchId])
@@ -292,8 +292,8 @@ test.describe('settings', () => {
   test('hours: overlapping periods and an end before the start are refused', async ({ page }) => {
     const s = await seedBusiness()
     await open(page, s, 'ساعات العمل')
-    await page.locator('input[type="time"]').first().fill('20:00')
-    await page.locator('input[type="time"]').nth(1).fill('09:00')
+    await pickTime(page, 0, '20:00')
+    await pickTime(page, 1, '09:00')
     await expect(page.getByText(/وقت النهاية لازم/).first()).toBeVisible()
     await expect(page.getByRole('button', { name: 'حفظ', exact: true })).toBeDisabled()
   })
@@ -301,12 +301,12 @@ test.describe('settings', () => {
   test('hours: leaving the tab and coming back shows the saved hours', async ({ page }) => {
     const s = await seedBusiness()
     await open(page, s, 'ساعات العمل')
-    await page.locator('input[type="time"]').first().fill('14:00')
+    await pickTime(page, 0, '14:00')
     await page.getByRole('button', { name: 'حفظ', exact: true }).click()
     await expect(page.getByText('تم الحفظ')).toBeVisible()
     await page.getByRole('button', { name: 'الخدمات' }).click()
     await page.getByRole('button', { name: 'ساعات العمل' }).click()
-    await expect(page.locator('input[type="time"]').first()).toHaveValue('14:00')
+    await expect(page.locator('button[aria-haspopup="dialog"]').first()).toContainText('2:00 م')
   })
 
   test('reminders: time and template save', async ({ page }) => {

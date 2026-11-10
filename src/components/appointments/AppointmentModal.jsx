@@ -23,6 +23,7 @@ import ConfirmDialog from '../ui/ConfirmDialog'
 import Button from '../ui/Button'
 import Dropdown from '../ui/Dropdown'
 import DatePicker from '../ui/DatePicker'
+import TimePicker from '../ui/TimePicker'
 import { getAppointmentSchema } from '../../lib/validators'
 import { useCreateAppointment, useUpdateAppointment, useDeleteAppointment, invalidateAll } from '../../hooks/useAppointments'
 import { useServices, useBusiness } from '../../hooks/useBusiness'
@@ -393,7 +394,7 @@ export default function AppointmentModal({ open, onClose, businessId, initialDat
           )}
         </div>
 
-        {/* Date + Time — stacked on mobile, native pickers need full width to not collide */}
+        {/* Date + Time — stacked on mobile */}
         <div className="flex flex-col sm:flex-row gap-2">
           <div className="w-full sm:w-1/2">
             <label className="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1">
@@ -411,7 +412,13 @@ export default function AppointmentModal({ open, onClose, businessId, initialDat
             <label className="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1">
               <HiOutlineClock className="w-3.5 h-3.5" /> الوقت
             </label>
-            <input type="time" {...register('appointment_time')} className={fieldCls(errors.appointment_time)} />
+            <Controller
+              control={control}
+              name="appointment_time"
+              render={({ field }) => (
+                <TimePicker value={field.value} onChange={field.onChange} label="وقت الموعد" className={fieldCls(errors.appointment_time)} />
+              )}
+            />
           </div>
         </div>
 
