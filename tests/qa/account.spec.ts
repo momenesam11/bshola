@@ -562,6 +562,55 @@ test.describe('admin', () => {
     await expect(page.getByText('لوحة تحكم بسهولة')).toBeVisible()
   }
 
+  test('activate for a custom number of days with an optional payment', async ({ page }) => {
+    const s = await seedBusiness()
+    await adminIn(page)
+    await page.getByPlaceholder('بحث بالاسم أو رقم التليفون...').fill(s.name)
+    const row = page.locator('tr', { hasText: s.name })
+
+    await row.getByTitle('تفعيل').click()
+    await page.getByLabel('مدة الاشتراك').selectOption('custom')
+    await page.getByLabel('عدد الأيام', { exact: true }).first().fill('35')
+    await page.getByLabel('المبلغ المدفوع (اختياري)').fill('500')
+    await page.getByLabel('طريقة الدفع (اختياري)').fill('فودافون كاش')
+    await page.getByRole('button', { name: 'تفعيل', exact: true }).last().click()
+    await expectToast(page, `تم تفعيل ${s.name}`)
+
+    const b = await one<{ d: number }>("SELECT round(extract(epoch FROM trial_ends_at - activated_at) / 86400)::int d FROM businesses WHERE id=$1", [s.businessId])
+    expect(b.d).toBe(35)
+    const p = await one<{ days: number; amount: string; method: string }>('SELECT days, amount, method FROM subscription_payments WHERE business_id=$1', [s.businessId])
+    expect(p).toMatchObject({ days: 35, method: 'فودافون كاش' })
+    expect(Number(p.amount)).toBe(500)
+
+    // It shows on the clinic afterwards, and the fields start empty.
+    await row.getByTitle('تفعيل').click()
+    await expect(page.getByText('المدفوعات السابقة')).toBeVisible()
+    await expect(page.getByText(/35 يوم · 500 .* · فودافون كاش/)).toBeVisible()
+    await expect(page.getByLabel('المبلغ المدفوع (اختياري)')).toHaveValue('')
+
+    // Payment details are optional: no row without them.
+    await page.getByRole('button', { name: 'تفعيل', exact: true }).last().click()
+    await expectToast(page, `تم تفعيل ${s.name}`)
+    expect((await one<{ n: number }>('SELECT count(*)::int n FROM subscription_payments WHERE business_id=$1', [s.businessId])).n).toBe(1)
+  })
+
+  test('an impossible custom period is refused by the form and by the server', async ({ page }) => {
+    const s = await seedBusiness()
+    await adminIn(page)
+    await page.getByPlaceholder('بحث بالاسم أو رقم التليفون...').fill(s.name)
+    await page.locator('tr', { hasText: s.name }).getByTitle('تفعيل').click()
+    await page.getByLabel('مدة الاشتراك').selectOption('custom')
+    await page.getByRole('button', { name: 'تفعيل', exact: true }).last().click()
+    await expectToast(page, /اكتب عدد أيام/)
+    expect((await one<{ t: string }>('SELECT subscription_type t FROM businesses WHERE id=$1', [s.businessId])).t).not.toBe('paid')
+
+    const token = await page.evaluate(() => sessionStorage.getItem('beshola_admin_token'))
+    for (const days of [0, -5, 1.5, 40000, '35']) {
+      const res = await fetch(`${API}/functions/v1/admin`, { method: 'POST', body: JSON.stringify({ action: 'activate', id: s.businessId, token, days }) })
+      expect(res.status).toBe(400)
+    }
+  })
+
   test('wrong password refused; activate, extend, deactivate; search; logout', async ({ page }) => {
     const s = await seedBusiness()
     await page.goto('/admin')

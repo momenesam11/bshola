@@ -56,8 +56,20 @@ export function useAdminBusinesses() {
 export function useActivateBusiness() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, days }) => callAdmin('activate', { id, days }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-businesses'] }),
+    mutationFn: ({ id, days, amount, method }) => callAdmin('activate', { id, days, amount, method }),
+    onSuccess: (_data, { id }) => {
+      qc.invalidateQueries({ queryKey: ['admin-businesses'] })
+      qc.invalidateQueries({ queryKey: ['admin-payments', id] })
+    },
+  })
+}
+
+export function useSubscriptionPayments(id) {
+  return useQuery({
+    queryKey: ['admin-payments', id],
+    queryFn: async () => (await callAdmin('payments', { id })).payments,
+    enabled: !!id && hasAdminToken(),
+    retry: false,
   })
 }
 

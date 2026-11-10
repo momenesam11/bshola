@@ -49,6 +49,9 @@ async function requireSession(supabase: ReturnType<typeof createClient>, token: 
   return !!data
 }
 
+// 100 years, the "for life" plan (src/lib/lifetime.js).
+const MAX_ACTIVATION_DAYS = 36500
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
@@ -100,21 +103,28 @@ serve(async (req) => {
   if (action === 'list') {
     const { data, error } = await supabase
       .from('businesses')
-      .select('id, name, type, phone, owner_phone, created_at, trial_started_at, trial_ends_at, is_active, subscription_type, activated_at')
+      .select('id, name, type, phone, owner_phone, created_at, trial_started_at, trial_ends_at, is_active, subscription_type, activated_at, currency')
       .order('created_at', { ascending: false })
     if (error) return json({ success: false, error: error.message }, 500)
     return json({ success: true, businesses: data ?? [] })
   }
 
   if (action === 'activate') {
-    const { id, days } = body as { id?: string; days?: number }
-    if (!id || !days) return json({ success: false, error: 'بيانات ناقصة' }, 400)
+    const { id, days, amount, method } = body as { id?: string; days?: number; amount?: number | null; method?: string }
+    if (!id || !Number.isInteger(days) || days! < 1 || days! > MAX_ACTIVATION_DAYS) {
+      return json({ success: false, error: 'مدة الاشتراك مش صحيحة' }, 400)
+    }
+    const paid = amount === null || amount === undefined ? null : Number(amount)
+    if (paid !== null && (!Number.isFinite(paid) || paid < 0)) {
+      return json({ success: false, error: 'المبلغ مش صحيح' }, 400)
+    }
+    const paidBy = typeof method === 'string' ? method.trim().slice(0, 100) || null : null
     const { data, error } = await supabase
       .from('businesses')
       .update({
         subscription_type: 'paid',
         is_active: true,
-        trial_ends_at: new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString(),
+        trial_ends_at: new Date(Date.now() + days! * 24 * 60 * 60 * 1000).toISOString(),
         activated_at: new Date().toISOString(),
         activated_by: 'owner',
       })
@@ -122,7 +132,29 @@ serve(async (req) => {
       .select()
       .single()
     if (error) return json({ success: false, error: error.message }, 500)
-    return json({ success: true, business: data })
+    // The subscription is already on at this point, so a failure here is
+    // reported on its own instead of failing the activation.
+    let paymentSaved = true
+    if (paid !== null || paidBy) {
+      const { error: paymentError } = await supabase.from('subscription_payments').insert({
+        business_id: id, days, amount: paid, method: paidBy, currency: data.currency ?? 'EGP',
+      })
+      paymentSaved = !paymentError
+    }
+    return json({ success: true, business: data, paymentSaved })
+  }
+
+  if (action === 'payments') {
+    const { id } = body as { id?: string }
+    if (!id) return json({ success: false, error: 'بيانات ناقصة' }, 400)
+    const { data, error } = await supabase
+      .from('subscription_payments')
+      .select('id, days, amount, currency, method, created_at')
+      .eq('business_id', id)
+      .order('created_at', { ascending: false })
+      .limit(20)
+    if (error) return json({ success: false, error: error.message }, 500)
+    return json({ success: true, payments: data ?? [] })
   }
 
   if (action === 'extend') {
