@@ -53,6 +53,17 @@ export function useAdminBusinesses() {
   })
 }
 
+// Usage counts per clinic (migration 050). Kept apart from the list so /admin
+// still works if the migration or the function update hasn't gone out yet.
+export function useAdminActivity() {
+  return useQuery({
+    queryKey: ['admin-activity'],
+    queryFn: async () => (await callAdmin('activity')).activity,
+    enabled: hasAdminToken(),
+    retry: false,
+  })
+}
+
 export function useActivateBusiness() {
   const qc = useQueryClient()
   return useMutation({
@@ -175,6 +186,29 @@ export function getAdminStats(businesses) {
   stats.conversionRate = decided > 0 ? Math.round((stats.paid / decided) * 100) : 0
   stats.expiringSoon.sort((a, b) => a.daysLeft - b.daysLeft)
   return stats
+}
+
+// A clinic that can book (trial or paid) but hasn't added an appointment in
+// SLEEPING_AFTER_DAYS. Brand-new accounts get the same grace before they count,
+// so a signup from yesterday isn't flagged. Longest silence first.
+export const SLEEPING_AFTER_DAYS = 7
+const DAY_MS = 24 * 60 * 60 * 1000
+
+export function getSleepingClinics(businesses, activity, now = new Date()) {
+  const byId = new Map((activity || []).map(a => [a.business_id, a]))
+  const cutoff = now.getTime() - SLEEPING_AFTER_DAYS * DAY_MS
+  const list = []
+  for (const b of businesses) {
+    const status = getBusinessStatus(b)
+    if (status !== 'trial' && status !== 'paid') continue
+    if (!b.created_at || new Date(b.created_at).getTime() > cutoff) continue
+    const last = byId.get(b.id)?.last_booking_at
+    const lastMs = last ? new Date(last).getTime() : null
+    if (lastMs !== null && lastMs > cutoff) continue
+    const since = lastMs ?? new Date(b.created_at).getTime()
+    list.push({ ...b, status, lastBookingAt: last || null, quietDays: Math.floor((now.getTime() - since) / DAY_MS) })
+  }
+  return list.sort((a, b) => b.quietDays - a.quietDays)
 }
 
 export function searchBusinesses(businesses, query) {

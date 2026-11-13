@@ -109,6 +109,14 @@ serve(async (req) => {
     return json({ success: true, businesses: data ?? [] })
   }
 
+  // Per-clinic usage counts for the "sleeping clinics" alert (migration 050).
+  // Counts and dates only, never patient rows.
+  if (action === 'activity') {
+    const { data, error } = await supabase.rpc('admin_business_activity')
+    if (error) return json({ success: false, error: error.message }, 500)
+    return json({ success: true, activity: data ?? [] })
+  }
+
   if (action === 'activate') {
     const { id, days, amount, method } = body as { id?: string; days?: number; amount?: number | null; method?: string }
     if (!id || !Number.isInteger(days) || days! < 1 || days! > MAX_ACTIVATION_DAYS) {
