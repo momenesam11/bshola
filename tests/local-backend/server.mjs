@@ -135,6 +135,14 @@ export async function startBackend({ port = 0, log = () => {} } = {}) {
       if (!u) throw authError(403, 'user_not_found', 'user not found')
       return { status: 200, body: publicUser(u) }
     }
+    if (path.startsWith('/admin/users/') && method === 'DELETE') {
+      if (identify(headers).role !== 'service_role') throw authError(403, 'not_admin', 'User not allowed')
+      const id = path.slice('/admin/users/'.length)
+      const gone = await db.query('DELETE FROM auth.users WHERE id = $1 RETURNING id', [id])
+      if (!gone.rows.length) throw authError(404, 'user_not_found', 'User not found')
+      passwords.delete(id)
+      return { status: 200, body: {} }
+    }
     if (path === '/logout') return { status: 204 }
     if (path === '/recover' && method === 'POST') {
       sentEmails.push({ kind: 'recover', to: body.email, redirect: url.searchParams.get('redirect_to') })

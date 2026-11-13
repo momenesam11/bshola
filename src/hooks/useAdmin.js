@@ -89,6 +89,33 @@ export function useDeactivateBusiness() {
   })
 }
 
+export function useDeletionRequests() {
+  return useQuery({
+    queryKey: ['admin-deletion-requests'],
+    queryFn: async () => (await callAdmin('deletion_requests')).requests,
+    enabled: hasAdminToken(),
+  })
+}
+
+export function useRejectDeletion() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id) => callAdmin('reject_deletion', { id }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-deletion-requests'] }),
+  })
+}
+
+export function useDeleteBusiness() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, confirmName }) => callAdmin('delete_business', { id, confirmName }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-businesses'] })
+      qc.invalidateQueries({ queryKey: ['admin-deletion-requests'] })
+    },
+  })
+}
+
 // Expiry is checked before "paid": a paid period that ran out locks the
 // account like an expired trial, and the admin list has to show that.
 export function getBusinessStatus(business) {

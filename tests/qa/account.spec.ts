@@ -356,22 +356,25 @@ test.describe('settings', () => {
     expect(res.status).toBe(200)
   })
 
-  test('"request account deletion" sends the request and deletes nothing by itself', async ({ page }) => {
+  test('"request account deletion" records a request, deletes nothing, and can be withdrawn', async ({ page }) => {
     const s = await seedBusiness()
-    await page.addInitScript(() => {
-      (window as unknown as { __urls: string[] }).__urls = []
-      window.open = (u?: string | URL) => { (window as unknown as { __urls: string[] }).__urls.push(String(u)); return window }
-    })
     await open(page, s, 'الحساب والأمان')
     await page.getByRole('button', { name: 'طلب حذف الحساب' }).click()
+    await page.getByLabel('سبب الحذف (اختياري)').fill('قفلت العيادة')
     await page.getByRole('button', { name: 'ابعت الطلب' }).click()
-    const url = await page.evaluate(() => (window as unknown as { __urls: string[] }).__urls[0])
-    expect(url).toContain('wa.me/201558389501')
-    const text = decodeURIComponent(url.split('text=')[1])
-    expect(text).toContain(s.name)
-    expect(text).toContain(s.businessId)
+    await expectToast(page, 'طلبك وصلنا')
+    await expect(page.getByText(/طلبت حذف الحساب يوم/)).toBeVisible()
+    const r = await one<{ status: string; reason: string }>('SELECT status, reason FROM account_deletion_requests WHERE business_id=$1', [s.businessId])
+    expect(r).toEqual({ status: 'pending', reason: 'قفلت العيادة' })
     expect((await one<{ n: number }>('SELECT count(*)::int n FROM businesses WHERE id=$1', [s.businessId])).n).toBe(1)
-    await expect(page).toHaveURL(/\/settings/)
+
+    // Still there after a reload, and withdrawing it closes the request.
+    await page.reload()
+    await page.getByRole('button', { name: 'الحساب والأمان' }).click()
+    await page.getByRole('button', { name: 'إلغاء طلب الحذف' }).click()
+    await expectToast(page, 'اتلغى طلب الحذف')
+    await expect(page.getByRole('button', { name: 'طلب حذف الحساب' })).toBeVisible()
+    expect((await one<{ s: string }>('SELECT status s FROM account_deletion_requests WHERE business_id=$1', [s.businessId])).s).toBe('cancelled')
   })
 })
 
@@ -660,6 +663,71 @@ test.describe('admin', () => {
     }
     await expect(page.getByText(/محاولات|دقيقة/).first()).toBeVisible()
     await sql('DELETE FROM admin_login_attempts')
+  })
+
+  test('a deletion request shows up and approving it deletes the account, its files and its login', async ({ page }) => {
+    const s = await seedBusiness()
+    await sql(`INSERT INTO account_deletion_requests (business_id, business_name, reason) VALUES ($1, $2, 'مش محتاجه')`, [s.businessId, s.name])
+    await sql(`INSERT INTO storage.buckets (id, name, public) VALUES ('business-assets','business-assets', true) ON CONFLICT DO NOTHING`)
+    await sql(`INSERT INTO storage.objects (bucket_id, name) VALUES ('business-assets', $1)`, [`${s.businessId}/logo.png`])
+    const owner = await one<{ id: string }>('SELECT owner_id id FROM businesses WHERE id=$1', [s.businessId])
+    await adminIn(page)
+
+    const req = page.getByTestId('deletion-request').filter({ hasText: s.name })
+    await expect(req).toContainText('مش محتاجه')
+    await req.getByRole('button', { name: 'حذف نهائي' }).click()
+    const go = page.getByRole('button', { name: 'احذف نهائياً' })
+    await expect(go).toBeDisabled()
+    await page.getByPlaceholder(s.name).fill('اسم غلط')
+    await expect(go).toBeDisabled()
+    await page.getByPlaceholder(s.name).fill(s.name)
+    await go.click()
+    await expectToast(page, `اتحذف ${s.name} نهائياً`)
+    await expect(req).toHaveCount(0)
+    await page.getByPlaceholder('بحث بالاسم أو رقم التليفون...').fill(s.name)
+    await expect(page.locator('tr', { hasText: s.name })).toHaveCount(0)
+
+    expect((await one<{ n: number }>('SELECT count(*)::int n FROM businesses WHERE id=$1', [s.businessId])).n).toBe(0)
+    expect((await one<{ n: number }>('SELECT count(*)::int n FROM appointments WHERE business_id=$1', [s.businessId])).n).toBe(0)
+    expect((await one<{ n: number }>('SELECT count(*)::int n FROM storage.objects WHERE name LIKE $1', [`${s.businessId}/%`])).n).toBe(0)
+    expect((await one<{ n: number }>('SELECT count(*)::int n FROM auth.users WHERE id=$1', [owner.id])).n).toBe(0)
+    expect((await one<{ s: string }>('SELECT status s FROM account_deletion_requests WHERE business_name=$1', [s.name])).s).toBe('deleted')
+  })
+
+  test('the admin can delete any account from the table, or reject a request', async ({ page }) => {
+    const kept = await seedBusiness()
+    const gone = await seedBusiness()
+    await sql('INSERT INTO account_deletion_requests (business_id, business_name) VALUES ($1, $2)', [kept.businessId, kept.name])
+    await adminIn(page)
+
+    const req = page.getByTestId('deletion-request').filter({ hasText: kept.name })
+    await req.getByRole('button', { name: 'رفض' }).click()
+    await page.getByRole('button', { name: 'رفض الطلب' }).click()
+    await expectToast(page, `اترفض طلب حذف ${kept.name}`)
+    await expect(req).toHaveCount(0)
+    expect((await one<{ s: string }>('SELECT status s FROM account_deletion_requests WHERE business_id=$1', [kept.businessId])).s).toBe('rejected')
+    expect((await one<{ n: number }>('SELECT count(*)::int n FROM businesses WHERE id=$1', [kept.businessId])).n).toBe(1)
+
+    await page.getByPlaceholder('بحث بالاسم أو رقم التليفون...').fill(gone.name)
+    await page.locator('tr', { hasText: gone.name }).getByTitle('حذف الحساب').click()
+    await page.getByPlaceholder(gone.name).fill(gone.name)
+    await page.getByRole('button', { name: 'احذف نهائياً' }).click()
+    await expectToast(page, `اتحذف ${gone.name} نهائياً`)
+    expect((await one<{ n: number }>('SELECT count(*)::int n FROM businesses WHERE id=$1', [gone.businessId])).n).toBe(0)
+    expect((await one<{ r: string }>('SELECT requested_by r FROM account_deletion_requests WHERE business_name=$1', [gone.name])).r).toBe('admin')
+  })
+
+  test('the server refuses a deletion without a session or with the wrong name', async ({ page }) => {
+    const s = await seedBusiness()
+    const noSession = await fetch(`${API}/functions/v1/admin`, { method: 'POST', body: JSON.stringify({ action: 'delete_business', id: s.businessId, confirmName: s.name, token: 'fake' }) })
+    expect(noSession.status).toBe(401)
+    await adminIn(page)
+    const token = await page.evaluate(() => sessionStorage.getItem('beshola_admin_token'))
+    for (const confirmName of ['اسم تاني', '', undefined]) {
+      const res = await fetch(`${API}/functions/v1/admin`, { method: 'POST', body: JSON.stringify({ action: 'delete_business', id: s.businessId, confirmName, token }) })
+      expect(res.status).toBe(400)
+    }
+    expect((await one<{ n: number }>('SELECT count(*)::int n FROM businesses WHERE id=$1', [s.businessId])).n).toBe(1)
   })
 
   test('admin actions without a session are refused by the server', async () => {
