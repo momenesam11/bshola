@@ -36,6 +36,7 @@ import Input from '../../components/ui/Input'
 import { Skeleton } from '../../components/ui/Skeleton'
 import PhoneInput from '../../components/ui/PhoneInput'
 import { displayPhone, formatMoney, telHref } from '../../lib/countries'
+import { WEEK_ORDER, describeOpenDays, describeYears } from '../../lib/openDays'
 
 const STEP_SERVICE = 0
 const STEP_DATETIME = 1
@@ -67,18 +68,26 @@ function BackButton({ onClick }) {
   )
 }
 
-function SocialRow({ business }) {
+const PILL = 'inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-white border border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700 shadow-sm transition-colors'
+
+// Phone and social links share one row so the header stays short.
+function ContactRow({ business }) {
   const links = [
     business.google_reviews_url && { href: business.google_reviews_url, Icon: HiOutlineGlobeAlt, label: 'Google' },
     business.instagram_url && { href: business.instagram_url, Icon: FaInstagram, label: 'Instagram' },
     business.facebook_url && { href: business.facebook_url, Icon: FaFacebook, label: 'Facebook' },
   ].filter(Boolean)
-  if (!links.length) return null
+  if (!links.length && !business.public_phone) return null
   return (
-    <div className="flex items-center justify-center gap-2 mt-3">
+    <div className="flex items-center justify-center gap-2 mt-2 flex-wrap">
+      {business.public_phone && (
+        <a href={telHref(business.public_phone)} className={PILL}>
+          <HiOutlinePhone className="w-3.5 h-3.5" />
+          <span dir="ltr">{displayPhone(business.public_phone)}</span>
+        </a>
+      )}
       {links.map(({ href, Icon, label }) => (
-        <a key={label} href={href} target="_blank" rel="noopener noreferrer"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs border border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700 transition-colors">
+        <a key={label} href={href} target="_blank" rel="noopener noreferrer" className={PILL}>
           <Icon className="w-3.5 h-3.5" /> {label}
         </a>
       ))}
@@ -86,17 +95,12 @@ function SocialRow({ business }) {
   )
 }
 
-const DAY_LABELS_AR = { sat: 'السبت', sun: 'الأحد', mon: 'الاثنين', tue: 'الثلاثاء', wed: 'الأربعاء', thu: 'الخميس', fri: 'الجمعة' }
-const DAYS_ORDER_KEYS = ['sat', 'sun', 'mon', 'tue', 'wed', 'thu', 'fri']
-
 function getOpenDaysSummary(branch, workingHours) {
   const useBlocks = branchHasScheduleBlocks(branch?.schedule_blocks)
-  const openDays = DAYS_ORDER_KEYS.filter(key =>
+  const openDays = WEEK_ORDER.filter(key =>
     useBlocks ? (branch.schedule_blocks?.[key]?.length || 0) > 0 : !!workingHours?.[key]?.active
   )
-  if (!openDays.length) return null
-  if (openDays.length === 7) return 'مفتوح كل أيام الأسبوع'
-  return `مفتوح ${openDays.map(d => DAY_LABELS_AR[d]).join('، ')}`
+  return describeOpenDays(openDays)
 }
 
 function generateAvailableDates(branch, workingHours, count = 30) {
@@ -422,8 +426,9 @@ export default function BookingPage() {
           <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/0 to-black/0" />
         </div>
 
-        {/* Floating info card */}
-        <div className="absolute -bottom-12 inset-x-0 px-4">
+        {/* Info card: overlaps the cover but stays in the flow, so a long
+            name or specialty grows the card instead of being cut off. */}
+        <div className="relative -mt-14 px-4">
           <div className="max-w-sm mx-auto bg-white/95 backdrop-blur-sm rounded-3xl shadow-xl border border-white p-4 flex items-start gap-3.5">
             <div className="w-16 h-16 rounded-2xl border-2 border-white shadow-md overflow-hidden flex items-center justify-center flex-shrink-0"
               style={{ backgroundColor: brandColor }}>
@@ -431,22 +436,24 @@ export default function BookingPage() {
                 ? <img src={business.logo_url} alt={business.name} className="w-full h-full object-cover" />
                 : <span className="text-white text-2xl font-bold leading-none">{business.name.charAt(0)}</span>}
             </div>
-            <div className="flex-1 min-w-0 pt-1">
-              <h1 className="text-lg font-bold text-gray-900 leading-snug line-clamp-2">{business.name}</h1>
-              {business.specialty && <p className="text-sm text-gray-500 truncate">{business.specialty}</p>}
+            <div className="flex-1 min-w-0 pt-0.5">
+              <h1 className="text-[17px] font-bold text-gray-900 leading-snug break-words">{business.name}</h1>
+              {business.specialty && (
+                <p className="text-[13px] text-gray-500 leading-relaxed mt-1 break-words">{business.specialty}</p>
+              )}
+              {describeYears(business.years_experience) && (
+                <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-bold mt-2"
+                  style={{ backgroundColor: `${brandColor}15`, color: brandColor }}>
+                  <HiOutlineStar className="w-3 h-3" /> {describeYears(business.years_experience)}
+                </span>
+              )}
             </div>
-            {business.years_experience > 0 && (
-              <span className="hidden sm:inline-flex items-center gap-1 text-[12.5px] px-2.5 py-1 rounded-full font-bold flex-shrink-0 mt-1"
-                style={{ backgroundColor: `${brandColor}15`, color: brandColor }}>
-                <HiOutlineStar className="w-3 h-3" /> {business.years_experience} سنة
-              </span>
-            )}
           </div>
         </div>
       </div>
 
       {/* Business info */}
-      <div className="max-w-sm mx-auto px-4 pt-20 pb-2 text-center">
+      <div className="max-w-sm mx-auto px-4 pt-4 pb-2 text-center">
         {business.bio && (
           <p className="text-sm text-gray-500 mt-1 leading-relaxed">{business.bio}</p>
         )}
@@ -455,22 +462,15 @@ export default function BookingPage() {
             {business.welcome_message}
           </p>
         )}
-        <div className="flex items-center justify-center gap-3 mt-3 flex-wrap">
-          {getOpenDaysSummary(activeBranch, business.working_hours) && (
+        {getOpenDaysSummary(activeBranch, business.working_hours) && (
+          <div className="flex justify-center mt-3">
             <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-white border border-gray-100 text-gray-500 shadow-sm">
               <HiOutlineClock className="w-3.5 h-3.5" />
               {getOpenDaysSummary(activeBranch, business.working_hours)}
             </span>
-          )}
-          {business.public_phone && (
-            <a href={telHref(business.public_phone)}
-              className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-white border border-gray-100 text-gray-500 hover:text-gray-700 shadow-sm transition-colors" dir="ltr">
-              <HiOutlinePhone className="w-3.5 h-3.5" />
-              <span dir="ltr">{displayPhone(business.public_phone)}</span>
-            </a>
-          )}
-        </div>
-        <SocialRow business={business} />
+          </div>
+        )}
+        <ContactRow business={business} />
       </div>
 
       {/* Booking card */}
