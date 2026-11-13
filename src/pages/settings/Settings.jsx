@@ -698,7 +698,7 @@ export default function Settings() {
             <Textarea label="نص رسالة التذكير" value={reminderTemplate} onChange={e => setReminderTemplate(e.target.value)} rows={4} />
             <p className="text-xs text-slate-400">
               المتغيرات:{' '}
-              {['{client_name}', '{service}', '{date}', '{time}', '{business_name}', '{branch}'].map(v => (
+              {['{client_name}', '{service}', '{date}', '{time}', '{business_name}', '{branch}', '{manage_link}'].map(v => (
                 <code key={v} className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 mx-0.5 text-[12.5px]">{v}</code>
               ))}
             </p>

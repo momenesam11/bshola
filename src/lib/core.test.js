@@ -9,7 +9,7 @@ import {
   todayISO, getSlotStep, getPeakBookings, getServiceSlots,
 } from '../utils/dateHelpers'
 import {
-  generateReminderMessage, generateConfirmationMessage, formatTimeArabic, formatDateArabic, openWhatsApp, removeEmoji,
+  generateReminderMessage, generateConfirmationMessage, formatTimeArabic, formatDateArabic, openWhatsApp, removeEmoji, manageLink,
 } from './whatsapp'
 import { csvCell } from './csv'
 import { getBusinessStatus, getAdminStats, getSleepingClinics, SLEEPING_AFTER_DAYS, searchBusinesses } from '../hooks/useAdmin'
@@ -188,6 +188,16 @@ describe('whatsapp messages', () => {
     expect(generateReminderMessage(appt, biz, null)).not.toMatch(emoji)
     expect(generateConfirmationMessage(appt, biz, null)).not.toMatch(emoji)
     expect(removeEmoji('أهلاً 👋 يا 🗓️ سامي')).toBe('أهلاً يا سامي')
+  })
+  it('confirmation and reminder carry the patient\'s own link once they have a token (054)', () => {
+    const withToken = { ...appt, manage_token: 'abc-123' }
+    for (const m of [generateConfirmationMessage(withToken, biz, null), generateReminderMessage(withToken, biz, null)]) {
+      expect(m).toContain('مواعيدك عندنا، ولو حابب تلغي:\nhttps://www.beshola.co/my/abc-123')
+    }
+    expect(generateConfirmationMessage(appt, biz, null)).not.toContain('/my/')
+    expect(manageLink(appt)).toBe('')
+    const custom = generateReminderMessage(withToken, { ...biz, reminder_template: 'مواعيدك: {manage_link}' }, null)
+    expect(custom).toBe('مواعيدك: https://www.beshola.co/my/abc-123')
   })
   it('formatting survives missing values', () => {
     expect(formatTimeArabic(null)).toBe('')

@@ -1,5 +1,23 @@
 // WhatsApp Manual Sender — opens WhatsApp Web/App with pre-filled message, no API needed
 
+import { SITE_URL } from './seo'
+
+// The patient's own page (/my/<token>, migration 054): their appointments at
+// this clinic, and cancelling within its policy. It only ever reaches them in
+// a message the clinic sends to their number.
+export function manageLink(appointment) {
+  if (!appointment?.manage_token) return ''
+  // On a local copy or a Vercel preview the link should open that copy.
+  const host = typeof window !== 'undefined' ? window.location.host : ''
+  const base = /^(localhost|127\.0\.0\.1)(:\d+)?$|\.vercel\.app$/.test(host) ? window.location.origin : SITE_URL
+  return `${base}/my/${appointment.manage_token}`
+}
+
+function manageLine(appointment) {
+  const link = manageLink(appointment)
+  return link ? `\n\nمواعيدك عندنا، ولو حابب تلغي:\n${link}` : ''
+}
+
 // The text onboarding saves for everyone. A clinic still on it gets the fuller
 // built-in reminder (it has the date and branch); a clinic that wrote its own
 // text in Settings gets exactly that.
@@ -18,8 +36,9 @@ export function generateReminderMessage(appointment, business, branch) {
       date: dateFormatted,
       business_name: business.name || '',
       branch: branch?.name || business.name || '',
+      manage_link: manageLink(appointment),
     }
-    return template.replace(/\{(client_name|service|time|date|business_name|branch)\}/g, (_, key) => values[key])
+    return template.replace(/\{(client_name|service|time|date|business_name|branch|manage_link)\}/g, (_, key) => values[key])
   }
   const branchLine = branch?.name
     ? `المكان: ${branch.name}${branch.address ? ' — ' + branch.address : ''}`
@@ -31,7 +50,7 @@ export function generateReminderMessage(appointment, business, branch) {
 التاريخ: ${dateFormatted}
 الساعة: ${timeFormatted}
 الخدمة: ${appointment.services?.name || appointment.service_name || ''}
-${branchLine}
+${branchLine}${manageLine(appointment)}
 
 لو محتاج تغيير أو إلغاء، ردّ على هذه الرسالة.
 
@@ -52,7 +71,7 @@ export function generateConfirmationMessage(appointment, business, branch) {
 التاريخ: ${dateFormatted}
 الساعة: ${timeFormatted}
 الخدمة: ${appointment.services?.name || appointment.service_name || ''}
-${branchLine}
+${branchLine}${manageLine(appointment)}
 
 نتطلع نشوفك!
 — ${business.name}`
