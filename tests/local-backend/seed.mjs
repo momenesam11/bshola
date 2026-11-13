@@ -76,6 +76,58 @@ async function appointments(db, { biz, branches, services }, count, startHour) {
   return rows
 }
 
+// Cairo date and HH:MM a number of hours from now, on the :15 or :45 mark of that hour.
+function cairoIn(hours) {
+  const d = new Date(Date.now() + hours * 3600000)
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Africa/Cairo', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }).formatToParts(d).map(p => [p.type, p.value]))
+  return { date: `${parts.year}-${parts.month}-${parts.day}`, time: `${parts.hour}:${Number(parts.minute) < 30 ? '15' : '45'}` }
+}
+
+// Data for the retention features (migrations 050-054): today's queue, Google
+// review requests, the patient page /my/<token> and the waitlist hand-off.
+// Times end in :15 or :45, so they never meet the :00 / :30 slots above.
+async function seedRetentionDemo(db, clinic) {
+  const { biz, branches, services } = clinic
+  const visit = (row) => insert(db, 'appointments', {
+    business_id: biz.id, branch_id: branches[0].id, service_id: services[0].id, price: services[0].price, ...row,
+  })
+
+  // "الدور النهارده": six more patients today on the main branch.
+  const queueNames = ['علا مراد', 'شادي فاروق', 'مها توفيق', 'باسم رشدي', 'لبنى عزت', 'وائل حمدي']
+  for (const [i, time] of ['10:15', '10:45', '11:15', '11:45', '12:15', '12:45'].entries()) {
+    await visit({ client_name: queueNames[i], client_phone: phoneOf(20 + i), appointment_date: day(0), appointment_time: time, status: 'confirmed' })
+  }
+
+  // "اطلب تقييم على جوجل": two finished visits never asked, and one whose number
+  // was already asked after an older visit, so it must not show again.
+  await visit({ client_name: 'رانيا صبحي', client_phone: phoneOf(26), appointment_date: day(-1), appointment_time: '13:15', status: 'completed', payment_status: 'paid', reminder_sent: true })
+  await visit({ client_name: 'هشام عبده', client_phone: phoneOf(27), appointment_date: day(-2), appointment_time: '13:45', status: 'completed', payment_status: 'paid', reminder_sent: true })
+  await visit({ client_name: 'نهى سليم', client_phone: phoneOf(28), appointment_date: day(-30), appointment_time: '16:15', status: 'completed', payment_status: 'paid', review_requested_at: new Date(Date.now() - 29 * 86400000).toISOString() })
+  await visit({ client_name: 'نهى سليم', client_phone: phoneOf(28), appointment_date: day(-1), appointment_time: '16:45', status: 'completed', payment_status: 'paid' })
+
+  // /my/<token>: one patient with two visits more than 24 hours away (can cancel),
+  // one within 24 hours (can't, under the clinic's 24-hour policy) and two past.
+  const patient = { client_name: 'سلمى فؤاد', client_phone: phoneOf(30) }
+  // The first time 1 to 23 hours ahead within the second branch's hours (12-20).
+  const soon = Array.from({ length: 45 }, (_, i) => cairoIn(1 + i / 2)).find(s => s.time >= '12:15' && s.time <= '19:45')
+  await visit({ ...patient, appointment_date: day(3), appointment_time: '11:15', status: 'confirmed' })
+  await visit({ ...patient, appointment_date: day(5), appointment_time: '12:15', status: 'confirmed', service_id: services[1].id, price: services[1].price })
+  await visit({ ...patient, branch_id: branches[1].id, appointment_date: soon.date, appointment_time: soon.time, status: 'confirmed' })
+  await visit({ ...patient, appointment_date: day(-10), appointment_time: '10:45', status: 'completed', payment_status: 'paid', reminder_sent: true })
+  await visit({ ...patient, appointment_date: day(-25), appointment_time: '11:45', status: 'no_show', reminder_sent: true })
+  // Someone waiting for the day of her first visit: cancelling it from /my
+  // tells the clinic there's a waitlist for that day.
+  await visit({ client_name: 'منتظر يوم سلمى', client_phone: phoneOf(31), appointment_date: day(3), appointment_time: '00:00', status: 'waitlist' })
+
+  // The database made the token; print it so the page can be opened straight away.
+  const { rows } = await db.query(
+    `SELECT manage_token FROM appointments WHERE business_id = $1 AND client_phone = $2 AND appointment_date = $3`,
+    [biz.id, patient.client_phone, day(3)])
+  console.log(`demo patient page: /my/${rows[0].manage_token}`)
+}
+
 export async function seedDemoData(db, createUser) {
   const clinic = await business(db, createUser, {
     email: 'clinic@local.test',
@@ -84,6 +136,9 @@ export async function seedDemoData(db, createUser) {
       specialty: 'تجميل وزراعة أسنان', bio: 'بيانات وهمية للتجربة المحلية فقط.', years_experience: 12,
       public_phone: '01000000999', reminder_template: null, brand_color: '#0F9D82',
       google_review_url: 'https://g.page/r/demo-clinic-review',
+      cancellation_policy: 'الإلغاء مجاني قبل 24 ساعة',
+      // Paid and ending in 5 days: the /admin summary adds the renewal line.
+      subscription_type: 'paid', trial_ends_at: new Date(Date.now() + 5 * 86400000).toISOString(),
     },
     branches: [
       { name: 'فرع المعادي', is_main: true, capacity: 1, address: 'شارع 9، المعادي', schedule_blocks: week([{ start: '10:00', end: '14:00' }, { start: '16:00', end: '22:00' }], ['fri']) },
@@ -123,6 +178,7 @@ export async function seedDemoData(db, createUser) {
     business_id: clinic.biz.id, branch_id: clinic.branches[0].id, service_id: clinic.services[0].id,
     client_name: 'منتظر الدور', client_phone: phoneOf(40), appointment_date: day(6), appointment_time: '00:00', status: 'waitlist',
   })
+  await seedRetentionDemo(db, clinic)
 
   const salon = await business(db, createUser, {
     email: 'salon@local.test',
