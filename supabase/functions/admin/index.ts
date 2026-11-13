@@ -117,6 +117,15 @@ serve(async (req) => {
     return json({ success: true, activity: data ?? [] })
   }
 
+  // One clinic's last 30 days in numbers, for the renewal summary (migration 052).
+  if (action === 'summary') {
+    const { id } = body as { id?: string }
+    if (!id) return json({ success: false, error: 'بيانات ناقصة' }, 400)
+    const { data, error } = await supabase.rpc('admin_business_summary', { p_business_id: id, p_days: 30 })
+    if (error) return json({ success: false, error: error.message }, 500)
+    return json({ success: true, summary: (data ?? [])[0] ?? null })
+  }
+
   if (action === 'activate') {
     const { id, days, amount, method } = body as { id?: string; days?: number; amount?: number | null; method?: string }
     if (!id || !Number.isInteger(days) || days! < 1 || days! > MAX_ACTIVATION_DAYS) {

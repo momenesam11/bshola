@@ -61,3 +61,32 @@ test.describe('admin sleeping clinics', () => {
     expect(row).toMatchObject({ bookings_30d: 1, visits_30d: 1, reminders_30d: 0 })
   })
 })
+
+test.describe('admin renewal summary', () => {
+  test('shows the last 30 days and a ready WhatsApp message to the doctor', async ({ page }) => {
+    const s = await seedBusiness({ fields: {
+      created_at: daysAgo(60), owner_phone: '201000000432', subscription_type: 'paid',
+      trial_ends_at: new Date(Date.now() + 3 * 86400000 + 3600000).toISOString(),
+    } })
+    await seedAppointment(s, { appointment_date: isoDate(-4), status: 'completed', reminder_sent: true })
+    await seedAppointment(s, { appointment_date: isoDate(-3), appointment_time: '11:00', status: 'completed', booking_ip_hash: 'x' })
+    await seedAppointment(s, { appointment_date: isoDate(-2), appointment_time: '12:00', status: 'no_show' })
+
+    await adminIn(page)
+    await page.getByPlaceholder('بحث بالاسم أو رقم التليفون...').fill(s.name)
+    await page.locator('tr', { hasText: s.name }).getByTitle('ملخص آخر 30 يوم').click()
+    const modal = page.getByTestId('summary-modal')
+    const message = modal.getByTestId('summary-message')
+    await expect(message).toContainText('3 موعد، منهم 1 حجزوا بنفسهم من لينك الحجز')
+    await expect(message).toContainText('2 حضروا و1 ما جوش، يعني نسبة الحضور 67%')
+    await expect(message).toContainText('اشتراكك بتخلص بعد 4 أيام')
+    const href = await modal.getByRole('link', { name: 'ابعت الملخص للدكتور' }).getAttribute('href')
+    expect(href).toContain('https://wa.me/201000000432?text=')
+    expect(decodeURIComponent(href!.split('text=')[1])).toContain('نسبة الحضور 67%')
+  })
+
+  test('the summary action needs an admin session', async () => {
+    const s = await seedBusiness()
+    expect((await call({ action: 'summary', id: s.businessId, token: 'fake' })).status).toBe(401)
+  })
+})

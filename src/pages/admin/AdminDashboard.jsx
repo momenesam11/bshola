@@ -9,6 +9,7 @@ import {
   HiOutlineArrowRightOnRectangle,
   HiOutlineTrash,
   HiOutlineCog6Tooth,
+  HiOutlineChartBar,
 } from 'react-icons/hi2'
 import { FaWhatsapp } from 'react-icons/fa'
 import { BUSINESS_TYPES } from '../../utils/constants'
@@ -33,6 +34,7 @@ import { LIFETIME_CAP, isLifetime } from '../../lib/lifetime'
 import PasswordGate from '../../components/admin/AdminPasswordGate'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
 import DeleteBusinessModal from '../../components/admin/DeleteBusinessModal'
+import SummaryModal from '../../components/admin/SummaryModal'
 
 const STATUS_CONFIG = {
   trial: { label: 'تجربة نشطة 🟢', color: 'text-accent-600 bg-accent-50' },
@@ -239,6 +241,7 @@ function Dashboard() {
   const [tab, setTab] = useState('all')
   const [activateTarget, setActivateTarget] = useState(null)
   const [deactivateTarget, setDeactivateTarget] = useState(null)
+  const [summaryTarget, setSummaryTarget] = useState(null)
 
   const stats = useMemo(() => getAdminStats(businesses), [businesses])
   const { data: activity, isError: activityFailed } = useAdminActivity()
@@ -341,15 +344,24 @@ function Dashboard() {
                       {b.daysLeft <= 0 ? 'انتهت اليوم' : `باقي ${b.daysLeft} يوم`}
                     </span>
                   </div>
-                  <a
-                    href={whatsappLink(b)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 bg-green-50 text-green-700 hover:bg-green-100 rounded-lg text-xs font-medium transition-colors"
-                  >
-                    <FaWhatsapp className="w-3.5 h-3.5" />
-                    تواصل
-                  </a>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <button
+                      onClick={() => setSummaryTarget(b)}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg text-xs font-medium transition-colors"
+                    >
+                      <HiOutlineChartBar className="w-3.5 h-3.5" />
+                      ملخص
+                    </button>
+                    <a
+                      href={whatsappLink(b)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 bg-green-50 text-green-700 hover:bg-green-100 rounded-lg text-xs font-medium transition-colors"
+                    >
+                      <FaWhatsapp className="w-3.5 h-3.5" />
+                      تواصل
+                    </a>
+                  </div>
                 </div>
               ))}
             </div>
@@ -439,6 +451,13 @@ function Dashboard() {
                         >
                           <HiOutlineCheck className="w-4 h-4" />
                         </button>
+                        <button
+                          onClick={() => setSummaryTarget(b)}
+                          title="ملخص آخر 30 يوم"
+                          className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors"
+                        >
+                          <HiOutlineChartBar className="w-4 h-4" />
+                        </button>
                         <Link
                           to={`/admin/setup/${b.id}`}
                           title="تجهيز الحساب"
@@ -480,6 +499,8 @@ function Dashboard() {
       </div>
 
       <DeleteBusinessModal key={deleteTarget?.id ?? 'none'} business={deleteTarget} onClose={() => setDeleteTarget(null)} />
+
+      {summaryTarget && <SummaryModal key={summaryTarget.id} business={summaryTarget} onClose={() => setSummaryTarget(null)} />}
 
       <ActivateModal key={activateTarget?.id} open={!!activateTarget} onClose={() => setActivateTarget(null)} business={activateTarget} />
 

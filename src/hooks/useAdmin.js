@@ -64,6 +64,17 @@ export function useAdminActivity() {
   })
 }
 
+// One clinic's last 30 days in numbers (migration 052), loaded when its
+// summary is opened.
+export function useBusinessSummary(id) {
+  return useQuery({
+    queryKey: ['admin-summary', id],
+    queryFn: async () => (await callAdmin('summary', { id })).summary,
+    enabled: !!id && hasAdminToken(),
+    retry: false,
+  })
+}
+
 export function useActivateBusiness() {
   const qc = useQueryClient()
   return useMutation({
