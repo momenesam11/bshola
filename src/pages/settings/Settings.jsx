@@ -44,6 +44,7 @@ import { BRAND_COLORS, CANCELLATION_OPTIONS, cleanSlug } from '../../lib/busines
 import PhoneInput from '../../components/ui/PhoneInput'
 import { COUNTRIES, CURRENCIES, DEFAULT_COUNTRY, defaultCurrencyOf } from '../../lib/countries'
 import { isReviewUrl } from '../../lib/reviews'
+import { MAX_NOTIFY_AHEAD, notifyAheadOf } from '../../lib/queue'
 function ServiceRow({ service, onUpdateField, onDelete }) {
   return (
     <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100 flex-wrap">
@@ -543,6 +544,20 @@ export default function Settings() {
     const asked = searchParams.get('tab')
     return SETTINGS_TABS.some(t => t.id === asked) ? asked : 'business'
   })
+  const queueAhead = edits.queueAhead ?? String(notifyAheadOf(business))
+  const setQueueAhead = (v) => setEdits(e => ({ ...e, queueAhead: v }))
+
+  async function saveQueueAhead() {
+    const n = Number(queueAhead)
+    if (!Number.isInteger(n) || n < 1 || n > MAX_NOTIFY_AHEAD) {
+      setStatus('queue', 'error', `اكتب رقم من 1 لـ ${MAX_NOTIFY_AHEAD}`)
+      return
+    }
+    setStatus('queue', 'loading')
+    try { await updateBusiness.mutateAsync({ id: business.id, queue_notify_ahead: n }); setStatus('queue', 'ok') }
+    catch (e) { setStatus('queue', 'error', e?.message || String(e)) }
+  }
+
   const reviewUrl = edits.reviewUrl ?? (business?.google_review_url || '')
   const setReviewUrl = (v) => setEdits(e => ({ ...e, reviewUrl: v }))
 
@@ -690,6 +705,18 @@ export default function Settings() {
             <div className="flex items-center gap-3">
               <Button onClick={saveReminder} loading={saveStatus.reminder === 'loading'} size="sm">حفظ</Button>
               <SaveFeedback status={saveStatus.reminder} msg={saveStatus.reminderMsg} />
+            </div>
+          </Section>
+        )}
+
+        {tab === 'reminders' && (
+          <Section title="الدور النهارده" subtitle="لما المرضى يقربوا من دورهم، الرئيسية هتقولك تبعت لمين رسالة «باقي قدامك كام»">
+            <Input label="ابعت للمريض لما يبقى قدامه" type="number" min={1} max={MAX_NOTIFY_AHEAD} value={queueAhead}
+              onChange={e => setQueueAhead(e.target.value)} dir="ltr" />
+            <p className="text-xs text-slate-500">الترتيب بميعاد الحجز. الرسالة بتتبعت من واتساب العيادة، والمريض مش محتاج يفتح أي لينك.</p>
+            <div className="flex items-center gap-3">
+              <Button onClick={saveQueueAhead} loading={saveStatus.queue === 'loading'} size="sm">حفظ العدد</Button>
+              <SaveFeedback status={saveStatus.queue} msg={saveStatus.queueMsg} />
             </div>
           </Section>
         )}
