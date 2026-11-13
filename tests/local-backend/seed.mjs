@@ -83,6 +83,7 @@ export async function seedDemoData(db, createUser) {
       name: 'عيادة د. سارة لطب الأسنان (تجريبية)', type: 'clinic', booking_slug: 'demo-clinic',
       specialty: 'تجميل وزراعة أسنان', bio: 'بيانات وهمية للتجربة المحلية فقط.', years_experience: 12,
       public_phone: '01000000999', reminder_template: null, brand_color: '#0F9D82',
+      google_review_url: 'https://g.page/r/demo-clinic-review',
     },
     branches: [
       { name: 'فرع المعادي', is_main: true, capacity: 1, address: 'شارع 9، المعادي', schedule_blocks: week([{ start: '10:00', end: '14:00' }, { start: '16:00', end: '22:00' }], ['fri']) },
