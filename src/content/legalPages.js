@@ -10,6 +10,8 @@
  *   · no payment integration anywhere (see MARKETING_CLAIMS.md §8)
  *   · account deletion requested from Settings → منطقة الخطر and carried out from
  *     /admin (src/components/settings/DeleteAccountSection.jsx, migration 049)
+ *   · settings filled in by the Beshola team at the clinic's request, settings only
+ *     (src/pages/admin/AdminClinicSetup.jsx, setup_* in supabase/functions/admin)
  *   · Vercel Analytics mounted app-wide (src/App.jsx)
  *   · Google Analytics on marketing/sign-up routes only (src/lib/tracking.js)
  *   · "call me" form / calculator leads stored for sales contact (migration 032,
@@ -56,7 +58,7 @@ export const PRIVACY_PAGE = {
       bullets: [
         'كل البيانات على Supabase (قاعدة بيانات PostgreSQL سحابية) والاتصال بيها مشفّر. ومش بنضمن تخزينها داخل دولتك، وده موضح في الشروط والأحكام.',
         'فيه سياسات صلاحيات على مستوى الصفوف (Row Level Security)، معناها إن كل حساب يقدر يقرأ ويكتب بياناته هو بس. مفيش حساب يشوف بيانات حساب تاني، والمرفقات محمية بنفس الطريقة.',
-        'فريق بسهولة عنده صلاحية إدارية بتخصه في تفعيل الاشتراكات وإيقافها فقط. مش بنتصفح بيانات مرضاك ولا بنبيعها ولا بنشاركها مع أي طرف تالت لأي غرض تسويقي.',
+        'فريق بسهولة عنده صلاحية إدارية في تفعيل الاشتراكات وإيقافها، وحذف حسابك لما تطلب، وتجهيز إعدادات حسابك (بيانات صفحة الحجز والخدمات والأسعار ومواعيد الشغل) لو طلبت مننا ده. الصلاحية دي ما بتوريناش مواعيدك ولا بيانات مرضاك، ومش بنتصفح بيانات مرضاك ولا بنبيعها ولا بنشاركها مع أي طرف تالت لأي غرض تسويقي.',
       ],
     },
     {

@@ -15,6 +15,7 @@ import { captureRefFromUrl } from './lib/refCapture'
 // Web Vitals (a ranking signal) actually measures.
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'))
 const GrowthPage = lazy(() => import('./pages/admin/growth/GrowthPage'))
+const AdminClinicSetup = lazy(() => import('./pages/admin/AdminClinicSetup'))
 const DemoPage = lazy(() => import('./pages/marketing/DemoPage'))
 const PartnerDashboardPage = lazy(() => import('./pages/marketing/PartnerDashboardPage'))
 const PartnerLoginPage = lazy(() => import('./pages/marketing/PartnerLoginPage'))
@@ -183,6 +184,7 @@ export function AppRoutes() {
           <Route path="/book/:businessSlug" element={<BookingPage />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/growth" element={<GrowthPage />} />
+          <Route path="/admin/setup/:id" element={<AdminClinicSetup />} />
           <Route path="/demo/:code" element={<DemoPage />} />
           <Route path="/partner" element={<PartnerLoginPage />} />
           <Route path="/partner/:token" element={<PartnerDashboardPage />} />

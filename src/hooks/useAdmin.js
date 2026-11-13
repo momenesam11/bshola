@@ -116,6 +116,35 @@ export function useDeleteBusiness() {
   })
 }
 
+// Clinic setup from /admin/setup/:id: settings only, never patients.
+export function useClinicSetup(id) {
+  return useQuery({
+    queryKey: ['admin-setup', id],
+    queryFn: async () => {
+      const { business, services, branches } = await callAdmin('setup_get', { id })
+      return { business, services, branches }
+    },
+    enabled: !!id && hasAdminToken(),
+    retry: false,
+  })
+}
+
+function useSetupMutation(action) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload) => callAdmin(action, payload),
+    onSuccess: (_data, { id }) => {
+      qc.invalidateQueries({ queryKey: ['admin-setup', id] })
+      qc.invalidateQueries({ queryKey: ['admin-businesses'] })
+    },
+  })
+}
+
+export const useSetupBusiness = () => useSetupMutation('setup_business')
+export const useSetupServices = () => useSetupMutation('setup_services')
+export const useSetupBranch = () => useSetupMutation('setup_branch')
+export const useSetupImage = () => useSetupMutation('setup_image')
+
 // Expiry is checked before "paid": a paid period that ran out locks the
 // account like an expired trial, and the admin list has to show that.
 export function getBusinessStatus(business) {

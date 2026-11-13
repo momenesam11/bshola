@@ -40,6 +40,7 @@ import BookingLinkActions from '../../components/booking/BookingLinkActions'
 import ReferralCard from '../../components/referral/ReferralCard'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
 import DeleteAccountSection from '../../components/settings/DeleteAccountSection'
+import { BRAND_COLORS, CANCELLATION_OPTIONS, cleanSlug } from '../../lib/businessProfile'
 import PhoneInput from '../../components/ui/PhoneInput'
 import { COUNTRIES, CURRENCIES, DEFAULT_COUNTRY, defaultCurrencyOf } from '../../lib/countries'
 function ServiceRow({ service, onUpdateField, onDelete }) {
@@ -62,24 +63,6 @@ function ServiceRow({ service, onUpdateField, onDelete }) {
     </div>
   )
 }
-
-const BRAND_COLORS = [
-  { hex: '#0D9B6C', label: 'أخضر' },
-  { hex: '#3B82F6', label: 'أزرق' },
-  { hex: '#8B5CF6', label: 'بنفسجي' },
-  { hex: '#F59E0B', label: 'ذهبي' },
-  { hex: '#EF4444', label: 'أحمر' },
-  { hex: '#EC4899', label: 'وردي' },
-  { hex: '#06B6D4', label: 'سماوي' },
-  { hex: '#0F172A', label: 'داكن' },
-]
-
-const CANCELLATION_OPTIONS = [
-  'الإلغاء مجاني في أي وقت',
-  'الإلغاء مجاني قبل 24 ساعة',
-  'الإلغاء مجاني قبل 48 ساعة',
-  'لا يوجد إلغاء بعد الحجز',
-]
 
 const SETTINGS_TABS = [
   { id: 'business', label: 'معلومات النشاط', Icon: HiOutlineBuildingOffice2 },
@@ -343,7 +326,7 @@ function IdentitySection({ business, onSaved }) {
   }
 
   function handleSlugChange(val) {
-    const clean = val.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').slice(0, 30)
+    const clean = cleanSlug(val)
     setSlug(clean)
     setSlugStatus('checking')
     clearTimeout(slugTimer.current)
