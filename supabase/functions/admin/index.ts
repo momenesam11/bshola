@@ -254,5 +254,157 @@ serve(async (req) => {
     return json({ success: true, filesRemoved: files?.length ?? 0, loginRemoved: others === 0 && !leftovers.includes('حساب الدخول (الإيميل)'), leftovers })
   }
 
+  // ── Clinic setup: the owner fills in a clinic's settings from /admin at the
+  // clinic's request. Settings only: nothing here reads appointments,
+  // patients or files. Every write is scoped to the business id it was given.
+
+  if (action === 'setup_get') {
+    const { id } = body as { id?: string }
+    if (!id) return json({ success: false, error: 'بيانات ناقصة' }, 400)
+    const { data: business, error } = await supabase
+      .from('businesses')
+      .select(`id, name, type, phone, country, currency, booking_slug, specialty, bio, years_experience,
+        brand_color, logo_url, cover_url, instagram_url, facebook_url, google_reviews_url,
+        welcome_message, cancellation_policy`)
+      .eq('id', id)
+      .maybeSingle()
+    if (error) return json({ success: false, error: error.message }, 500)
+    if (!business) return json({ success: false, error: 'الحساب مش موجود' }, 404)
+    const [services, branches] = await Promise.all([
+      supabase.from('services').select('id, name, duration_minutes, price').eq('business_id', id).order('name'),
+      supabase.from('branches').select('id, name, address, is_main, capacity, schedule_blocks').eq('business_id', id).order('is_main', { ascending: false }).order('created_at'),
+    ])
+    if (services.error || branches.error) return json({ success: false, error: (services.error ?? branches.error)!.message }, 500)
+    return json({ success: true, business, services: services.data ?? [], branches: branches.data ?? [] })
+  }
+
+  if (action === 'setup_business') {
+    const { id, fields } = body as { id?: string; fields?: Record<string, unknown> }
+    if (!id || !fields || typeof fields !== 'object') return json({ success: false, error: 'بيانات ناقصة' }, 400)
+    const text = (v: unknown, max: number) => {
+      const s = typeof v === 'string' ? v.trim() : ''
+      return s ? s.slice(0, max) : null
+    }
+    const name = text(fields.name, 100)
+    if (!name || name.length < 2) return json({ success: false, error: 'اسم النشاط لازم يكون حرفين على الأقل' }, 400)
+    const slug = text(fields.booking_slug, 30)
+    if (slug && !/^[a-z0-9-]+$/.test(slug)) return json({ success: false, error: 'رابط الحجز يبقى حروف إنجليزي صغيرة وأرقام وشرطة بس' }, 400)
+    const color = text(fields.brand_color, 7)
+    if (color && !/^#[0-9a-fA-F]{6}$/.test(color)) return json({ success: false, error: 'اللون مش صحيح' }, 400)
+    const years = fields.years_experience === '' || fields.years_experience == null ? null : Number(fields.years_experience)
+    if (years !== null && (!Number.isInteger(years) || years < 0 || years > 80)) return json({ success: false, error: 'سنين الخبرة مش صحيحة' }, 400)
+    const phone = typeof fields.phone === 'string' ? fields.phone.replace(/[^0-9]/g, '').slice(0, 15) || null : null
+    const { data, error } = await supabase
+      .from('businesses')
+      .update({
+        name,
+        phone,
+        booking_slug: slug,
+        brand_color: color ?? undefined,
+        specialty: text(fields.specialty, 100),
+        bio: text(fields.bio, 200),
+        years_experience: years,
+        instagram_url: text(fields.instagram_url, 300),
+        facebook_url: text(fields.facebook_url, 300),
+        google_reviews_url: text(fields.google_reviews_url, 300),
+        welcome_message: text(fields.welcome_message, 150),
+        cancellation_policy: text(fields.cancellation_policy, 100),
+      })
+      .eq('id', id)
+      .select('id')
+    if (error) {
+      const taken = error.code === '23505' || /booking_slug/.test(error.message)
+      return json({ success: false, error: taken ? 'رابط الحجز ده مأخوذ من حساب تاني' : error.message }, taken ? 409 : 500)
+    }
+    if (!data?.length) return json({ success: false, error: 'الحساب مش موجود' }, 404)
+    return json({ success: true })
+  }
+
+  if (action === 'setup_services') {
+    const { id, services, remove } = body as {
+      id?: string
+      services?: { id?: string; name?: string; duration_minutes?: number; price?: number | null }[]
+      remove?: string[]
+    }
+    if (!id || !Array.isArray(services) || (remove !== undefined && !Array.isArray(remove))) {
+      return json({ success: false, error: 'بيانات ناقصة' }, 400)
+    }
+    const rows = []
+    for (const s of services) {
+      const name = typeof s.name === 'string' ? s.name.trim().slice(0, 100) : ''
+      const duration = Number(s.duration_minutes)
+      const price = s.price === null || s.price === undefined || (s.price as unknown) === '' ? null : Number(s.price)
+      if (!name) return json({ success: false, error: 'اسم الخدمة مايبقاش فاضي' }, 400)
+      if (!Number.isInteger(duration) || duration < 5 || duration > 480) return json({ success: false, error: `مدة "${name}" مش صحيحة` }, 400)
+      if (price !== null && (!Number.isFinite(price) || price < 0)) return json({ success: false, error: `سعر "${name}" مش صحيح` }, 400)
+      rows.push({ id: s.id, name, duration_minutes: duration, price })
+    }
+    if (remove?.length) {
+      const { error } = await supabase.from('services').delete().eq('business_id', id).in('id', remove)
+      if (error) return json({ success: false, error: error.message }, 500)
+    }
+    for (const r of rows) {
+      const { id: serviceId, ...values } = r
+      const { error } = serviceId
+        ? await supabase.from('services').update(values).eq('id', serviceId).eq('business_id', id)
+        : await supabase.from('services').insert({ ...values, business_id: id })
+      if (error) return json({ success: false, error: error.message }, 500)
+    }
+    return json({ success: true })
+  }
+
+  if (action === 'setup_branch') {
+    const { id, branchId, name, address, capacity, schedule_blocks: blocks } = body as {
+      id?: string; branchId?: string; name?: string; address?: string; capacity?: number; schedule_blocks?: unknown
+    }
+    if (!id || !branchId || !blocks || typeof blocks !== 'object' || Array.isArray(blocks)) {
+      return json({ success: false, error: 'بيانات ناقصة' }, 400)
+    }
+    const branchName = typeof name === 'string' ? name.trim().slice(0, 100) : ''
+    if (!branchName) return json({ success: false, error: 'اسم الفرع مايبقاش فاضي' }, 400)
+    const seats = Number(capacity)
+    if (!Number.isInteger(seats) || seats < 1 || seats > 50) return json({ success: false, error: 'عدد الكراسي مش صحيح' }, 400)
+    const time = /^([01]\d|2[0-3]):[0-5]\d$/
+    for (const day of Object.values(blocks as Record<string, unknown>)) {
+      if (!Array.isArray(day) || !day.every((b) => b && time.test(b.start) && time.test(b.end) && b.start < b.end)) {
+        return json({ success: false, error: 'مواعيد الشغل مش صحيحة' }, 400)
+      }
+    }
+    const { data, error } = await supabase
+      .from('branches')
+      .update({ name: branchName, address: typeof address === 'string' ? address.trim().slice(0, 300) || null : null, capacity: seats, schedule_blocks: blocks })
+      .eq('id', branchId)
+      .eq('business_id', id)
+      .select('id')
+    if (error) return json({ success: false, error: error.message }, 500)
+    if (!data?.length) return json({ success: false, error: 'الفرع مش موجود' }, 404)
+    return json({ success: true })
+  }
+
+  if (action === 'setup_image') {
+    const { id, kind, base64, contentType } = body as { id?: string; kind?: string; base64?: string; contentType?: string }
+    const types: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }
+    if (!id || (kind !== 'logo' && kind !== 'cover') || typeof base64 !== 'string' || !types[contentType ?? '']) {
+      return json({ success: false, error: 'الصورة لازم تكون JPG أو PNG أو WEBP' }, 400)
+    }
+    let bytes: Uint8Array
+    try {
+      bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0))
+    } catch {
+      return json({ success: false, error: 'الصورة مش سليمة' }, 400)
+    }
+    if (bytes.length > 3 * 1024 * 1024) return json({ success: false, error: 'الصورة أكبر من 3 ميجا' }, 400)
+    const { data: exists } = await supabase.from('businesses').select('id').eq('id', id).maybeSingle()
+    if (!exists) return json({ success: false, error: 'الحساب مش موجود' }, 404)
+    const path = `${id}/${kind}.${types[contentType!]}`
+    const { error: uploadError } = await supabase.storage.from('business-assets').upload(path, bytes, { contentType, upsert: true })
+    if (uploadError) return json({ success: false, error: uploadError.message }, 500)
+    // The version stops browsers and the CDN from showing the old picture.
+    const url = `${supabase.storage.from('business-assets').getPublicUrl(path).data.publicUrl}?v=${Date.now()}`
+    const { error } = await supabase.from('businesses').update({ [`${kind}_url`]: url }).eq('id', id)
+    if (error) return json({ success: false, error: error.message }, 500)
+    return json({ success: true, url })
+  }
+
   return json({ success: false, error: 'Unknown action' }, 400)
 })

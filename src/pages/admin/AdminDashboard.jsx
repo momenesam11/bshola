@@ -8,6 +8,7 @@ import {
   HiOutlineXMark,
   HiOutlineArrowRightOnRectangle,
   HiOutlineTrash,
+  HiOutlineCog6Tooth,
 } from 'react-icons/hi2'
 import { FaWhatsapp } from 'react-icons/fa'
 import { BUSINESS_TYPES } from '../../utils/constants'
@@ -352,6 +353,13 @@ function Dashboard() {
                         >
                           <HiOutlineCheck className="w-4 h-4" />
                         </button>
+                        <Link
+                          to={`/admin/setup/${b.id}`}
+                          title="تجهيز الحساب"
+                          className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors"
+                        >
+                          <HiOutlineCog6Tooth className="w-4 h-4" />
+                        </Link>
                         <a
                           href={whatsappLink(b)}
                           target="_blank"
