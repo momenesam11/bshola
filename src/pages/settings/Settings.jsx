@@ -32,8 +32,6 @@ import {
   uploadBusinessAsset,
 } from '../../hooks/useBusiness'
 import { REMINDER_OPTIONS, DEFAULT_REMINDER_TEMPLATE } from '../../utils/constants'
-import { openWhatsApp } from '../../lib/whatsapp'
-import { SUPPORT_WHATSAPP, SUPPORT_WHATSAPP_DISPLAY } from '../../lib/support'
 import toast from 'react-hot-toast'
 import { supabase } from '../../lib/supabase'
 import { useBranch } from '../../context/branchState'
@@ -41,6 +39,7 @@ import ScheduleBlockEditor from '../../components/ui/ScheduleBlockEditor'
 import BookingLinkActions from '../../components/booking/BookingLinkActions'
 import ReferralCard from '../../components/referral/ReferralCard'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
+import DeleteAccountSection from '../../components/settings/DeleteAccountSection'
 import PhoneInput from '../../components/ui/PhoneInput'
 import { COUNTRIES, CURRENCIES, DEFAULT_COUNTRY, defaultCurrencyOf } from '../../lib/countries'
 function ServiceRow({ service, onUpdateField, onDelete }) {
@@ -554,7 +553,6 @@ export default function Settings() {
   const reminderTemplate = edits.reminderTemplate ?? (business?.reminder_template || DEFAULT_REMINDER_TEMPLATE)
   const setReminderTemplate = (v) => setEdits(e => ({ ...e, reminderTemplate: v }))
   const [saveStatus, setSaveStatus] = useState({})
-  const [confirmDeleteAccount, setConfirmDeleteAccount] = useState(false)
   const [tab, setTab] = useState('business')
 
   function setStatus(key, val, msg = '') {
@@ -576,16 +574,6 @@ export default function Settings() {
     setStatus('reminder', 'loading')
     try { await updateBusiness.mutateAsync({ id: business.id, reminder_hours: reminderHours, reminder_template: reminderTemplate }); setStatus('reminder', 'ok') }
     catch (e) { setStatus('reminder', 'error', e?.message || String(e)) }
-  }
-
-  // Deleting a clinic's patients can't be undone, so it is a request the
-  // Beshola team carries out after confirming with the owner, not a button.
-  // It used to only sign out while saying "deleted permanently".
-  function handleDeleteAccount() {
-    setConfirmDeleteAccount(false)
-    const msg = `أهلاً، عايز أحذف حساب "${business?.name || ''}" على بسهولة نهائياً هو وكل بياناته.
-كود الحساب: ${business?.id || ''}`
-    if (!openWhatsApp(SUPPORT_WHATSAPP, msg)) toast.error('المتصفح منع فتح واتساب — كلّمنا على ' + SUPPORT_WHATSAPP_DISPLAY)
   }
 
   async function handleLogout() {
@@ -723,24 +711,15 @@ export default function Settings() {
             </div>
 
             <Section title="منطقة الخطر">
-              <p className="text-sm text-slate-500">لو عايز تحذف حسابك وكل بيانات عملائك، ابعتلنا طلب وهنأكد معاك قبل الحذف. الحذف مايترجعش.</p>
-              <Button variant="danger" onClick={() => setConfirmDeleteAccount(true)} size="sm">طلب حذف الحساب</Button>
+              {/* Deleting a clinic's patients can't be undone, so this records a
+                  request the Beshola team approves from /admin. */}
+              {business && <DeleteAccountSection businessId={business.id} />}
             </Section>
           </>
         )}
 
         </div>
       </div>
-
-      <ConfirmDialog
-        open={confirmDeleteAccount}
-        onClose={() => setConfirmDeleteAccount(false)}
-        onConfirm={handleDeleteAccount}
-        variant="danger"
-        title="طلب حذف الحساب"
-        message="هيتفتح واتساب برسالة لفريق بسهولة. هنكلمك نأكد قبل ما نحذف أي حاجة."
-        confirmLabel="ابعت الطلب"
-      />
     </PageWrapper>
   )
 }

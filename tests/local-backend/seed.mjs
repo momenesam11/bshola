@@ -135,6 +135,15 @@ export async function seedDemoData(db, createUser) {
   })
   await appointments(db, salon, 40, 11)
 
+  // A clinic that asked from Settings to delete its account, waiting in /admin.
+  const leaving = await business(db, createUser, {
+    email: 'leaving@local.test',
+    fields: { name: 'عيادة طالبة حذف الحساب (تجريبية)', type: 'clinic', booking_slug: 'demo-leaving', owner_phone: '201000000777' },
+    branches: [{ name: 'الفرع الرئيسي', is_main: true, capacity: 1, schedule_blocks: week([{ start: '10:00', end: '18:00' }]) }],
+    services: [{ name: 'كشف', duration_minutes: 30, price: 200 }],
+  })
+  await insert(db, 'account_deletion_requests', { business_id: leaving.biz.id, business_name: 'عيادة طالبة حذف الحساب (تجريبية)', reason: 'قفلت العيادة' })
+
   await business(db, createUser, {
     email: 'expired@local.test',
     fields: { name: 'عيادة تجربتها خلصت (تجريبية)', type: 'clinic', booking_slug: 'demo-expired', trial_ends_at: new Date(Date.now() - 2 * 86400000).toISOString() },

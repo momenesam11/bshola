@@ -8,7 +8,8 @@
  *   · WhatsApp messages composed locally and opened in the owner's own app,
  *     never sent by a server (src/lib/whatsapp.js:45-48)
  *   · no payment integration anywhere (see MARKETING_CLAIMS.md §8)
- *   · account deletion from Settings → منطقة الخطر (src/pages/settings/Settings.jsx:716)
+ *   · account deletion requested from Settings → منطقة الخطر and carried out from
+ *     /admin (src/components/settings/DeleteAccountSection.jsx, migration 049)
  *   · Vercel Analytics mounted app-wide (src/App.jsx)
  *   · Google Analytics on marketing/sign-up routes only (src/lib/tracking.js)
  *   · "call me" form / calculator leads stored for sales contact (migration 032,
@@ -85,7 +86,7 @@ export const PRIVACY_PAGE = {
       h2: 'حقوقك في بياناتك',
       bullets: [
         'تعديل: تقدر تعدّل بيانات نشاطك وخدماتك وعملاءك من جوه النظام في أي وقت.',
-        'حذف: من الإعدادات ← «طلب حذف الحساب» بتبعتلنا طلب على واتساب، وبعد ما نأكد معاك بنمسح حسابك وبياناتك المرتبطة بيه فعلاً — مش إخفاء.',
+        'حذف: من الإعدادات ← «طلب حذف الحساب» بتبعتلنا طلب، وبعد ما نراجعه بنمسح حسابك وبياناتك المرتبطة بيه وملفاتك وحساب الدخول فعلاً، مش إخفاء.',
         'انتهاء الاشتراك: لما الاشتراك يخلص بيتوقف الدخول واستقبال الحجوزات، لكن بياناتك بتفضل موجودة وترجع زي ما هي أول ما تجدّد. لو عايز نسخة منها أو حذفها، كلّمنا.',
       ],
     },

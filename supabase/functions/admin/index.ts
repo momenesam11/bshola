@@ -187,5 +187,72 @@ serve(async (req) => {
     return json({ success: true, business: data })
   }
 
+  if (action === 'deletion_requests') {
+    const { data, error } = await supabase
+      .from('account_deletion_requests')
+      .select('id, business_id, business_name, reason, requested_at, businesses(phone, owner_phone)')
+      .eq('status', 'pending')
+      .order('requested_at', { ascending: true })
+    if (error) return json({ success: false, error: error.message }, 500)
+    return json({ success: true, requests: data ?? [] })
+  }
+
+  if (action === 'reject_deletion') {
+    const { id } = body as { id?: string }
+    if (!id) return json({ success: false, error: 'بيانات ناقصة' }, 400)
+    const { data, error } = await supabase
+      .from('account_deletion_requests')
+      .update({ status: 'rejected', decided_at: new Date().toISOString() })
+      .eq('id', id)
+      .eq('status', 'pending')
+      .select('id')
+    if (error) return json({ success: false, error: error.message }, 500)
+    if (!data?.length) return json({ success: false, error: 'الطلب مش موجود أو اتقفل' }, 404)
+    return json({ success: true })
+  }
+
+  // Permanent. The name has to be typed back, so a wrong id or a stray call
+  // can't delete a clinic. Order: list the files while the account still
+  // exists, delete the account in one database call (everything under it goes
+  // with it), then remove the files and, when it was the owner's only account,
+  // the login itself.
+  if (action === 'delete_business') {
+    const { id, confirmName } = body as { id?: string; confirmName?: string }
+    if (!id || typeof confirmName !== 'string') return json({ success: false, error: 'بيانات ناقصة' }, 400)
+    const { data: business, error: findError } = await supabase
+      .from('businesses').select('id, name').eq('id', id).maybeSingle()
+    if (findError) return json({ success: false, error: findError.message }, 500)
+    if (!business) return json({ success: false, error: 'الحساب مش موجود' }, 404)
+    if (confirmName.trim() !== business.name.trim()) {
+      return json({ success: false, error: 'الاسم اللي اتكتب مش مطابق لاسم الحساب' }, 400)
+    }
+
+    const { data: files, error: filesError } = await supabase.rpc('admin_business_files', { p_business_id: id })
+    if (filesError) return json({ success: false, error: filesError.message }, 500)
+
+    const { data: deleted, error: deleteError } = await supabase.rpc('admin_delete_business', { p_business_id: id })
+    if (deleteError) return json({ success: false, error: deleteError.message }, 500)
+    const { owner_id: ownerId, other_businesses: others } = (deleted as { owner_id: string; other_businesses: number }[])[0]
+
+    // The account is gone at this point. Anything below that fails is
+    // reported so it can be cleaned up by hand, without undoing the deletion.
+    const leftovers: string[] = []
+    const byBucket = new Map<string, string[]>()
+    for (const f of (files ?? []) as { bucket_id: string; name: string }[]) {
+      byBucket.set(f.bucket_id, [...(byBucket.get(f.bucket_id) ?? []), f.name])
+    }
+    for (const [bucket, names] of byBucket) {
+      for (let i = 0; i < names.length; i += 100) {
+        const { error } = await supabase.storage.from(bucket).remove(names.slice(i, i + 100))
+        if (error) leftovers.push(`ملفات ${bucket}`)
+      }
+    }
+    if (others === 0) {
+      const { error } = await supabase.auth.admin.deleteUser(ownerId)
+      if (error) leftovers.push('حساب الدخول (الإيميل)')
+    }
+    return json({ success: true, filesRemoved: files?.length ?? 0, loginRemoved: others === 0 && !leftovers.includes('حساب الدخول (الإيميل)'), leftovers })
+  }
+
   return json({ success: false, error: 'Unknown action' }, 400)
 })

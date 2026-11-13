@@ -7,6 +7,7 @@ import {
   HiOutlineCheck,
   HiOutlineXMark,
   HiOutlineArrowRightOnRectangle,
+  HiOutlineTrash,
 } from 'react-icons/hi2'
 import { FaWhatsapp } from 'react-icons/fa'
 import { BUSINESS_TYPES } from '../../utils/constants'
@@ -15,6 +16,8 @@ import { splitPhone } from '../../lib/countries'
 import {
   useAdminBusinesses,
   useDeactivateBusiness,
+  useDeletionRequests,
+  useRejectDeletion,
   getBusinessStatus,
   getAdminStats,
   searchBusinesses,
@@ -25,6 +28,7 @@ import ActivateModal from '../../components/admin/ActivateModal'
 import { LIFETIME_CAP, isLifetime } from '../../lib/lifetime'
 import PasswordGate from '../../components/admin/AdminPasswordGate'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
+import DeleteBusinessModal from '../../components/admin/DeleteBusinessModal'
 
 const STATUS_CONFIG = {
   trial: { label: 'تجربة نشطة 🟢', color: 'text-accent-600 bg-accent-50' },
@@ -79,9 +83,89 @@ function whatsappLink(business) {
   return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
 }
 
+// Clinics that asked to delete their account from Settings (migration 049).
+function DeletionRequests({ businesses, onDelete }) {
+  const { data: requests = [] } = useDeletionRequests()
+  const reject = useRejectDeletion()
+  const [rejectTarget, setRejectTarget] = useState(null)
+  if (!requests.length) return null
+
+  async function confirmReject() {
+    const r = rejectTarget
+    setRejectTarget(null)
+    try {
+      await reject.mutateAsync(r.id)
+      toast.success(`اترفض طلب حذف ${r.business_name}`)
+    } catch (e) {
+      toast.error(e.message || 'حدث خطأ')
+    }
+  }
+
+  return (
+    <div className="bg-red-50 border border-red-200 rounded-xl p-4 space-y-2.5">
+      <h2 className="text-sm font-bold text-red-800">🗑️ طلبات حذف حساب ({requests.length})</h2>
+      <p className="text-xs text-red-700">
+        كلّم صاحب الحساب الأول وتأكد إنه هو اللي طالب. الحساب شغال عادي لحد ما تحذفه.
+      </p>
+      <div className="space-y-1.5">
+        {requests.map(r => {
+          const current = businesses.find(b => b.id === r.business_id)
+          const phone = r.businesses?.owner_phone || r.businesses?.phone || ''
+          return (
+            <div key={r.id} data-testid="deletion-request" className="flex flex-wrap items-center justify-between gap-3 bg-white rounded-lg px-3 py-2 border border-red-100">
+              <div className="min-w-0 text-sm">
+                <span className="font-medium text-gray-900">{current?.name || r.business_name}</span>
+                <span className="text-xs text-gray-400 mr-2">طلب يوم {formatDate(r.requested_at)}</span>
+                {phone && <span className="text-xs text-gray-500 mr-2" dir="ltr">{phone}</span>}
+                {r.reason && <p className="text-xs text-gray-500 mt-0.5">السبب: {r.reason}</p>}
+              </div>
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                {phone && (
+                  <a
+                    href={`https://wa.me/${phone.replace(/[^0-9]/g, '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-green-50 text-green-700 hover:bg-green-100 rounded-lg text-xs font-medium transition-colors"
+                  >
+                    <FaWhatsapp className="w-3.5 h-3.5" />
+                    تواصل
+                  </a>
+                )}
+                <button
+                  onClick={() => setRejectTarget(r)}
+                  className="px-2.5 py-1.5 bg-gray-50 text-gray-600 hover:bg-gray-100 rounded-lg text-xs font-medium transition-colors"
+                >
+                  رفض
+                </button>
+                <button
+                  onClick={() => onDelete({ id: r.business_id, name: current?.name || r.business_name })}
+                  className="px-2.5 py-1.5 bg-red-600 text-white hover:bg-red-700 rounded-lg text-xs font-medium transition-colors"
+                >
+                  حذف نهائي
+                </button>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      <ConfirmDialog
+        open={!!rejectTarget}
+        onClose={() => setRejectTarget(null)}
+        onConfirm={confirmReject}
+        loading={reject.isPending}
+        title="رفض طلب الحذف"
+        message={rejectTarget ? `الحساب ${rejectTarget.business_name} هيفضل زي ما هو، والطلب هيختفي من هنا.` : ''}
+        confirmLabel="رفض الطلب"
+      />
+    </div>
+  )
+}
+
 function Dashboard() {
   const { data: businesses = [], isLoading } = useAdminBusinesses()
   const deactivate = useDeactivateBusiness()
+  const [deleteTarget, setDeleteTarget] = useState(null)
   const [query, setQuery] = useState('')
   const [tab, setTab] = useState('all')
   const [activateTarget, setActivateTarget] = useState(null)
@@ -159,6 +243,8 @@ function Dashboard() {
           <StatCard label="تسجيلات هذا الأسبوع" value={stats.signupsThisWeek} />
           <StatCard label="معدل التحويل لمدفوع" value={`${stats.conversionRate}%`} />
         </div>
+
+        <DeletionRequests businesses={businesses} onDelete={setDeleteTarget} />
 
         {stats.expiringSoon.length > 0 && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-2.5">
@@ -282,6 +368,13 @@ function Dashboard() {
                         >
                           <HiOutlineXMark className="w-4 h-4" />
                         </button>
+                        <button
+                          onClick={() => setDeleteTarget(b)}
+                          title="حذف الحساب"
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          <HiOutlineTrash className="w-4 h-4" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -291,6 +384,8 @@ function Dashboard() {
           </table>
         </div>
       </div>
+
+      <DeleteBusinessModal key={deleteTarget?.id ?? 'none'} business={deleteTarget} onClose={() => setDeleteTarget(null)} />
 
       <ActivateModal key={activateTarget?.id} open={!!activateTarget} onClose={() => setActivateTarget(null)} business={activateTarget} />
 
