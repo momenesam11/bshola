@@ -39,7 +39,7 @@ export default function Dashboard() {
         <title>الرئيسية — بسهولة</title>
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
-      {business && <TodayQueue business={business} />}
+      {business && <TodayQueue business={business} onOpen={handleApptClick} />}
 
       {business && (
         <TomorrowReminders businessId={business.id} business={business} />

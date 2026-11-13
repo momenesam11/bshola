@@ -57,6 +57,10 @@ test.describe('today queue', () => {
 
     await queue.getByTestId('queue-row').first().getByRole('button', { name: 'ما جاش' }).click()
     await expect(queue.getByTestId('queue-row')).toHaveCount(3)
+
+    // A name opens that appointment, like the calendar does.
+    await queue.getByTestId('queue-row').first().getByRole('button', { name: order[2] }).click()
+    await expect(page.getByText('تعديل الموعد')).toBeVisible()
   })
 
   test('the clinic chooses how many ahead triggers the message', async ({ page }) => {

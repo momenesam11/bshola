@@ -20,7 +20,7 @@ function useTodayAppointments(businessId) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('appointments')
-        .select('id, client_name, client_phone, appointment_time, status, branch_id, created_at, queue_notified_at, services(name), branches(name)')
+        .select('*, services(name, duration_minutes, price), branches(name)')
         .eq('business_id', businessId)
         .eq('appointment_date', date)
         .eq('status', 'confirmed')
@@ -30,7 +30,8 @@ function useTodayAppointments(businessId) {
   })
 }
 
-export default function TodayQueue({ business }) {
+// onOpen opens the appointment, like a click on it in the calendar.
+export default function TodayQueue({ business, onOpen }) {
   const branchCtx = useBranch()
   const branchId = branchCtx?.currentBranch?.isAll ? null : branchCtx?.currentBranch?.id || null
   const { data: today = [] } = useTodayAppointments(business?.id)
@@ -107,7 +108,7 @@ export default function TodayQueue({ business }) {
             <div key={a.id} data-testid="queue-row" className={`flex items-center gap-3 px-3 py-2.5 rounded-2xl border ${i === 0 ? 'border-violet-200 bg-violet-50/40' : 'border-slate-100'}`}>
               <span className="w-7 h-7 rounded-full bg-slate-100 text-slate-600 text-xs font-bold flex items-center justify-center flex-shrink-0 tabular-nums">{i + 1}</span>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm text-slate-900 break-words">{a.client_name}</p>
+                <button type="button" onClick={() => onOpen?.(a)} className="font-semibold text-sm text-slate-900 break-words text-right hover:underline">{a.client_name}</button>
                 <p className="text-xs text-slate-400">
                   {formatTimeArabic(a.appointment_time)}
                   {a.services?.name ? ` · ${a.services.name}` : ''}
