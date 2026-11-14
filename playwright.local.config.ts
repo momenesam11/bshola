@@ -14,6 +14,7 @@ const DIST = SLOT ? `dist-qa-${SLOT}` : 'dist-qa'
 const RESULTS = SLOT ? `test-results/slot-${SLOT}` : 'test-results'
 // The test files read the backend address from here (tests/qa/helpers.ts).
 process.env.QA_API_PORT = String(API_PORT)
+process.env.QA_RESULTS_DIR = RESULTS
 
 export default defineConfig({
   testDir: './tests/qa',

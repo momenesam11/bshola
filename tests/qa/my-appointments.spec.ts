@@ -110,3 +110,30 @@ test.describe('patient appointments page', () => {
     expect(await sql('SELECT manage_code FROM appointments GROUP BY manage_code HAVING count(*) > 1')).toEqual([])
   })
 })
+
+test.describe('sending the patient their link', () => {
+  test('from the appointment and from today\'s queue, for a patient who booked by phone', async ({ page }) => {
+    const s = await seedBusiness()
+    const a = await seedAppointment(s, { client_name: 'حجز بالتليفون', appointment_date: isoDate(0), appointment_time: '23:15' })
+    await page.addInitScript(() => {
+      (window as unknown as { __urls: string[] }).__urls = []
+      window.open = (u?: string | URL) => { (window as unknown as { __urls: string[] }).__urls.push(String(u)); return window }
+    })
+    await login(page, s)
+    await page.goto('/dashboard')
+    const code = await codeOf(a.id)
+    const last = async () => {
+      const urls = await page.evaluate(() => (window as unknown as { __urls: string[] }).__urls)
+      return decodeURIComponent(urls[urls.length - 1].split('text=')[1])
+    }
+
+    await page.getByTestId('today-queue').getByRole('button', { name: 'ابعتله لينك مواعيده' }).click()
+    expect(await last()).toContain(`/m/${code}`)
+
+    await page.getByTestId('today-queue').getByRole('button', { name: 'حجز بالتليفون' }).click()
+    await page.locator('form').getByRole('button', { name: 'ابعتله لينك مواعيده' }).click()
+    const text = await last()
+    expect(text).toContain('أهلاً يا حجز بالتليفون')
+    expect(text).toContain(`/m/${code}`)
+  })
+})

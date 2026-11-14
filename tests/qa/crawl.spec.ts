@@ -238,8 +238,10 @@ test.describe('every button on every screen', () => {
 })
 
 test.afterAll(() => {
-  mkdirSync('test-results', { recursive: true })
-  writeFileSync('test-results/crawl-report.json', JSON.stringify(results, null, 1))
+  // Each QA_SLOT keeps its own report, so parallel runs don't overwrite each other.
+  const dir = process.env.QA_RESULTS_DIR || 'test-results'
+  mkdirSync(dir, { recursive: true })
+  writeFileSync(`${dir}/crawl-report.json`, JSON.stringify(results, null, 1))
   const by = (o: string) => results.filter(r => r.outcome === o).length
   console.log(`\nCRAWL pressed ${results.length} | ok ${by('ok')} | dead ${by('dead')} | broken ${by('broken')}`)
 })

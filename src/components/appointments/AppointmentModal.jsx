@@ -29,6 +29,8 @@ import { todayISO, getPeakBookings } from '../../utils/dateHelpers'
 import { MEDICAL_TYPES } from '../../utils/constants'
 import { supabase } from '../../lib/supabase'
 import WaitlistAlert from './WaitlistAlert'
+import { FaWhatsapp } from 'react-icons/fa'
+import { generateManageLinkMessage, openWhatsApp } from '../../lib/whatsapp'
 import PhoneInput from '../ui/PhoneInput'
 import { formatMoney } from '../../lib/countries'
 
@@ -439,6 +441,17 @@ export default function AppointmentModal({ open, onClose, businessId, initialDat
             </button>
           )}
         </div>
+
+        {/* For a patient booked by phone or walking in: no confirmation or
+            reminder carries their link, so the clinic sends it from here. */}
+        {isEdit && appointment.manage_code && ['confirmed', 'waitlist'].includes(appointment.status) && business && (
+          <button type="button"
+            onClick={() => { if (!openWhatsApp(appointment.client_phone, generateManageLinkMessage(appointment, business))) toast.error('المتصفح منع فتح واتساب — اسمح بالنوافذ المنبثقة وجرّب تاني') }}
+            className="w-full flex items-center justify-center gap-1.5 py-2.5 border-2 border-accent-200 text-accent-700 hover:bg-accent-50 text-sm font-semibold rounded-xl transition-colors min-h-[44px]">
+            <FaWhatsapp className="w-4 h-4" />
+            ابعتله لينك مواعيده
+          </button>
+        )}
 
         {isEdit && appointment.status !== 'cancelled' && (
           <button type="button" onClick={handleCancel} disabled={updateAppt.isPending}

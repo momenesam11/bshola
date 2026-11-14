@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import toast from 'react-hot-toast'
-import { HiOutlineCheck } from 'react-icons/hi2'
+import { HiOutlineCheck, HiOutlineLink } from 'react-icons/hi2'
 import { FaWhatsapp } from 'react-icons/fa'
-import { openWhatsApp, formatTimeArabic } from '../../lib/whatsapp'
+import { openWhatsApp, formatTimeArabic, generateManageLinkMessage } from '../../lib/whatsapp'
 import { useUpdateAppointment } from '../../hooks/useAppointments'
 import { dueForNotice, notifyAheadOf, queueMessage } from '../../lib/queue'
 
@@ -27,6 +27,14 @@ export default function TodayQueue({ business, queue, onOpen }) {
       toast.error(e?.message || 'اتبعتت الرسالة بس ما اتسجلتش')
     } finally {
       setBusyId(null)
+    }
+  }
+
+  // The page where the patient follows their turn (056); it isn't in the
+  // "ahead" message, which stays a plain text.
+  function sendLink(appt) {
+    if (!openWhatsApp(appt.client_phone, generateManageLinkMessage(appt, business))) {
+      toast.error('المتصفح منع فتح واتساب — اسمح بالنوافذ المنبثقة وجرّب تاني')
     }
   }
 
@@ -74,6 +82,12 @@ export default function TodayQueue({ business, queue, onOpen }) {
             </div>
           </div>
           <div className="w-full sm:w-auto flex items-center gap-2 sm:gap-1 flex-shrink-0">
+            {a.manage_code && (
+              <button onClick={() => sendLink(a)} title="ابعتله لينك مواعيده" aria-label="ابعتله لينك مواعيده"
+                className="h-11 sm:h-auto w-11 sm:w-auto sm:p-2 flex items-center justify-center rounded-xl sm:rounded-lg border border-accent-200 sm:border-0 text-accent-700 hover:bg-accent-50 transition-colors">
+                <HiOutlineLink className="w-5 h-5 sm:w-4 sm:h-4" />
+              </button>
+            )}
             <button onClick={() => sendPlace(a, i)} disabled={busyId === a.id} title="ابعتله دوره" aria-label="ابعتله دوره"
               className="h-11 sm:h-auto w-11 sm:w-auto sm:p-2 flex items-center justify-center rounded-xl sm:rounded-lg border border-green-200 sm:border-0 text-green-600 hover:bg-green-50 transition-colors disabled:opacity-60">
               <FaWhatsapp className="w-5 h-5 sm:w-4 sm:h-4" />

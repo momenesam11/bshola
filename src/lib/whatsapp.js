@@ -14,6 +14,17 @@ export function manageLink(appointment) {
   return `${base}/m/${appointment.manage_code}`
 }
 
+// Just the link, for a patient who booked by phone or walked in and so got no
+// confirmation or reminder: they follow their turn and can cancel from it.
+export function generateManageLinkMessage(appointment, business) {
+  return `أهلاً يا ${appointment.client_name}
+
+ده لينك مواعيدك في ${business.name}. تقدر تتابع منه دورك وتلغي لو احتجت:
+${manageLink(appointment)}
+
+— ${business.name}`
+}
+
 function manageLine(appointment) {
   const link = manageLink(appointment)
   return link ? `\n\nمواعيدك عندنا، ولو حابب تلغي:\n${link}` : ''
