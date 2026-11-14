@@ -44,6 +44,7 @@ import { BRAND_COLORS, CANCELLATION_OPTIONS, cleanSlug } from '../../lib/busines
 import PhoneInput from '../../components/ui/PhoneInput'
 import { COUNTRIES, CURRENCIES, DEFAULT_COUNTRY, defaultCurrencyOf } from '../../lib/countries'
 import { isReviewUrl } from '../../lib/reviews'
+import { BOOKING_WINDOW_OPTIONS } from '../../lib/bookingWindow'
 import { MAX_NOTIFY_AHEAD, notifyAheadOf } from '../../lib/queue'
 function ServiceRow({ service, onUpdateField, onDelete }) {
   return (
@@ -558,6 +559,15 @@ export default function Settings() {
     catch (e) { setStatus('queue', 'error', e?.message || String(e)) }
   }
 
+  const bookingWindow = edits.bookingWindow ?? (business?.booking_window_days ? String(business.booking_window_days) : '')
+  const setBookingWindow = (v) => setEdits(e => ({ ...e, bookingWindow: v }))
+
+  async function saveBookingWindow() {
+    setStatus('window', 'loading')
+    try { await updateBusiness.mutateAsync({ id: business.id, booking_window_days: bookingWindow ? Number(bookingWindow) : null }); setStatus('window', 'ok') }
+    catch (e) { setStatus('window', 'error', e?.message || String(e)) }
+  }
+
   const reviewUrl = edits.reviewUrl ?? (business?.google_review_url || '')
   const setReviewUrl = (v) => setEdits(e => ({ ...e, reviewUrl: v }))
 
@@ -683,6 +693,24 @@ export default function Settings() {
         {tab === 'hours' && (
           <Section title="ساعات العمل" subtitle="يمكنك إضافة أكتر من فترة لليوم الواحد، بدون تقاطع بينها">
             {business && <WorkingHoursSection key={branchCtx?.currentBranch?.id ?? 'none'} business={business} />}
+          </Section>
+        )}
+
+        {tab === 'hours' && (
+          <Section title="المرضى يحجزوا لقدام لحد إمتى" subtitle="بيمنع حد يحجز من دلوقتي لآخر الشهر مثلًا. الأيام بتتفتح لوحدها يوم بيوم">
+            <Dropdown
+              label="الحجز أونلاين متاح لـ"
+              value={bookingWindow}
+              onChange={v => setBookingWindow(String(v))}
+              options={BOOKING_WINDOW_OPTIONS}
+            />
+            <p className="text-xs text-slate-500">
+              المواعيد المحجوزة قبل كده بتفضل زي ما هي، وانت تقدر تضيف أي ميعاد في أي يوم من الداشبورد.
+            </p>
+            <div className="flex items-center gap-3">
+              <Button onClick={saveBookingWindow} loading={saveStatus.window === 'loading'} size="sm">حفظ المدة</Button>
+              <SaveFeedback status={saveStatus.window} msg={saveStatus.windowMsg} />
+            </div>
           </Section>
         )}
 

@@ -182,7 +182,7 @@ export async function seedDemoData(db, createUser) {
 
   const salon = await business(db, createUser, {
     email: 'salon@local.test',
-    fields: { name: 'صالون لمسة (تجريبي)', type: 'salon', booking_slug: 'demo-salon', specialty: 'شعر ومكياج' },
+    fields: { name: 'صالون لمسة (تجريبي)', type: 'salon', booking_slug: 'demo-salon', specialty: 'شعر ومكياج', booking_window_days: 14 },
     branches: [{ name: 'الفرع الرئيسي', is_main: true, capacity: 3, schedule_blocks: week([{ start: '11:00', end: '23:00' }]) }],
     services: [
       { name: 'قص شعر', duration_minutes: 30, price: 150 },
