@@ -1,5 +1,35 @@
 // WhatsApp Manual Sender — opens WhatsApp Web/App with pre-filled message, no API needed
 
+import { SITE_URL } from './seo'
+
+// The patient's own page (/m/<code>, migrations 054 and 056): their
+// appointments at this clinic, their place in today's queue, and cancelling
+// within its policy. It only ever reaches them in a message the clinic sends
+// to their number, and it stops working a week after that appointment.
+export function manageLink(appointment) {
+  if (!appointment?.manage_code) return ''
+  // On a local copy or a Vercel preview the link should open that copy.
+  const host = typeof window !== 'undefined' ? window.location.host : ''
+  const base = /^(localhost|127\.0\.0\.1)(:\d+)?$|\.vercel\.app$/.test(host) ? window.location.origin : SITE_URL
+  return `${base}/m/${appointment.manage_code}`
+}
+
+// Just the link, for a patient who booked by phone or walked in and so got no
+// confirmation or reminder: they follow their turn and can cancel from it.
+export function generateManageLinkMessage(appointment, business) {
+  return `أهلاً يا ${appointment.client_name}
+
+ده لينك مواعيدك في ${business.name}. تقدر تتابع منه دورك وتلغي لو احتجت:
+${manageLink(appointment)}
+
+— ${business.name}`
+}
+
+function manageLine(appointment) {
+  const link = manageLink(appointment)
+  return link ? `\n\nمواعيدك عندنا، ولو حابب تلغي:\n${link}` : ''
+}
+
 // The text onboarding saves for everyone. A clinic still on it gets the fuller
 // built-in reminder (it has the date and branch); a clinic that wrote its own
 // text in Settings gets exactly that.
@@ -18,8 +48,9 @@ export function generateReminderMessage(appointment, business, branch) {
       date: dateFormatted,
       business_name: business.name || '',
       branch: branch?.name || business.name || '',
+      manage_link: manageLink(appointment),
     }
-    return template.replace(/\{(client_name|service|time|date|business_name|branch)\}/g, (_, key) => values[key])
+    return template.replace(/\{(client_name|service|time|date|business_name|branch|manage_link)\}/g, (_, key) => values[key])
   }
   const branchLine = branch?.name
     ? `المكان: ${branch.name}${branch.address ? ' — ' + branch.address : ''}`
@@ -31,7 +62,7 @@ export function generateReminderMessage(appointment, business, branch) {
 التاريخ: ${dateFormatted}
 الساعة: ${timeFormatted}
 الخدمة: ${appointment.services?.name || appointment.service_name || ''}
-${branchLine}
+${branchLine}${manageLine(appointment)}
 
 لو محتاج تغيير أو إلغاء، ردّ على هذه الرسالة.
 
@@ -52,7 +83,7 @@ export function generateConfirmationMessage(appointment, business, branch) {
 التاريخ: ${dateFormatted}
 الساعة: ${timeFormatted}
 الخدمة: ${appointment.services?.name || appointment.service_name || ''}
-${branchLine}
+${branchLine}${manageLine(appointment)}
 
 نتطلع نشوفك!
 — ${business.name}`

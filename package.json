@@ -19,6 +19,7 @@
     "backup:verify": "node scripts/backup/verify.mjs",
     "backup:schedule": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/backup/register-task.ps1",
     "local": "node scripts/local.mjs",
+    "local:phone": "node scripts/local.mjs --phone",
     "test:qa": "playwright test --config playwright.local.config.ts",
     "check:live": "node scripts/check-live-schema.mjs"
   },

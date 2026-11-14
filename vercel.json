@@ -7,6 +7,7 @@
     { "source": "/reset-password", "destination": "/app" },
     { "source": "/auth/:path*", "destination": "/app" },
     { "source": "/book/:path*", "destination": "/app" },
+    { "source": "/m/:path*", "destination": "/app" },
     { "source": "/admin/:path*", "destination": "/app" },
     { "source": "/demo/:path*", "destination": "/app" },
     { "source": "/partner/:path*", "destination": "/app" },
