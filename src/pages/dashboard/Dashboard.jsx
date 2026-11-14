@@ -5,6 +5,8 @@ import PageWrapper from '../../components/layout/PageWrapper'
 import AppointmentModal from '../../components/appointments/AppointmentModal'
 import BesholaCalendar from '../../components/calendar/BesholaCalendar'
 import TomorrowReminders from './TomorrowReminders'
+import ReviewRequests from './ReviewRequests'
+import TodayQueue from './TodayQueue'
 import { useBusiness } from '../../hooks/useBusiness'
 import { toISODateString } from '../../utils/dateHelpers'
 
@@ -37,9 +39,13 @@ export default function Dashboard() {
         <title>الرئيسية — بسهولة</title>
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
+      {business && <TodayQueue business={business} onOpen={handleApptClick} />}
+
       {business && (
         <TomorrowReminders businessId={business.id} business={business} />
       )}
+
+      {business && <ReviewRequests business={business} />}
 
       {business && (
         <BesholaCalendar
