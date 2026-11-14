@@ -13,7 +13,10 @@ export default defineConfig(({ isSsrBuild }) => ({
         '/__api': {
           target: process.env.LOCAL_API_PROXY,
           changeOrigin: true,
-          ws: true,
+          // No websockets: the local backend has no Realtime server, so the
+          // app's retry every 10 s only filled the terminal with proxy errors.
+          // It behaves as under `npm run local`: no live updates, refresh to see changes.
+          ws: false,
           rewrite: (path) => path.replace(/^\/__api/, ''),
         },
       },
