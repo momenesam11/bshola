@@ -4,8 +4,16 @@ import { defineConfig, devices } from '@playwright/test'
 // playwright.config.ts this needs no credentials and can't reach the live
 // database: the app is pointed at tests/local-backend and fixtures.ts aborts any
 // request that tries to leave the machine.
-const API_PORT = 54399
-const WEB_PORT = 5199
+// QA_SLOT=1,2,3… runs another copy beside the first one: its own ports, build
+// folder and results folder, so separate runs (or agents) can split the suite
+// and run at the same time. Slot 0 (the default) is what `npm run test:qa` uses.
+const SLOT = Number(process.env.QA_SLOT || 0)
+const API_PORT = 54399 + SLOT * 10
+const WEB_PORT = 5199 + SLOT
+const DIST = SLOT ? `dist-qa-${SLOT}` : 'dist-qa'
+const RESULTS = SLOT ? `test-results/slot-${SLOT}` : 'test-results'
+// The test files read the backend address from here (tests/qa/helpers.ts).
+process.env.QA_API_PORT = String(API_PORT)
 
 export default defineConfig({
   testDir: './tests/qa',
@@ -14,7 +22,8 @@ export default defineConfig({
   retries: 0,
   timeout: 45_000,
   expect: { timeout: 8_000 },
-  reporter: [['list'], ['json', { outputFile: 'test-results/qa-results.json' }]],
+  reporter: [['list'], ['json', { outputFile: `${RESULTS}/qa-results.json` }]],
+  outputDir: RESULTS,
   use: {
     baseURL: `http://localhost:${WEB_PORT}`,
     actionTimeout: 10_000,
@@ -40,7 +49,7 @@ export default defineConfig({
     {
       // A production build, not the dev server: pages load in a fraction of the
       // time and it is what visitors actually run.
-      command: `npx vite build --outDir dist-qa --emptyOutDir && npx vite preview --outDir dist-qa --port ${WEB_PORT} --strictPort`,
+      command: `npx vite build --outDir ${DIST} --emptyOutDir && npx vite preview --outDir ${DIST} --port ${WEB_PORT} --strictPort`,
       url: `http://localhost:${WEB_PORT}`,
       reuseExistingServer: false,
       timeout: 180_000,
