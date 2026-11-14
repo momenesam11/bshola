@@ -9,10 +9,10 @@ import {
   todayISO, getSlotStep, getPeakBookings, getServiceSlots,
 } from '../utils/dateHelpers'
 import {
-  generateReminderMessage, generateConfirmationMessage, formatTimeArabic, formatDateArabic, openWhatsApp, removeEmoji,
+  generateReminderMessage, generateConfirmationMessage, formatTimeArabic, formatDateArabic, openWhatsApp, removeEmoji, manageLink,
 } from './whatsapp'
 import { csvCell } from './csv'
-import { getBusinessStatus, getAdminStats, searchBusinesses } from '../hooks/useAdmin'
+import { getBusinessStatus, getAdminStats, getSleepingClinics, SLEEPING_AFTER_DAYS, searchBusinesses } from '../hooks/useAdmin'
 import { isBusinessLocked } from '../hooks/useBusiness'
 
 const ok = (schema, v) => schema.safeParse(v).success
@@ -189,6 +189,16 @@ describe('whatsapp messages', () => {
     expect(generateConfirmationMessage(appt, biz, null)).not.toMatch(emoji)
     expect(removeEmoji('أهلاً 👋 يا 🗓️ سامي')).toBe('أهلاً يا سامي')
   })
+  it('confirmation and reminder carry the patient\'s own link once they have a token (054)', () => {
+    const withToken = { ...appt, manage_token: 'abc-123' }
+    for (const m of [generateConfirmationMessage(withToken, biz, null), generateReminderMessage(withToken, biz, null)]) {
+      expect(m).toContain('مواعيدك عندنا، ولو حابب تلغي:\nhttps://www.beshola.co/my/abc-123')
+    }
+    expect(generateConfirmationMessage(appt, biz, null)).not.toContain('/my/')
+    expect(manageLink(appt)).toBe('')
+    const custom = generateReminderMessage(withToken, { ...biz, reminder_template: 'مواعيدك: {manage_link}' }, null)
+    expect(custom).toBe('مواعيدك: https://www.beshola.co/my/abc-123')
+  })
   it('formatting survives missing values', () => {
     expect(formatTimeArabic(null)).toBe('')
     expect(formatDateArabic(null)).toBe('')
@@ -247,6 +257,36 @@ describe('subscription state', () => {
   })
   it('getAdminStats on nothing does not divide by zero', () => {
     expect(getAdminStats([]).conversionRate).toBe(0)
+  })
+  it('getSleepingClinics flags open accounts with no booking in a week, longest silence first', () => {
+    const open = { is_active: true, trial_ends_at: inDays(10) }
+    const list = [
+      { ...open, id: 'busy', created_at: inDays(-40) },
+      { ...open, id: 'quiet', created_at: inDays(-40) },
+      { ...open, id: 'never', created_at: inDays(-20) },
+      { ...open, id: 'new', created_at: inDays(-2) },
+      { ...open, id: 'paid', subscription_type: 'paid', created_at: inDays(-60) },
+      { is_active: true, trial_ends_at: inDays(-1), id: 'expired', created_at: inDays(-40) },
+      { is_active: false, id: 'off', created_at: inDays(-40) },
+    ]
+    const activity = [
+      { business_id: 'busy', last_booking_at: inDays(-1) },
+      { business_id: 'quiet', last_booking_at: inDays(-9) },
+      { business_id: 'paid', last_booking_at: inDays(-30) },
+      { business_id: 'expired', last_booking_at: inDays(-30) },
+    ]
+    const sleeping = getSleepingClinics(list, activity)
+    expect(sleeping.map(c => [c.id, c.quietDays, c.status])).toEqual([
+      ['paid', 30, 'paid'], ['never', 20, 'trial'], ['quiet', 9, 'trial'],
+    ])
+    expect(sleeping.find(c => c.id === 'never').lastBookingAt).toBeNull()
+  })
+  it('getSleepingClinics counts a booking exactly a week old as still quiet, and a newer one as active', () => {
+    const b = { id: 'x', is_active: true, trial_ends_at: inDays(10), created_at: inDays(-30) }
+    const now = new Date()
+    const at = (days) => new Date(now.getTime() - days * 86400000).toISOString()
+    expect(getSleepingClinics([b], [{ business_id: 'x', last_booking_at: at(SLEEPING_AFTER_DAYS) }], now)).toHaveLength(1)
+    expect(getSleepingClinics([b], [{ business_id: 'x', last_booking_at: at(SLEEPING_AFTER_DAYS - 0.5) }], now)).toHaveLength(0)
   })
   it('searchBusinesses matches name and both phones', () => {
     const list = [{ name: 'Nour', phone: '111' }, { name: 'سما', owner_phone: '222' }]

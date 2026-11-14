@@ -3,17 +3,12 @@ import toast from 'react-hot-toast'
 import { format, addDays } from 'date-fns'
 import { ar } from 'date-fns/locale'
 import {
-  HiOutlineBell,
   HiOutlineCalendarDays,
   HiOutlineClock,
   HiOutlineBuildingOffice2,
   HiOutlineCheck,
-  HiOutlineChevronDown,
-  HiOutlineChevronUp,
 } from 'react-icons/hi2'
 import { FaWhatsapp } from 'react-icons/fa'
-import { useTomorrowsAppointments } from '../../hooks/useAppointments'
-import { useBranch } from '../../context/branchState'
 import { supabase } from '../../lib/supabase'
 import { generateReminderMessage, openWhatsApp, formatTimeArabic } from '../../lib/whatsapp'
 
@@ -175,89 +170,42 @@ function SendAllModal({ appts, business, onDone, onClose }) {
   )
 }
 
-export default function TomorrowReminders({ businessId, business }) {
-  const branchCtx = useBranch()
-  const branchId = branchCtx?.currentBranch?.id || null
-  const { data: tomorrowMap = new Map(), isLoading } = useTomorrowsAppointments(businessId)
+// The "تذكيرات بكرا" tab of the dashboard's today card. `appts` is tomorrow's
+// appointments of the branch.
+export default function TomorrowReminders({ business, appts }) {
   const [sentIds, setSentIds] = useState(new Set())
-  const [collapsed, setCollapsed] = useState(false)
   const [showSendAll, setShowSendAll] = useState(false)
-
-  const tomorrow = addDays(new Date(), 1)
-  const tomorrowLabel = format(tomorrow, 'EEEE، d MMMM', { locale: ar })
-
-  // Convert map to array, filter by branch if needed
-  let appts = Array.from(tomorrowMap.values())
-  if (branchId) appts = appts.filter(a => a.branch_id === branchId || !a.branch_id)
-
+  const tomorrowLabel = format(addDays(new Date(), 1), 'EEEE، d MMMM', { locale: ar })
   const pendingCount = appts.filter(a => !sentIds.has(a.id) && !a.reminder_sent).length
 
   function markSent(id) {
     setSentIds(prev => new Set([...prev, id]))
   }
 
-  if (isLoading) return null
-
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm mb-4" dir="rtl">
-      {/* Header */}
-      <div
-        className="flex items-center justify-between px-5 py-4 cursor-pointer select-none"
-        onClick={() => setCollapsed(c => !c)}
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
-            <HiOutlineBell className="w-5 h-5 text-blue-500" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="font-bold text-slate-800 text-sm">تذكيرات بكرا</h2>
-              {pendingCount > 0 && (
-                <span className="text-xs font-bold leading-none px-2 py-1 rounded-full bg-blue-500 text-white">
-                  {pendingCount}
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-slate-400">{tomorrowLabel}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {!collapsed && appts.length > 1 && pendingCount > 0 && (
-            <button
-              onClick={e => { e.stopPropagation(); setShowSendAll(true) }}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-accent-500 hover:bg-accent-600 text-white text-xs font-semibold rounded-xl transition-colors"
-            >
-              <FaWhatsapp className="w-3.5 h-3.5" />
-              إرسال الكل
-            </button>
-          )}
-          {collapsed
-            ? <HiOutlineChevronDown className="w-4 h-4 text-slate-400" />
-            : <HiOutlineChevronUp className="w-4 h-4 text-slate-400" />
-          }
-        </div>
+    <div data-testid="tomorrow-reminders" className="space-y-2" dir="rtl">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs text-slate-400">{tomorrowLabel}</p>
+        {appts.length > 1 && pendingCount > 0 && (
+          <button
+            onClick={() => setShowSendAll(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-accent-500 hover:bg-accent-600 text-white text-xs font-semibold rounded-xl transition-colors"
+          >
+            <FaWhatsapp className="w-3.5 h-3.5" />
+            إرسال الكل
+          </button>
+        )}
       </div>
-
-      {/* Content */}
-      {!collapsed && (
-        <div className="px-4 pb-4 space-y-2 border-t border-slate-50 pt-3">
-          {appts.length === 0 ? (
-            <div className="py-6 text-center space-y-1">
-              <HiOutlineCalendarDays className="w-10 h-10 text-slate-200 mx-auto" />
-              <p className="text-slate-400 text-sm font-medium">مفيش مواعيد بكرا</p>
-              <p className="text-slate-300 text-xs">استمتع بيومك 😊</p>
-            </div>
-          ) : (
-            appts.map(appt => (
-              <ReminderCard
-                key={appt.id}
-                appt={appt}
-                business={business}
-                onSent={markSent}
-              />
-            ))
-          )}
+      {appts.length === 0 ? (
+        <div className="py-6 text-center space-y-1">
+          <HiOutlineCalendarDays className="w-10 h-10 text-slate-200 mx-auto" />
+          <p className="text-slate-400 text-sm font-medium">مفيش مواعيد بكرا</p>
+          <p className="text-slate-300 text-xs">استمتع بيومك 😊</p>
         </div>
+      ) : (
+        appts.map(appt => (
+          <ReminderCard key={appt.id} appt={appt} business={business} onSent={markSent} />
+        ))
       )}
 
       {showSendAll && (

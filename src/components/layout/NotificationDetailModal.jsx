@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   HiOutlineUserCircle,
   HiOutlinePhone,
@@ -11,11 +11,14 @@ import { FaWhatsapp } from 'react-icons/fa'
 import Modal from '../ui/Modal'
 import Button from '../ui/Button'
 import { supabase } from '../../lib/supabase'
-import { formatTime12, formatDateAr } from '../../utils/dateHelpers'
+import { formatTime12, formatDateAr, todayISO } from '../../utils/dateHelpers'
+import { invalidateAll } from '../../hooks/useAppointments'
+import WaitlistAlert from '../appointments/WaitlistAlert'
 import { generateConfirmationMessage, openWhatsApp } from '../../lib/whatsapp'
 import { displayPhone } from '../../lib/countries'
 
 export default function NotificationDetailModal({ open, onClose, notification, business }) {
+  const qc = useQueryClient()
   const appointmentId = notification?.related_appointment_id
   const { data: appointment = null, isLoading: loading } = useQuery({
     queryKey: ['notification-appointment', appointmentId],
@@ -77,6 +80,11 @@ export default function NotificationDetailModal({ open, onClose, notification, b
                 </div>
               )}
             </div>
+
+            {/* The patient cancelled from their link (054): offer the freed slot to the waitlist. */}
+            {notification?.type === 'cancellation' && appointment.cancelled_by_patient_at && appointment.appointment_date >= todayISO() && (
+              <WaitlistAlert appointment={appointment} businessId={appointment.business_id} onPromoted={() => invalidateAll(qc)} />
+            )}
 
             {notification?.type === 'new_booking' && (
               <Button onClick={sendConfirmation} className="w-full flex items-center justify-center gap-2">

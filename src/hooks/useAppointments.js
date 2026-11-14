@@ -14,6 +14,8 @@ const APPOINTMENT_QUERIES = [
   // A plan visit follows its appointment (DB trigger) and completing one
   // charges the client's statement.
   'client-plan', 'client-ledger',
+  // Completing a visit puts it on the dashboard's Google review list.
+  'review-requests',
 ]
 
 export function invalidateAll(qc) {
@@ -157,7 +159,7 @@ export function useTomorrowsAppointments(businessId) {
         .from('appointments')
         // id is what marks the reminder as sent, branch_id what filters it by
         // branch, and the date goes in the message.
-        .select('id, branch_id, client_phone, client_name, appointment_date, appointment_time, reminder_sent, services(name), branches(name, address)')
+        .select('id, branch_id, client_phone, client_name, appointment_date, appointment_time, reminder_sent, manage_token, services(name), branches(name, address)')
         .eq('business_id', businessId)
         .eq('appointment_date', tomorrowStr)
         .in('status', ['confirmed', 'completed', 'no_show'])

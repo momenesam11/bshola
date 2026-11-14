@@ -13,9 +13,13 @@ const backend = spawn(process.execPath, ['tests/local-backend/server.mjs'], {
   stdio: ['ignore', 'pipe', 'inherit'],
 })
 
+let backendOut = ''
 backend.stdout.on('data', (chunk) => {
   process.stdout.write(chunk)
+  backendOut += chunk
   if (!String(chunk).includes('local backend ready')) return
+  // The seed prints the demo patient's /my link; its token is new every run.
+  const myPage = backendOut.match(/demo patient page: (\/my\/[0-9a-f-]+)/)?.[1]
   const web = spawn('npx', ['vite', '--port', String(WEB_PORT), '--strictPort'], {
     env: {
       ...process.env,
@@ -35,7 +39,7 @@ backend.stdout.on('data', (chunk) => {
 ${SEED_ACCOUNTS.map(a => `    ${a.email.padEnd(22)} ${a.label}`).join('\n')}
 
   صفحات الحجز:  /book/demo-clinic   /book/demo-salon
-  لوحة الأدمن:  /admin   كلمة السر: local-admin-password
+${myPage ? `  مواعيد مريض:  http://localhost:${WEB_PORT}${myPage}\n` : ''}  لوحة الأدمن:  /admin   كلمة السر: local-admin-password
   ─────────────────────────────────────────────
 `)
 })
