@@ -40,6 +40,9 @@ test.describe('google review requests', () => {
     await login(page, s)
     await page.goto('/dashboard')
 
+    // A patient is waiting today, so the card opens on the queue tab.
+    await expect(page.getByRole('tab', { name: /الدور النهارده/ })).toHaveAttribute('aria-selected', 'true')
+    await page.getByRole('tab', { name: /اطلب تقييم/ }).click()
     const rows = page.getByTestId('review-candidate')
     await expect(rows).toHaveCount(1)
     await rows.getByRole('button', { name: 'اطلب تقييم' }).click()

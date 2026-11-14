@@ -205,3 +205,37 @@ test('every button on the phone menus and dialogs fits the screen', async ({ pag
       .map(e => e.getBoundingClientRect()).filter(r => r.right > width + 1 || r.left < -1).length, vw)
   expect(offscreen).toBe(0)
 })
+
+test('dashboard on a phone: slim counts row, lists in a bottom sheet, big buttons', async ({ page }, info) => {
+  const s = await seedBusiness({ fields: { google_review_url: 'https://g.page/r/x' } })
+  for (const i of [0, 1, 2, 3, 4]) await seedAppointment(s, { client_name: `مريض الدور ${i + 1}`, appointment_date: isoDate(0), appointment_time: `1${5 + i}:00` })
+  await seedAppointment(s, { client_name: 'بكرا', appointment_date: isoDate(1) })
+  await seedAppointment(s, { client_name: 'خلص امبارح', appointment_date: isoDate(-1), status: 'completed' })
+  await login(page, s)
+  await page.goto('/dashboard')
+
+  const chips = page.getByTestId('today-chips')
+  await expect(chips).toBeVisible()
+  await expect(page.getByTestId('today-tasks')).toBeHidden()
+  await expect(chips.getByRole('button', { name: /الدور/ })).toContainText('5')
+  // The counts row is short, so the calendar starts near the top of the screen.
+  const box = await chips.boundingBox()
+  expect(box!.height).toBeLessThan(90)
+  expect(await overflow(page)).toBeNull()
+  await page.screenshot({ path: info.outputPath('dashboard-phone.png') })
+
+  await chips.getByRole('button', { name: /الدور/ }).click()
+  const sheet = page.getByTestId('today-sheet')
+  await expect(sheet).toBeVisible()
+  await expect(sheet.getByTestId('queue-row')).toHaveCount(5)
+  const done = sheet.getByTestId('queue-row').first().getByRole('button', { name: 'خلص' })
+  expect((await done.boundingBox())!.height).toBeGreaterThanOrEqual(40)
+  await page.screenshot({ path: info.outputPath('dashboard-phone-sheet.png') })
+  await done.click()
+  await expectToast(page, 'مريض الدور 1 خلص')
+  await expect(sheet.getByTestId('queue-row')).toHaveCount(4)
+
+  await page.getByRole('button', { name: 'اقفل' }).click()
+  await expect(sheet).toHaveCount(0)
+  await expect(chips.getByRole('button', { name: /الدور/ })).toContainText('4')
+})
