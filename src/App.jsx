@@ -183,7 +183,7 @@ export function AppRoutes() {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/book/:businessSlug" element={<BookingPage />} />
-          <Route path="/my/:token" element={<MyAppointments />} />
+          <Route path="/m/:code" element={<MyAppointments />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/growth" element={<GrowthPage />} />
           <Route path="/admin/setup/:id" element={<AdminClinicSetup />} />

@@ -190,14 +190,14 @@ describe('whatsapp messages', () => {
     expect(removeEmoji('أهلاً 👋 يا 🗓️ سامي')).toBe('أهلاً يا سامي')
   })
   it('confirmation and reminder carry the patient\'s own link once they have a token (054)', () => {
-    const withToken = { ...appt, manage_token: 'abc-123' }
+    const withToken = { ...appt, manage_code: 'abc-123' }
     for (const m of [generateConfirmationMessage(withToken, biz, null), generateReminderMessage(withToken, biz, null)]) {
-      expect(m).toContain('مواعيدك عندنا، ولو حابب تلغي:\nhttps://www.beshola.co/my/abc-123')
+      expect(m).toContain('مواعيدك عندنا، ولو حابب تلغي:\nhttps://www.beshola.co/m/abc-123')
     }
-    expect(generateConfirmationMessage(appt, biz, null)).not.toContain('/my/')
+    expect(generateConfirmationMessage(appt, biz, null)).not.toContain('/m/')
     expect(manageLink(appt)).toBe('')
     const custom = generateReminderMessage(withToken, { ...biz, reminder_template: 'مواعيدك: {manage_link}' }, null)
-    expect(custom).toBe('مواعيدك: https://www.beshola.co/my/abc-123')
+    expect(custom).toBe('مواعيدك: https://www.beshola.co/m/abc-123')
   })
   it('formatting survives missing values', () => {
     expect(formatTimeArabic(null)).toBe('')

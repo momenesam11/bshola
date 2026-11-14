@@ -2,15 +2,16 @@
 
 import { SITE_URL } from './seo'
 
-// The patient's own page (/my/<token>, migration 054): their appointments at
-// this clinic, and cancelling within its policy. It only ever reaches them in
-// a message the clinic sends to their number.
+// The patient's own page (/m/<code>, migrations 054 and 056): their
+// appointments at this clinic, their place in today's queue, and cancelling
+// within its policy. It only ever reaches them in a message the clinic sends
+// to their number, and it stops working a week after that appointment.
 export function manageLink(appointment) {
-  if (!appointment?.manage_token) return ''
+  if (!appointment?.manage_code) return ''
   // On a local copy or a Vercel preview the link should open that copy.
   const host = typeof window !== 'undefined' ? window.location.host : ''
   const base = /^(localhost|127\.0\.0\.1)(:\d+)?$|\.vercel\.app$/.test(host) ? window.location.origin : SITE_URL
-  return `${base}/my/${appointment.manage_token}`
+  return `${base}/m/${appointment.manage_code}`
 }
 
 function manageLine(appointment) {

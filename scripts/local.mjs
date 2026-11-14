@@ -33,8 +33,8 @@ backend.stdout.on('data', (chunk) => {
   process.stdout.write(chunk)
   backendOut += chunk
   if (!String(chunk).includes('local backend ready')) return
-  // The seed prints the demo patient's /my link; its token is new every run.
-  const myPage = backendOut.match(/demo patient page: (\/my\/[0-9a-f-]+)/)?.[1]
+  // The seed prints the demo patient's /m link; its code is new every run.
+  const myPage = backendOut.match(/demo patient page: (\/m\/[A-Za-z0-9]+)/)?.[1]
   const web = spawn('npx', ['vite', '--port', String(WEB_PORT), '--strictPort', ...(PHONE ? ['--host'] : [])], {
     env: {
       ...process.env,

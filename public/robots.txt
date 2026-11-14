@@ -15,7 +15,7 @@ Disallow: /patients
 Disallow: /onboarding
 Disallow: /admin
 Disallow: /demo/
-Disallow: /my/
+Disallow: /m/
 Disallow: /partner
 Disallow: /app
 Disallow: /login

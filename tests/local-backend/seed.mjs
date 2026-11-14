@@ -86,7 +86,7 @@ function cairoIn(hours) {
 }
 
 // Data for the retention features (migrations 050-054): today's queue, Google
-// review requests, the patient page /my/<token> and the waitlist hand-off.
+// review requests, the patient page /m/<code> and the waitlist hand-off.
 // Times end in :15 or :45, so they never meet the :00 / :30 slots above.
 async function seedRetentionDemo(db, clinic) {
   const { biz, branches, services } = clinic
@@ -107,7 +107,7 @@ async function seedRetentionDemo(db, clinic) {
   await visit({ client_name: 'نهى سليم', client_phone: phoneOf(28), appointment_date: day(-30), appointment_time: '16:15', status: 'completed', payment_status: 'paid', review_requested_at: new Date(Date.now() - 29 * 86400000).toISOString() })
   await visit({ client_name: 'نهى سليم', client_phone: phoneOf(28), appointment_date: day(-1), appointment_time: '16:45', status: 'completed', payment_status: 'paid' })
 
-  // /my/<token>: one patient with two visits more than 24 hours away (can cancel),
+  // /m/<code>: one patient with two visits more than 24 hours away (can cancel),
   // one within 24 hours (can't, under the clinic's 24-hour policy) and two past.
   const patient = { client_name: 'سلمى فؤاد', client_phone: phoneOf(30) }
   // The first time 1 to 23 hours ahead within the second branch's hours (12-20).
@@ -123,9 +123,9 @@ async function seedRetentionDemo(db, clinic) {
 
   // The database made the token; print it so the page can be opened straight away.
   const { rows } = await db.query(
-    `SELECT manage_token FROM appointments WHERE business_id = $1 AND client_phone = $2 AND appointment_date = $3`,
+    `SELECT manage_code FROM appointments WHERE business_id = $1 AND client_phone = $2 AND appointment_date = $3`,
     [biz.id, patient.client_phone, day(3)])
-  console.log(`demo patient page: /my/${rows[0].manage_token}`)
+  console.log(`demo patient page: /m/${rows[0].manage_code}`)
 }
 
 export async function seedDemoData(db, createUser) {
