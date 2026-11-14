@@ -16,11 +16,14 @@ import { formatPrice, getPricing } from '../../lib/pricing'
 import { splitPhone } from '../../lib/countries'
 import {
   useAdminBusinesses,
+  useAdminActivity,
   useDeactivateBusiness,
   useDeletionRequests,
   useRejectDeletion,
   getBusinessStatus,
   getAdminStats,
+  getSleepingClinics,
+  SLEEPING_AFTER_DAYS,
   searchBusinesses,
   adminLogout,
   hasAdminToken,
@@ -82,6 +85,71 @@ function whatsappLink(business) {
 لتجديد اشتراكك وإعادة تفعيل حسابك، تواصل معنا.
 باقات الاشتراك تبدأ من ${startingPrice}/شهر`
   return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
+}
+
+// A friendly check-in, not a sales message: the point is to learn why the
+// clinic stopped and help before the subscription runs out.
+function checkInLink(business) {
+  const phone = (business.owner_phone || business.phone || '').replace(/[^0-9]/g, '')
+  const message = `أهلاً يا دكتور، معاك مؤمن مؤسس بسهولة.
+لاحظت إن مفيش حجوزات اتسجلت على حسابك الأيام اللي فاتت، فحبيت أطمن إن كل حاجة ماشية تمام.
+لو في أي حاجة واقفة معاك أو محتاج مساعدة في الإعداد، قولّي وأنا أظبطهالك.`
+  return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
+}
+
+function quietLabel(clinic) {
+  if (!clinic.lastBookingAt) return `مفيش ولا حجز من ساعة ما سجّل (${clinic.quietDays} يوم)`
+  return `آخر حجز من ${clinic.quietDays} يوم`
+}
+
+// Trial or paid clinics with no new appointment in a week (migration 050).
+// They're the ones most likely not to renew, so they're called before that.
+function SleepingClinics({ clinics }) {
+  if (!clinics.length) return null
+  return (
+    <div data-testid="sleeping-clinics" className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 space-y-2.5">
+      <h2 className="text-sm font-bold text-indigo-900">😴 عيادات نايمة ({clinics.length})</h2>
+      <p className="text-xs text-indigo-800">
+        حسابها شغال بس ما سجلتش ولا حجز بقالها {SLEEPING_AFTER_DAYS} أيام أو أكتر. دي أكتر عيادات ممكن ما تجددش، فكلمها قبل ما اشتراكها يخلص.
+      </p>
+      <div className="space-y-1.5">
+        {clinics.map(c => (
+          <div key={c.id} data-testid="sleeping-clinic" className="flex flex-wrap items-center justify-between gap-3 bg-white rounded-lg px-3 py-2 border border-indigo-100">
+            <div className="min-w-0 text-sm">
+              <span className="font-medium text-gray-900">{c.name}</span>
+              <span className={`text-xs mr-2 px-2 py-0.5 rounded-full ${STATUS_CONFIG[c.status].color}`}>{STATUS_CONFIG[c.status].label}</span>
+              <span className="text-xs text-indigo-700 mr-2">{quietLabel(c)}</span>
+            </div>
+            <a
+              href={checkInLink(c)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 bg-green-50 text-green-700 hover:bg-green-100 rounded-lg text-xs font-medium transition-colors"
+            >
+              <FaWhatsapp className="w-3.5 h-3.5" />
+              اطمن عليها
+            </a>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// Whole days since an ISO time. Called when the activity arrives, not while
+// rendering, so the render stays pure.
+const daysSince = (iso) => Math.floor((Date.now() - new Date(iso).getTime()) / (24 * 60 * 60 * 1000))
+
+// "12 موعد · 9 تذكير" for the last 30 days, under how long since the last booking.
+function UsageCell({ usage }) {
+  if (!usage) return <span className="text-xs text-gray-400">مفيش حجوزات</span>
+  const days = usage.daysSinceBooking
+  return (
+    <div>
+      <div className="text-gray-700 tabular-nums">{usage.visits_30d} موعد · {usage.reminders_30d} تذكير</div>
+      <div className="text-xs text-gray-400">{days < 1 ? 'آخر حجز النهارده' : `آخر حجز من ${days} يوم`}</div>
+    </div>
+  )
 }
 
 // Clinics that asked to delete their account from Settings (migration 049).
@@ -173,6 +241,12 @@ function Dashboard() {
   const [deactivateTarget, setDeactivateTarget] = useState(null)
 
   const stats = useMemo(() => getAdminStats(businesses), [businesses])
+  const { data: activity, isError: activityFailed } = useAdminActivity()
+  const usageById = useMemo(
+    () => new Map((activity || []).map(a => [a.business_id, { ...a, daysSinceBooking: daysSince(a.last_booking_at) }])),
+    [activity],
+  )
+  const sleeping = useMemo(() => (activity ? getSleepingClinics(businesses, activity) : []), [businesses, activity])
 
   const filtered = useMemo(() => {
     let list = searchBusinesses(businesses, query)
@@ -247,6 +321,12 @@ function Dashboard() {
 
         <DeletionRequests businesses={businesses} onDelete={setDeleteTarget} />
 
+        {activityFailed && (
+          <p className="text-xs text-gray-500 bg-white border border-gray-200 rounded-lg px-3 py-2">
+            نشاط العيادات مش ظاهر: محتاج مايجريشن 050 وتحديث دالة admin.
+          </p>
+        )}
+
         {stats.expiringSoon.length > 0 && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-2.5">
             <h2 className="text-sm font-bold text-amber-800 flex items-center gap-1.5">
@@ -275,6 +355,8 @@ function Dashboard() {
             </div>
           </div>
         )}
+
+        <SleepingClinics clinics={sleeping} />
 
         <div className="relative">
           <HiOutlineMagnifyingGlass className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -313,15 +395,16 @@ function Dashboard() {
                 <th className="text-right px-4 py-3 font-medium">تاريخ التسجيل</th>
                 <th className="text-right px-4 py-3 font-medium">انتهاء التجربة</th>
                 <th className="text-right px-4 py-3 font-medium">الحالة</th>
+                <th className="text-right px-4 py-3 font-medium">آخر 30 يوم</th>
                 <th className="text-right px-4 py-3 font-medium">أكشن</th>
               </tr>
             </thead>
             <tbody>
               {isLoading && (
-                <tr><td colSpan={7} className="text-center py-8 text-gray-400">جاري التحميل...</td></tr>
+                <tr><td colSpan={8} className="text-center py-8 text-gray-400">جاري التحميل...</td></tr>
               )}
               {!isLoading && filtered.length === 0 && (
-                <tr><td colSpan={7} className="text-center py-8 text-gray-400">لا توجد نتائج</td></tr>
+                <tr><td colSpan={8} className="text-center py-8 text-gray-400">لا توجد نتائج</td></tr>
               )}
               {filtered.map(b => {
                 const status = getBusinessStatus(b)
@@ -343,6 +426,9 @@ function Dashboard() {
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${STATUS_CONFIG[status].color}`}>
                         {STATUS_CONFIG[status].label}
                       </span>
+                    </td>
+                    <td className="px-4 py-3" data-testid="usage-cell">
+                      {activity ? <UsageCell usage={usageById.get(b.id)} /> : <span className="text-xs text-gray-300">—</span>}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5">

@@ -144,6 +144,25 @@ export async function seedDemoData(db, createUser) {
   })
   await insert(db, 'account_deletion_requests', { business_id: leaving.biz.id, business_name: 'عيادة طالبة حذف الحساب (تجريبية)', reason: 'قفلت العيادة' })
 
+  // A clinic that signed up three weeks ago and stopped booking 12 days ago:
+  // /admin lists it under "عيادات نايمة".
+  const sleepy = await business(db, createUser, {
+    email: 'sleepy@local.test',
+    fields: {
+      name: 'عيادة بطلت تحجز (تجريبية)', type: 'clinic', booking_slug: 'demo-sleepy', owner_phone: '201000000666',
+      created_at: new Date(Date.now() - 21 * 86400000).toISOString(),
+    },
+    branches: [{ name: 'الفرع الرئيسي', is_main: true, capacity: 1, schedule_blocks: week([{ start: '10:00', end: '18:00' }]) }],
+    services: [{ name: 'كشف', duration_minutes: 30, price: 250 }],
+  })
+  for (const [offset, time] of [[-14, '10:00'], [-12, '11:00']]) {
+    await insert(db, 'appointments', {
+      business_id: sleepy.biz.id, branch_id: sleepy.branches[0].id, service_id: sleepy.services[0].id,
+      client_name: NAMES[5], client_phone: phoneOf(5), appointment_date: day(offset), appointment_time: time,
+      status: 'completed', price: 250, reminder_sent: true, created_at: new Date(Date.now() + offset * 86400000).toISOString(),
+    })
+  }
+
   await business(db, createUser, {
     email: 'expired@local.test',
     fields: { name: 'عيادة تجربتها خلصت (تجريبية)', type: 'clinic', booking_slug: 'demo-expired', trial_ends_at: new Date(Date.now() - 2 * 86400000).toISOString() },
