@@ -558,6 +558,23 @@ export default function Settings() {
     catch (e) { setStatus('queue', 'error', e?.message || String(e)) }
   }
 
+  // Booking by time or by turn (057), and the per-period limit for the latter.
+  const bookingMode = edits.bookingMode ?? (business?.booking_mode || 'time')
+  const setBookingMode = (v) => setEdits(e => ({ ...e, bookingMode: v }))
+  const queueLimit = edits.queueLimit ?? (business?.queue_limit ? String(business.queue_limit) : '')
+  const setQueueLimit = (v) => setEdits(e => ({ ...e, queueLimit: v }))
+
+  async function saveBookingMode() {
+    const limit = queueLimit.trim() ? Number(queueLimit) : null
+    if (bookingMode === 'queue' && limit !== null && (!Number.isInteger(limit) || limit < 1 || limit > 500)) {
+      setStatus('mode', 'error', 'الحد الأقصى رقم من 1 لـ 500، أو سيبه فاضي من غير حد')
+      return
+    }
+    setStatus('mode', 'loading')
+    try { await updateBusiness.mutateAsync({ id: business.id, booking_mode: bookingMode, queue_limit: bookingMode === 'queue' ? limit : null }); setStatus('mode', 'ok') }
+    catch (e) { setStatus('mode', 'error', e?.message || String(e)) }
+  }
+
   const bookingWindow = edits.bookingWindow ?? (business?.booking_window_days ? String(business.booking_window_days) : '')
   const setBookingWindow = (v) => setEdits(e => ({ ...e, bookingWindow: v }))
 
@@ -679,6 +696,36 @@ export default function Settings() {
         {tab === 'hours' && (
           <Section title="ساعات العمل" subtitle="يمكنك إضافة أكتر من فترة لليوم الواحد، بدون تقاطع بينها">
             {business && <WorkingHoursSection key={branchCtx?.currentBranch?.id ?? 'none'} business={business} />}
+          </Section>
+        )}
+
+        {tab === 'hours' && (
+          <Section title="المرضى بيحجزوا إزاي" subtitle="بالميعاد: كل مريض ليه ساعة. بالدور: المريض يختار الفترة وياخد رقم">
+            <div role="radiogroup" className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {[
+                { value: 'time', title: 'بالميعاد', text: 'المريض يختار ساعة محددة، وكل ميعاد ليه مدته.' },
+                { value: 'queue', title: 'بالدور', text: 'المريض يختار اليوم والفترة، وياخد رقم في الدور. لو حد لغى، أرقام الباقيين ما بتتغيرش.' },
+              ].map(o => (
+                <button key={o.value} type="button" role="radio" aria-checked={bookingMode === o.value} onClick={() => setBookingMode(o.value)}
+                  className={`text-right rounded-xl border-2 p-3 transition-colors ${bookingMode === o.value ? 'border-accent-500 bg-accent-50' : 'border-slate-200 hover:border-slate-300'}`}>
+                  <p className="font-bold text-slate-900">{o.title}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">{o.text}</p>
+                </button>
+              ))}
+            </div>
+            {bookingMode === 'queue' && (
+              <>
+                <Input label="أقصى عدد في الفترة (أونلاين)" type="number" min={1} max={500} value={queueLimit}
+                  onChange={e => setQueueLimit(e.target.value)} placeholder="من غير حد" dir="ltr" />
+                <p className="text-xs text-slate-500">
+                  الفترات هي فترات الشغل اللي فوق. لو الفترة اتملت، المريض يقدر يدخل قايمة الانتظار، وانت تقدر تزوّد فوق الحد من الداشبورد.
+                </p>
+              </>
+            )}
+            <div className="flex items-center gap-3">
+              <Button onClick={saveBookingMode} loading={saveStatus.mode === 'loading'} size="sm">حفظ طريقة الحجز</Button>
+              <SaveFeedback status={saveStatus.mode} msg={saveStatus.modeMsg} />
+            </div>
           </Section>
         )}
 

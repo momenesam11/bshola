@@ -51,7 +51,8 @@ function When({ a }) {
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-600">
       <span className="flex items-center gap-1"><HiOutlineCalendarDays className="w-4 h-4" />{formatDateArabic(a.date)}</span>
-      {a.status !== 'waitlist' && <span className="flex items-center gap-1"><HiOutlineClock className="w-4 h-4" />{formatTimeArabic(a.time)}</span>}
+      {a.status !== 'waitlist' && <span className="flex items-center gap-1"><HiOutlineClock className="w-4 h-4" />{a.number != null ? `الفترة بتبدأ ${formatTimeArabic(a.time)}` : formatTimeArabic(a.time)}</span>}
+      {a.number != null && <span data-testid="my-number" className="font-bold text-ink">رقمك {a.number}</span>}
     </div>
   )
 }

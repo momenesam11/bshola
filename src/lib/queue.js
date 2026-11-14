@@ -1,5 +1,6 @@
 // "How many are ahead of you" for walk-in style clinics (migration 053). The
-// order is the booking time: the patient booked at 10:00 goes in before the one
+// order is the booking time, then the queue number for clinics that book by
+// turn (057): the patient booked at 10:00 goes in before the one
 // at 10:30, whoever arrives first. Messages go out by hand from the clinic's
 // own WhatsApp, so the patient gets a plain text with no link to open.
 
@@ -11,7 +12,9 @@ export function waitingQueue(appointments, branchId = null) {
   return (appointments || [])
     .filter(a => a.status === 'confirmed')
     .filter(a => !branchId || !a.branch_id || a.branch_id === branchId)
-    .sort((a, b) => String(a.appointment_time).localeCompare(String(b.appointment_time)) || String(a.created_at || '').localeCompare(String(b.created_at || '')))
+    .sort((a, b) => String(a.appointment_time).localeCompare(String(b.appointment_time))
+      || (a.queue_number ?? 0) - (b.queue_number ?? 0)
+      || String(a.created_at || '').localeCompare(String(b.created_at || '')))
 }
 
 /** The clinic's "tell them when N are ahead" setting, kept within 1..10. */

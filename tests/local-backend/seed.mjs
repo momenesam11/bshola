@@ -7,6 +7,7 @@ export const SEED_PASSWORD = 'Local12345'
 export const SEED_ACCOUNTS = [
   { email: 'clinic@local.test', label: 'عيادة أسنان بفرعين' },
   { email: 'salon@local.test', label: 'صالون بـ3 كراسي' },
+  { email: 'queue@local.test', label: 'عيادة بتحجز بالدور' },
   { email: 'expired@local.test', label: 'حساب تجربته خلصت' },
 ]
 
@@ -217,6 +218,29 @@ export async function seedDemoData(db, createUser) {
       business_id: sleepy.biz.id, branch_id: sleepy.branches[0].id, service_id: sleepy.services[0].id,
       client_name: NAMES[5], client_phone: phoneOf(5), appointment_date: day(offset), appointment_time: time,
       status: 'completed', price: 250, reminder_sent: true, created_at: new Date(Date.now() + offset * 86400000).toISOString(),
+    })
+  }
+
+  // Booking by turn (057): two periods a day, at most 15 online each. Today's
+  // evening has started (number 1 is done), so the booking page shows who is inside.
+  const turn = await business(db, createUser, {
+    email: 'queue@local.test',
+    fields: { name: 'عيادة د. كريم باطنة (بالدور، تجريبية)', type: 'clinic', booking_slug: 'demo-queue', booking_mode: 'queue', queue_limit: 15, specialty: 'باطنة' },
+    branches: [{ name: 'الفرع الرئيسي', is_main: true, capacity: 1, schedule_blocks: week([{ start: '10:00', end: '14:00' }, { start: '16:00', end: '23:30' }]) }],
+    services: [{ name: 'كشف', duration_minutes: 15, price: 300 }, { name: 'استشارة', duration_minutes: 10, price: 150 }],
+  })
+  const turnNames = ['فاطمة علي', 'حسن محمود', 'سلوى أحمد', 'رامي سعد', 'نادية فؤاد', 'عادل حسين']
+  for (const [i, name] of turnNames.entries()) {
+    const row = await insert(db, 'appointments', {
+      business_id: turn.biz.id, branch_id: turn.branches[0].id, service_id: turn.services[0].id,
+      client_name: name, client_phone: phoneOf(50 + i), appointment_date: day(0), appointment_time: '16:00', status: 'confirmed',
+    })
+    if (i === 0) await db.query(`UPDATE appointments SET status = 'completed' WHERE id = $1`, [row.id])
+  }
+  for (const [i, name] of ['منى سمير', 'خالد عمر'].entries()) {
+    await insert(db, 'appointments', {
+      business_id: turn.biz.id, branch_id: turn.branches[0].id, service_id: turn.services[0].id,
+      client_name: name, client_phone: phoneOf(60 + i), appointment_date: day(1), appointment_time: '10:00', status: 'confirmed',
     })
   }
 

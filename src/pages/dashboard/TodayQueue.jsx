@@ -69,7 +69,7 @@ export default function TodayQueue({ business, queue, onOpen }) {
       {/* On a phone the buttons sit under the name, wide enough for a thumb. */}
       {queue.map((a, i) => (
         <div key={a.id} data-testid="queue-row" className={`flex flex-wrap sm:flex-nowrap items-center gap-x-3 gap-y-2.5 px-3 py-3 sm:py-2.5 rounded-2xl border ${i === 0 ? 'border-accent-200 bg-accent-50/50' : 'border-slate-100 bg-white'}`}>
-          <span className="w-8 h-8 rounded-full bg-slate-100 text-slate-700 text-sm font-bold flex items-center justify-center flex-shrink-0 tabular-nums">{i + 1}</span>
+          <span className="w-8 h-8 rounded-full bg-slate-100 text-slate-700 text-sm font-bold flex items-center justify-center flex-shrink-0 tabular-nums" title={a.queue_number != null ? `رقم ${a.queue_number}` : undefined}>{a.queue_number ?? i + 1}</span>
           <div className="flex-1 min-w-0">
             <button type="button" onClick={() => onOpen?.(a)} className="font-bold sm:font-semibold text-[15px] sm:text-sm text-slate-900 break-words text-right hover:underline">{a.client_name}</button>
             <div className="flex flex-wrap items-center gap-1.5 mt-0.5 text-xs text-slate-500">

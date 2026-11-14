@@ -25,6 +25,14 @@ ${manageLink(appointment)}
 — ${business.name}`
 }
 
+// Booking by turn (057): the number and when the period starts, instead of a time.
+function whenLine(appointment, timeFormatted) {
+  return appointment.queue_number != null
+    ? `رقمك في الدور: ${appointment.queue_number}
+الفترة بتبدأ: ${timeFormatted}`
+    : `الساعة: ${timeFormatted}`
+}
+
 function manageLine(appointment) {
   const link = manageLink(appointment)
   return link ? `\n\nمواعيدك عندنا، ولو حابب تلغي:\n${link}` : ''
@@ -60,7 +68,7 @@ export function generateReminderMessage(appointment, business, branch) {
 
 تذكير بموعدك غداً عند ${business.name}:
 التاريخ: ${dateFormatted}
-الساعة: ${timeFormatted}
+${whenLine(appointment, timeFormatted)}
 الخدمة: ${appointment.services?.name || appointment.service_name || ''}
 ${branchLine}${manageLine(appointment)}
 
@@ -81,7 +89,7 @@ export function generateConfirmationMessage(appointment, business, branch) {
 
 تم تأكيد حجزك عند ${business.name}:
 التاريخ: ${dateFormatted}
-الساعة: ${timeFormatted}
+${whenLine(appointment, timeFormatted)}
 الخدمة: ${appointment.services?.name || appointment.service_name || ''}
 ${branchLine}${manageLine(appointment)}
 
