@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { useQueryClient } from '@tanstack/react-query'
 import {
@@ -43,6 +43,9 @@ import DeleteAccountSection from '../../components/settings/DeleteAccountSection
 import { BRAND_COLORS, CANCELLATION_OPTIONS, cleanSlug } from '../../lib/businessProfile'
 import PhoneInput from '../../components/ui/PhoneInput'
 import { COUNTRIES, CURRENCIES, DEFAULT_COUNTRY, defaultCurrencyOf } from '../../lib/countries'
+import { isReviewUrl } from '../../lib/reviews'
+import { BOOKING_WINDOW_OPTIONS } from '../../lib/bookingWindow'
+import { MAX_NOTIFY_AHEAD, notifyAheadOf } from '../../lib/queue'
 function ServiceRow({ service, onUpdateField, onDelete }) {
   return (
     <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100 flex-wrap">
@@ -536,7 +539,48 @@ export default function Settings() {
   const reminderTemplate = edits.reminderTemplate ?? (business?.reminder_template || DEFAULT_REMINDER_TEMPLATE)
   const setReminderTemplate = (v) => setEdits(e => ({ ...e, reminderTemplate: v }))
   const [saveStatus, setSaveStatus] = useState({})
-  const [tab, setTab] = useState('business')
+  // /settings?tab=reminders opens straight on that tab (the dashboard links there).
+  const [searchParams] = useSearchParams()
+  const [tab, setTab] = useState(() => {
+    const asked = searchParams.get('tab')
+    return SETTINGS_TABS.some(t => t.id === asked) ? asked : 'business'
+  })
+  const queueAhead = edits.queueAhead ?? String(notifyAheadOf(business))
+  const setQueueAhead = (v) => setEdits(e => ({ ...e, queueAhead: v }))
+
+  async function saveQueueAhead() {
+    const n = Number(queueAhead)
+    if (!Number.isInteger(n) || n < 1 || n > MAX_NOTIFY_AHEAD) {
+      setStatus('queue', 'error', `اكتب رقم من 1 لـ ${MAX_NOTIFY_AHEAD}`)
+      return
+    }
+    setStatus('queue', 'loading')
+    try { await updateBusiness.mutateAsync({ id: business.id, queue_notify_ahead: n }); setStatus('queue', 'ok') }
+    catch (e) { setStatus('queue', 'error', e?.message || String(e)) }
+  }
+
+  const bookingWindow = edits.bookingWindow ?? (business?.booking_window_days ? String(business.booking_window_days) : '')
+  const setBookingWindow = (v) => setEdits(e => ({ ...e, bookingWindow: v }))
+
+  async function saveBookingWindow() {
+    setStatus('window', 'loading')
+    try { await updateBusiness.mutateAsync({ id: business.id, booking_window_days: bookingWindow ? Number(bookingWindow) : null }); setStatus('window', 'ok') }
+    catch (e) { setStatus('window', 'error', e?.message || String(e)) }
+  }
+
+  const reviewUrl = edits.reviewUrl ?? (business?.google_review_url || '')
+  const setReviewUrl = (v) => setEdits(e => ({ ...e, reviewUrl: v }))
+
+  async function saveReviewUrl() {
+    const value = reviewUrl.trim()
+    if (value && !isReviewUrl(value)) {
+      setStatus('review', 'error', 'اللينك لازم يبدأ بـ https://')
+      return
+    }
+    setStatus('review', 'loading')
+    try { await updateBusiness.mutateAsync({ id: business.id, google_review_url: value || null }); setStatus('review', 'ok') }
+    catch (e) { setStatus('review', 'error', e?.message || String(e)) }
+  }
 
   function setStatus(key, val, msg = '') {
     setSaveStatus(s => ({ ...s, [key]: val, [`${key}Msg`]: msg }))
@@ -652,6 +696,24 @@ export default function Settings() {
           </Section>
         )}
 
+        {tab === 'hours' && (
+          <Section title="المرضى يحجزوا لقدام لحد إمتى" subtitle="بيمنع حد يحجز من دلوقتي لآخر الشهر مثلًا. الأيام بتتفتح لوحدها يوم بيوم">
+            <Dropdown
+              label="الحجز أونلاين متاح لـ"
+              value={bookingWindow}
+              onChange={v => setBookingWindow(String(v))}
+              options={BOOKING_WINDOW_OPTIONS}
+            />
+            <p className="text-xs text-slate-500">
+              المواعيد المحجوزة قبل كده بتفضل زي ما هي، وانت تقدر تضيف أي ميعاد في أي يوم من الداشبورد.
+            </p>
+            <div className="flex items-center gap-3">
+              <Button onClick={saveBookingWindow} loading={saveStatus.window === 'loading'} size="sm">حفظ المدة</Button>
+              <SaveFeedback status={saveStatus.window} msg={saveStatus.windowMsg} />
+            </div>
+          </Section>
+        )}
+
         {/* ── Reminders ─────────────────────────────────────────── */}
         {tab === 'reminders' && (
           <Section title="إعدادات التذكيرات">
@@ -664,13 +726,39 @@ export default function Settings() {
             <Textarea label="نص رسالة التذكير" value={reminderTemplate} onChange={e => setReminderTemplate(e.target.value)} rows={4} />
             <p className="text-xs text-slate-400">
               المتغيرات:{' '}
-              {['{client_name}', '{service}', '{date}', '{time}', '{business_name}', '{branch}'].map(v => (
+              {['{client_name}', '{service}', '{date}', '{time}', '{business_name}', '{branch}', '{manage_link}'].map(v => (
                 <code key={v} className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 mx-0.5 text-[12.5px]">{v}</code>
               ))}
             </p>
             <div className="flex items-center gap-3">
               <Button onClick={saveReminder} loading={saveStatus.reminder === 'loading'} size="sm">حفظ</Button>
               <SaveFeedback status={saveStatus.reminder} msg={saveStatus.reminderMsg} />
+            </div>
+          </Section>
+        )}
+
+        {tab === 'reminders' && (
+          <Section title="الدور النهارده" subtitle="لما المرضى يقربوا من دورهم، الرئيسية هتقولك تبعت لمين رسالة «باقي قدامك كام»">
+            <Input label="ابعت للمريض لما يبقى قدامه" type="number" min={1} max={MAX_NOTIFY_AHEAD} value={queueAhead}
+              onChange={e => setQueueAhead(e.target.value)} dir="ltr" />
+            <p className="text-xs text-slate-500">الترتيب بميعاد الحجز. الرسالة بتتبعت من واتساب العيادة، والمريض مش محتاج يفتح أي لينك.</p>
+            <div className="flex items-center gap-3">
+              <Button onClick={saveQueueAhead} loading={saveStatus.queue === 'loading'} size="sm">حفظ العدد</Button>
+              <SaveFeedback status={saveStatus.queue} msg={saveStatus.queueMsg} />
+            </div>
+          </Section>
+        )}
+
+        {tab === 'reminders' && (
+          <Section title="تقييم جوجل" subtitle="بعد ما الزيارة تخلص، الرئيسية هتقترح عليك تبعت للمريض رسالة يقيمك فيها">
+            <Input label="لينك التقييم على جوجل" value={reviewUrl} onChange={e => setReviewUrl(e.target.value)}
+              placeholder="https://g.page/r/..." dir="ltr" />
+            <p className="text-xs text-slate-500 leading-relaxed">
+              تجيبه منين: افتح ملف عيادتك على Google Business Profile، ودوس «اطلب تقييمات» أو «Ask for reviews»، وانسخ اللينك والصقه هنا.
+            </p>
+            <div className="flex items-center gap-3">
+              <Button onClick={saveReviewUrl} loading={saveStatus.review === 'loading'} size="sm">حفظ اللينك</Button>
+              <SaveFeedback status={saveStatus.review} msg={saveStatus.reviewMsg} />
             </div>
           </Section>
         )}
