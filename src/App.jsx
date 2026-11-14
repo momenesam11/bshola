@@ -30,6 +30,7 @@ const AppointmentList = lazy(() => import('./pages/dashboard/AppointmentList'))
 const Reports = lazy(() => import('./pages/reports/Reports'))
 const Settings = lazy(() => import('./pages/settings/Settings'))
 const BookingPage = lazy(() => import('./pages/booking/BookingPage'))
+const MyAppointments = lazy(() => import('./pages/patient/MyAppointments'))
 const ClientsPage = lazy(() => import('./pages/crm/ClientsPage'))
 const PatientRecord = lazy(() => import('./pages/patients/PatientRecord'))
 const BranchSettings = lazy(() => import('./pages/settings/BranchSettings'))
@@ -182,6 +183,7 @@ export function AppRoutes() {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/book/:businessSlug" element={<BookingPage />} />
+          <Route path="/my/:token" element={<MyAppointments />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/growth" element={<GrowthPage />} />
           <Route path="/admin/setup/:id" element={<AdminClinicSetup />} />
