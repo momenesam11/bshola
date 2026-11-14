@@ -28,7 +28,6 @@ export function summaryLines(s) {
   if (rate !== null) lines.push(`${s.completed} حضروا و${s.no_shows} ما جوش، يعني نسبة الحضور ${rate}%`)
   if (s.reminders_sent) lines.push(`${s.reminders_sent} تذكير اتبعت على واتساب`)
   if (s.new_patients) lines.push(`${s.new_patients} مريض جديد`)
-  if (s.review_requests) lines.push(`${s.review_requests} طلب تقييم على جوجل`)
   return lines
 }
 

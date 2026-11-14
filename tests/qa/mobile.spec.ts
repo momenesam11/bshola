@@ -207,7 +207,7 @@ test('every button on the phone menus and dialogs fits the screen', async ({ pag
 })
 
 test('dashboard on a phone: slim counts row, lists in a bottom sheet, big buttons', async ({ page }, info) => {
-  const s = await seedBusiness({ fields: { google_review_url: 'https://g.page/r/x' } })
+  const s = await seedBusiness()
   for (const i of [0, 1, 2, 3, 4]) await seedAppointment(s, { client_name: `مريض الدور ${i + 1}`, appointment_date: isoDate(0), appointment_time: `1${5 + i}:00` })
   await seedAppointment(s, { client_name: 'بكرا', appointment_date: isoDate(1) })
   await seedAppointment(s, { client_name: 'خلص امبارح', appointment_date: isoDate(-1), status: 'completed' })

@@ -36,7 +36,6 @@ export default function SummaryModal({ business, onClose }) {
               <Stat label="نسبة الحضور" value={rate === null ? '—' : `${rate}%`} />
               <Stat label="تذكيرات اتبعتت" value={summary.reminders_sent} />
               <Stat label="مرضى جداد" value={summary.new_patients} />
-              <Stat label="طلبات تقييم" value={summary.review_requests} />
             </div>
             <div>
               <p className="text-xs font-medium text-gray-500 mb-1">الرسالة اللي هتتبعت</p>

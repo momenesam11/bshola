@@ -14,8 +14,6 @@ const APPOINTMENT_QUERIES = [
   // A plan visit follows its appointment (DB trigger) and completing one
   // charges the client's statement.
   'client-plan', 'client-ledger',
-  // Completing a visit puts it on the dashboard's Google review list.
-  'review-requests',
 ]
 
 export function invalidateAll(qc) {

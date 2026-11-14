@@ -1,28 +1,26 @@
 import { useState } from 'react'
 import {
   HiOutlineChevronDown, HiOutlineChevronUp, HiOutlineXMark,
-  HiOutlineQueueList, HiOutlineBell, HiOutlineStar,
+  HiOutlineQueueList, HiOutlineBell,
 } from 'react-icons/hi2'
 import { useTomorrowsAppointments } from '../../hooks/useAppointments'
-import { useReviewCandidates, useTodayAppointments } from '../../hooks/useDashboardTasks'
+import { useTodayAppointments } from '../../hooks/useDashboardTasks'
 import { useBranch } from '../../context/branchState'
 import { waitingQueue } from '../../lib/queue'
 import TodayQueue from './TodayQueue'
 import TomorrowReminders from './TomorrowReminders'
-import ReviewRequests from './ReviewRequests'
 
 // One card above the calendar instead of three: today's queue, tomorrow's
-// reminders and Google review requests as tabs, each with its count. The list
+// reminders as tabs, each with its count. The list
 // scrolls inside the card so the calendar stays in view. The open tab and a
 // collapsed card are remembered on this device.
 
 // Phone buttons are narrow: a third of the screen each. Brand colours (accent
 // teal, ink navy); the icon tells them apart.
-const SHORT_LABELS = { queue: 'الدور', reminders: 'بكرا', reviews: 'تقييم' }
+const SHORT_LABELS = { queue: 'الدور', reminders: 'بكرا' }
 const CHIP_LOOK = {
   queue: { Icon: HiOutlineQueueList },
   reminders: { Icon: HiOutlineBell },
-  reviews: { Icon: HiOutlineStar },
 }
 
 const TAB_KEY = 'beshola_today_tab'
@@ -41,20 +39,17 @@ export default function TodayTasks({ business, onOpen }) {
   const branchId = current && !current.isAll ? current.id : null
   const { data: today = [] } = useTodayAppointments(business.id)
   const { data: tomorrowMap = new Map(), isLoading: tomorrowLoading } = useTomorrowsAppointments(business.id)
-  const { data: candidates = [] } = useReviewCandidates(business.id)
   const [chosen, setChosen] = useState(() => readStored(TAB_KEY))
   const [collapsed, setCollapsed] = useState(() => readStored(COLLAPSED_KEY) === '1')
   const [sheet, setSheet] = useState(null)
 
   const queue = waitingQueue(today, branchId)
   const tomorrow = Array.from(tomorrowMap.values()).filter(a => !branchId || !a.branch_id || a.branch_id === branchId)
-  const reviews = branchId ? candidates.filter(v => !v.branch_id || v.branch_id === branchId) : candidates
 
   // Tomorrow's reminders are always there; the other two only when they have something.
   const tabs = [
     queue.length > 0 && { key: 'queue', label: 'الدور النهارده', count: queue.length },
     { key: 'reminders', label: 'تذكيرات بكرا', count: tomorrow.filter(a => !a.reminder_sent).length },
-    reviews.length > 0 && { key: 'reviews', label: 'اطلب تقييم', count: reviews.length },
   ].filter(Boolean)
   // The tab the owner last opened, if it still has a place; otherwise the first with work.
   const active = tabs.find(t => t.key === chosen)?.key
@@ -79,7 +74,6 @@ export default function TodayTasks({ business, onOpen }) {
     <>
       {key === 'queue' && <TodayQueue business={business} queue={queue} onOpen={(a) => { setSheet(null); onOpen?.(a) }} />}
       {key === 'reminders' && <TomorrowReminders business={business} appts={tomorrow} />}
-      {key === 'reviews' && <ReviewRequests business={business} list={reviews} />}
     </>
   )
   const sheetTab = tabs.find(t => t.key === sheet)

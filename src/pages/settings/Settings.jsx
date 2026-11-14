@@ -43,7 +43,6 @@ import DeleteAccountSection from '../../components/settings/DeleteAccountSection
 import { BRAND_COLORS, CANCELLATION_OPTIONS, cleanSlug } from '../../lib/businessProfile'
 import PhoneInput from '../../components/ui/PhoneInput'
 import { COUNTRIES, CURRENCIES, DEFAULT_COUNTRY, defaultCurrencyOf } from '../../lib/countries'
-import { isReviewUrl } from '../../lib/reviews'
 import { BOOKING_WINDOW_OPTIONS } from '../../lib/bookingWindow'
 import { MAX_NOTIFY_AHEAD, notifyAheadOf } from '../../lib/queue'
 function ServiceRow({ service, onUpdateField, onDelete }) {
@@ -568,19 +567,6 @@ export default function Settings() {
     catch (e) { setStatus('window', 'error', e?.message || String(e)) }
   }
 
-  const reviewUrl = edits.reviewUrl ?? (business?.google_review_url || '')
-  const setReviewUrl = (v) => setEdits(e => ({ ...e, reviewUrl: v }))
-
-  async function saveReviewUrl() {
-    const value = reviewUrl.trim()
-    if (value && !isReviewUrl(value)) {
-      setStatus('review', 'error', 'اللينك لازم يبدأ بـ https://')
-      return
-    }
-    setStatus('review', 'loading')
-    try { await updateBusiness.mutateAsync({ id: business.id, google_review_url: value || null }); setStatus('review', 'ok') }
-    catch (e) { setStatus('review', 'error', e?.message || String(e)) }
-  }
 
   function setStatus(key, val, msg = '') {
     setSaveStatus(s => ({ ...s, [key]: val, [`${key}Msg`]: msg }))
@@ -749,19 +735,6 @@ export default function Settings() {
           </Section>
         )}
 
-        {tab === 'reminders' && (
-          <Section title="تقييم جوجل" subtitle="بعد ما الزيارة تخلص، الرئيسية هتقترح عليك تبعت للمريض رسالة يقيمك فيها">
-            <Input label="لينك التقييم على جوجل" value={reviewUrl} onChange={e => setReviewUrl(e.target.value)}
-              placeholder="https://g.page/r/..." dir="ltr" />
-            <p className="text-xs text-slate-500 leading-relaxed">
-              تجيبه منين: افتح ملف عيادتك على Google Business Profile، ودوس «اطلب تقييمات» أو «Ask for reviews»، وانسخ اللينك والصقه هنا.
-            </p>
-            <div className="flex items-center gap-3">
-              <Button onClick={saveReviewUrl} loading={saveStatus.review === 'loading'} size="sm">حفظ اللينك</Button>
-              <SaveFeedback status={saveStatus.review} msg={saveStatus.reviewMsg} />
-            </div>
-          </Section>
-        )}
 
         {/* ── Account: security + logout + danger zone ──────────── */}
         {tab === 'account' && (

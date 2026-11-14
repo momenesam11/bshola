@@ -93,7 +93,7 @@ test.describe('today queue', () => {
 
 test.describe('dashboard today card', () => {
   test('one card with a tab per list, its counts, and the choice remembered', async ({ page }) => {
-    const s = await seedBusiness({ fields: { google_review_url: 'https://g.page/r/x' } })
+    const s = await seedBusiness()
     for (const i of [0, 1, 2]) await seedAppointment(s, { client_name: `دور ${i}`, appointment_date: isoDate(0), appointment_time: `2${i}:00` })
     await seedAppointment(s, { client_name: 'بكرا', appointment_date: isoDate(1) })
     await seedAppointment(s, { client_name: 'خلص امبارح', appointment_date: isoDate(-1), status: 'completed' })
@@ -104,7 +104,7 @@ test.describe('dashboard today card', () => {
     await expect(card).toHaveCount(1)
     await expect(card.getByRole('tab', { name: /الدور النهارده/ })).toContainText('3')
     await expect(card.getByRole('tab', { name: /تذكيرات بكرا/ })).toContainText('1')
-    await expect(card.getByRole('tab', { name: /اطلب تقييم/ })).toContainText('1')
+    await expect(card.getByRole('tab')).toHaveCount(2)
     await expect(card.getByTestId('today-queue')).toBeVisible()
 
     await card.getByRole('tab', { name: /تذكيرات بكرا/ }).click()

@@ -20,9 +20,8 @@ describe('monthly summary', () => {
       '90 حضروا و10 ما جوش، يعني نسبة الحضور 90%',
       '80 تذكير اتبعت على واتساب',
       '30 مريض جديد',
-      '12 طلب تقييم على جوجل',
     ])
-    expect(summaryLines({ ...busy, online_bookings: 0, reminders_sent: 0, new_patients: 0, review_requests: 0, completed: 0, no_shows: 0 }))
+    expect(summaryLines({ ...busy, online_bookings: 0, reminders_sent: 0, new_patients: 0, completed: 0, no_shows: 0 }))
       .toEqual(['120 موعد'])
     expect(summaryLines({ appointments: 0 })).toEqual([])
   })
