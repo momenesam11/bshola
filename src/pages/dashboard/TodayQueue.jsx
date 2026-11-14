@@ -46,8 +46,8 @@ export default function TodayQueue({ business, queue, onOpen }) {
     <div data-testid="today-queue" className="space-y-2" dir="rtl">
       <p className="text-xs text-slate-400">بترتيب ميعاد الحجز. «خلص» لما المريض يطلع.</p>
       {due && (
-        <div data-testid="queue-due" className="flex flex-wrap items-center justify-between gap-2 bg-violet-50 border border-violet-200 rounded-xl px-3 py-2.5">
-          <p className="text-sm text-violet-900">
+        <div data-testid="queue-due" className="flex flex-wrap items-center justify-between gap-2 bg-accent-50 border border-accent-200 rounded-xl px-3 py-2.5">
+          <p className="text-sm text-ink">
             <b>{due.client_name}</b> بقى قدامه {ahead}. ابعتله يتحرك.
           </p>
           <button onClick={() => sendPlace(due, ahead)} disabled={busyId === due.id}
@@ -60,7 +60,7 @@ export default function TodayQueue({ business, queue, onOpen }) {
 
       {/* On a phone the buttons sit under the name, wide enough for a thumb. */}
       {queue.map((a, i) => (
-        <div key={a.id} data-testid="queue-row" className={`flex flex-wrap sm:flex-nowrap items-center gap-x-3 gap-y-2.5 px-3 py-3 sm:py-2.5 rounded-2xl border ${i === 0 ? 'border-violet-200 bg-violet-50/40' : 'border-slate-100 bg-white'}`}>
+        <div key={a.id} data-testid="queue-row" className={`flex flex-wrap sm:flex-nowrap items-center gap-x-3 gap-y-2.5 px-3 py-3 sm:py-2.5 rounded-2xl border ${i === 0 ? 'border-accent-200 bg-accent-50/50' : 'border-slate-100 bg-white'}`}>
           <span className="w-8 h-8 rounded-full bg-slate-100 text-slate-700 text-sm font-bold flex items-center justify-center flex-shrink-0 tabular-nums">{i + 1}</span>
           <div className="flex-1 min-w-0">
             <button type="button" onClick={() => onOpen?.(a)} className="font-bold sm:font-semibold text-[15px] sm:text-sm text-slate-900 break-words text-right hover:underline">{a.client_name}</button>
@@ -68,7 +68,7 @@ export default function TodayQueue({ business, queue, onOpen }) {
               <span className="tabular-nums">{formatTimeArabic(a.appointment_time)}</span>
               {a.services?.name && <span>· {a.services.name}</span>}
               {i === 0
-                ? <span className="px-1.5 py-0.5 rounded-md bg-violet-100 text-violet-700 font-semibold">دوره دلوقتي</span>
+                ? <span className="px-1.5 py-0.5 rounded-md bg-accent-100 text-accent-700 font-semibold">دوره دلوقتي</span>
                 : <span>· قدامه {i}</span>}
               {a.queue_notified_at && <span className="px-1.5 py-0.5 rounded-md bg-green-50 text-green-700">اتبعتله</span>}
             </div>
@@ -83,7 +83,7 @@ export default function TodayQueue({ business, queue, onOpen }) {
               ما جاش
             </button>
             <button onClick={() => setStatus(a, 'completed')} disabled={busyId === a.id}
-              className="flex-[2] sm:flex-none h-11 sm:h-auto flex items-center justify-center gap-1 px-2.5 sm:py-1.5 rounded-xl sm:rounded-lg text-sm sm:text-xs font-bold sm:font-semibold bg-blue-600 sm:bg-blue-50 text-white sm:text-blue-700 hover:bg-blue-700 sm:hover:bg-blue-100 transition-colors disabled:opacity-60">
+              className="flex-[2] sm:flex-none h-11 sm:h-auto flex items-center justify-center gap-1 px-2.5 sm:py-1.5 rounded-xl sm:rounded-lg text-sm sm:text-xs font-bold sm:font-semibold bg-accent-500 sm:bg-accent-50 text-white sm:text-accent-700 hover:bg-accent-600 sm:hover:bg-accent-100 transition-colors disabled:opacity-60">
               <HiOutlineCheck className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
               خلص
             </button>

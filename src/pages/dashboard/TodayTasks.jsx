@@ -16,13 +16,13 @@ import ReviewRequests from './ReviewRequests'
 // scrolls inside the card so the calendar stays in view. The open tab and a
 // collapsed card are remembered on this device.
 
-// Phone buttons are narrow: a third of the screen each. Each has its own
-// colour and icon, and a chevron, so it reads as something to tap.
+// Phone buttons are narrow: a third of the screen each. Brand colours (accent
+// teal, ink navy); the icon tells them apart.
 const SHORT_LABELS = { queue: 'الدور', reminders: 'بكرا', reviews: 'تقييم' }
 const CHIP_LOOK = {
-  queue: { Icon: HiOutlineQueueList, chip: 'bg-violet-50 border-violet-200 text-violet-800', badge: 'bg-violet-600 text-white' },
-  reminders: { Icon: HiOutlineBell, chip: 'bg-blue-50 border-blue-200 text-blue-800', badge: 'bg-blue-600 text-white' },
-  reviews: { Icon: HiOutlineStar, chip: 'bg-amber-50 border-amber-200 text-amber-800', badge: 'bg-amber-500 text-white' },
+  queue: { Icon: HiOutlineQueueList },
+  reminders: { Icon: HiOutlineBell },
+  reviews: { Icon: HiOutlineStar },
 }
 
 const TAB_KEY = 'beshola_today_tab'
@@ -94,10 +94,10 @@ export default function TodayTasks({ business, onOpen }) {
           const Icon = look.Icon
           return (
             <button key={t.key} onClick={() => setSheet(t.key)} aria-label={`${t.label} (${t.count})`}
-              className={`relative flex-1 min-w-0 flex items-center justify-center gap-1.5 h-12 px-2 rounded-2xl border-2 shadow-sm active:scale-95 active:shadow-none transition ${look.chip}`}>
-              <Icon className="w-5 h-5 flex-shrink-0" />
+              className={`relative flex-1 min-w-0 flex items-center justify-center gap-1.5 h-12 px-2 rounded-2xl border-2 shadow-sm active:scale-95 active:shadow-none transition bg-white border-accent-200 text-ink active:bg-accent-50`}>
+              <Icon className="w-5 h-5 flex-shrink-0 text-accent-600" />
               <span className="text-sm font-bold truncate">{SHORT_LABELS[t.key]}</span>
-              <span className={`absolute -top-2 -left-1.5 min-w-[22px] h-[22px] px-1.5 rounded-full text-xs font-bold leading-[22px] text-center tabular-nums ring-2 ring-white ${t.count > 0 ? look.badge : 'bg-slate-200 text-slate-500'}`}>{t.count}</span>
+              <span className={`absolute -top-2 -left-1.5 min-w-[22px] h-[22px] px-1.5 rounded-full text-xs font-bold leading-[22px] text-center tabular-nums ring-2 ring-white ${t.count > 0 ? 'bg-accent-500 text-white' : 'bg-slate-200 text-slate-500'}`}>{t.count}</span>
             </button>
           )
         })}
