@@ -3,9 +3,9 @@ import { useParams } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { format, addDays } from 'date-fns'
+import { format } from 'date-fns'
 import { ar } from 'date-fns/locale'
 import {
   HiOutlineClock,
@@ -27,6 +27,7 @@ import { bookingClientSchema } from '../../lib/validators'
 import { supabase } from '../../lib/supabase'
 import Seo from '../../components/seo/Seo'
 import { bookingFooterPath } from '../../lib/growth/links'
+import { bookableDates } from '../../lib/bookingWindow'
 import {
   getDayKey, getDayPeriods, getServiceSlots, getSlotStep, branchHasScheduleBlocks,
   formatTime12, toISODateString,
@@ -103,21 +104,29 @@ function getOpenDaysSummary(branch, workingHours) {
   return describeOpenDays(openDays)
 }
 
-function generateAvailableDates(branch, workingHours, count = 30) {
+// lastDate is the clinic's booking window (migration 055); without one the
+// page offers the next 30 open days, as it always did.
+function generateAvailableDates(branch, workingHours, lastDate = null) {
   const useBlocks = branchHasScheduleBlocks(branch?.schedule_blocks)
-  const dates = []
-  let d = addDays(new Date(), 0)
-  let guard = 0
-  while (dates.length < count && guard < 365) {
-    guard++
+  const isOpen = (d) => {
     const key = getDayKey(d)
-    const isOpen = useBlocks
-      ? (branch.schedule_blocks?.[key]?.length || 0) > 0
-      : !!workingHours?.[key]?.active
-    if (isOpen) dates.push(toISODateString(d))
-    d = addDays(d, 1)
+    return useBlocks ? (branch.schedule_blocks?.[key]?.length || 0) > 0 : !!workingHours?.[key]?.active
   }
-  return dates
+  return bookableDates(new Date(), isOpen, toISODateString, lastDate)
+}
+
+// The last day patients may book, in the clinic's own time zone, or null.
+function useLastBookableDate(businessId) {
+  return useQuery({
+    queryKey: ['last-bookable-date', businessId],
+    enabled: !!businessId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('last_bookable_date', { p_business_id: businessId })
+      // Before 055 runs the function doesn't exist: keep the old behaviour.
+      if (error) return null
+      return data || null
+    },
+  })
 }
 
 export default function BookingPage() {
@@ -208,7 +217,8 @@ export default function BookingPage() {
     defaultValues: { client_name: '', client_phone: '' },
   })
 
-  const availableDates = business ? generateAvailableDates(activeBranch, business.working_hours) : []
+  const { data: lastBookableDate = null, isLoading: windowLoading } = useLastBookableDate(business?.id)
+  const availableDates = business && !windowLoading ? generateAvailableDates(activeBranch, business.working_hours, lastBookableDate) : []
 
   // Returns every slot for the selected day, each annotated with
   // { time, isAvailable, bookedCount, capacity, isPast } — booked/past slots
@@ -276,6 +286,11 @@ export default function BookingPage() {
         setLimitError('عندك بالفعل أقصى عدد حجوزات مسموح (2). لازم تنهي أو تلغي حجز قبل ما تحجز تاني')
       } else if (e.message?.includes('RATE_LIMITED')) {
         toast.error('حجوزات كتير من نفس الشبكة. جرّب تاني بعد شوية، أو كلّم المكان مباشرة')
+      } else if (e.message?.includes('too_far')) {
+        setSelectedTime(null)
+        setStep(STEP_DATETIME)
+        qc.invalidateQueries({ queryKey: ['last-bookable-date', business.id] })
+        toast.error('الحجز لليوم ده لسه ما اتفتحش. اختار يوم أقرب')
       } else if (e.message?.includes('INVALID_BOOKING')) {
         toast.error('راجع الاسم ورقم الموبايل وجرّب تاني')
       } else {
@@ -542,6 +557,13 @@ export default function BookingPage() {
                 </h2>
               </div>
               <p className="text-xs text-gray-400 mb-4 px-1">الخدمة: <strong className="text-gray-700">{selectedService?.name}</strong></p>
+
+              {/* A short booking window can leave no open day yet (055). */}
+              {!windowLoading && availableDates.length === 0 && (
+                <p data-testid="no-open-days" className="text-sm text-gray-600 bg-gray-50 border border-gray-100 rounded-xl px-3 py-3 mb-4">
+                  مفيش أيام متاحة للحجز دلوقتي. الحجز بيتفتح أول بأول، فجرّب تاني بكرا أو كلّم العيادة.
+                </p>
+              )}
 
               {/* Date strip */}
               <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 mb-4">
