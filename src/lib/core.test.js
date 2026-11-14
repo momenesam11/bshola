@@ -206,6 +206,20 @@ describe('whatsapp messages', () => {
       vi.stubGlobal('window', { open: () => null })
       expect(openWhatsApp('201', 'x')).toBe(false)
     })
+    it('on a phone clicks a link instead of window.open and never reports a block', () => {
+      const open = vi.fn(() => null)
+      const link = { click: vi.fn(), remove: vi.fn() }
+      const appendChild = vi.fn()
+      vi.stubGlobal('window', { open, matchMedia: () => ({ matches: true }) })
+      vi.stubGlobal('document', { createElement: vi.fn(() => link), body: { appendChild } })
+      expect(openWhatsApp('+20 100-123', 'أهلاً & مرحباً')).toBe(true)
+      expect(link.href).toBe(`https://wa.me/20100123?text=${encodeURIComponent('أهلاً & مرحباً')}`)
+      expect(link.target).toBe('_blank')
+      expect(appendChild).toHaveBeenCalledWith(link)
+      expect(link.click).toHaveBeenCalledOnce()
+      expect(link.remove).toHaveBeenCalledOnce()
+      expect(open).not.toHaveBeenCalled()
+    })
   })
 })
 
