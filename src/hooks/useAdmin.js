@@ -55,6 +55,19 @@ export function useAdminBusinesses() {
 
 // Usage counts per clinic (migration 050). Kept apart from the list so /admin
 // still works if the migration or the function update hasn't gone out yet.
+// Feature use per clinic and platform-wide numbers (migration 059).
+export function useAdminInsights() {
+  return useQuery({
+    queryKey: ['admin-insights'],
+    queryFn: async () => {
+      const { features, platform } = await callAdmin('insights')
+      return { features, platform }
+    },
+    enabled: hasAdminToken(),
+    retry: false,
+  })
+}
+
 export function useAdminActivity() {
   return useQuery({
     queryKey: ['admin-activity'],

@@ -117,6 +117,18 @@ serve(async (req) => {
     return json({ success: true, activity: data ?? [] })
   }
 
+  // Feature use per clinic and numbers for every clinic together (migration
+  // 059). Counts only. Apart from 'activity', so a missing 059 hides just this.
+  if (action === 'insights') {
+    const [features, platform] = await Promise.all([
+      supabase.rpc('admin_feature_usage'),
+      supabase.rpc('admin_platform_stats'),
+    ])
+    const error = features.error ?? platform.error
+    if (error) return json({ success: false, error: error.message }, 500)
+    return json({ success: true, features: features.data ?? [], platform: platform.data })
+  }
+
   // One clinic's last 30 days in numbers, for the renewal summary (migration 052).
   if (action === 'summary') {
     const { id } = body as { id?: string }

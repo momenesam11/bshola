@@ -17,7 +17,7 @@ import { formatPrice, getPricing } from '../../lib/pricing'
 import { splitPhone } from '../../lib/countries'
 import {
   useAdminBusinesses,
-  useAdminActivity,
+  useAdminActivity, useAdminInsights,
   useDeactivateBusiness,
   useDeletionRequests,
   useRejectDeletion,
@@ -29,6 +29,7 @@ import {
   adminLogout,
   hasAdminToken,
 } from '../../hooks/useAdmin'
+import { PlatformInsights, FeatureCell } from '../../components/admin/Insights'
 import ActivateModal from '../../components/admin/ActivateModal'
 import { LIFETIME_CAP, isLifetime } from '../../lib/lifetime'
 import PasswordGate from '../../components/admin/AdminPasswordGate'
@@ -245,6 +246,8 @@ function Dashboard() {
 
   const stats = useMemo(() => getAdminStats(businesses), [businesses])
   const { data: activity, isError: activityFailed } = useAdminActivity()
+  const { data: insights, isError: insightsFailed } = useAdminInsights()
+  const featuresById = useMemo(() => new Map((insights?.features || []).map(f => [f.business_id, f])), [insights])
   const usageById = useMemo(
     () => new Map((activity || []).map(a => [a.business_id, { ...a, daysSinceBooking: daysSince(a.last_booking_at) }])),
     [activity],
@@ -321,6 +324,13 @@ function Dashboard() {
           <StatCard label="تسجيلات هذا الأسبوع" value={stats.signupsThisWeek} />
           <StatCard label="معدل التحويل لمدفوع" value={`${stats.conversionRate}%`} />
         </div>
+
+        {insights && <PlatformInsights platform={insights.platform} />}
+        {insightsFailed && (
+          <p className="text-xs text-gray-500 bg-white border border-gray-200 rounded-lg px-3 py-2">
+            نشاط المنصة واستخدام الميزات مش ظاهرين: محتاج مايجريشن 058 و059 وتحديث دالة admin.
+          </p>
+        )}
 
         <DeletionRequests businesses={businesses} onDelete={setDeleteTarget} />
 
@@ -408,15 +418,16 @@ function Dashboard() {
                 <th className="text-right px-4 py-3 font-medium">انتهاء التجربة</th>
                 <th className="text-right px-4 py-3 font-medium">الحالة</th>
                 <th className="text-right px-4 py-3 font-medium">آخر 30 يوم</th>
+                <th className="text-right px-4 py-3 font-medium">الميزات</th>
                 <th className="text-right px-4 py-3 font-medium">أكشن</th>
               </tr>
             </thead>
             <tbody>
               {isLoading && (
-                <tr><td colSpan={8} className="text-center py-8 text-gray-400">جاري التحميل...</td></tr>
+                <tr><td colSpan={9} className="text-center py-8 text-gray-400">جاري التحميل...</td></tr>
               )}
               {!isLoading && filtered.length === 0 && (
-                <tr><td colSpan={8} className="text-center py-8 text-gray-400">لا توجد نتائج</td></tr>
+                <tr><td colSpan={9} className="text-center py-8 text-gray-400">لا توجد نتائج</td></tr>
               )}
               {filtered.map(b => {
                 const status = getBusinessStatus(b)
@@ -441,6 +452,9 @@ function Dashboard() {
                     </td>
                     <td className="px-4 py-3" data-testid="usage-cell">
                       {activity ? <UsageCell usage={usageById.get(b.id)} /> : <span className="text-xs text-gray-300">—</span>}
+                    </td>
+                    <td className="px-4 py-3" data-testid="feature-cell">
+                      <FeatureCell features={featuresById.get(b.id)} />
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5">
