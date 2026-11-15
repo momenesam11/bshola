@@ -265,7 +265,7 @@ export default function AppointmentModal({ open, onClose, businessId, initialDat
       <form onSubmit={handleSubmit(onSubmit)} dir="rtl" className="space-y-3">
 
         {/* Client name + phone — 2 cols */}
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <div>
             <label className="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1">
               <HiOutlineUserCircle className="w-3.5 h-3.5" /> الاسم
