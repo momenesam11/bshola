@@ -199,7 +199,7 @@ export default function TomorrowReminders({ businessId, business }) {
   if (isLoading) return null
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm mb-4" dir="rtl">
+    <div data-testid="tomorrow-reminders" className="bg-white rounded-2xl border border-slate-100 shadow-sm mb-4" dir="rtl">
       {/* Header */}
       <div
         className="flex items-center justify-between px-5 py-4 cursor-pointer select-none"

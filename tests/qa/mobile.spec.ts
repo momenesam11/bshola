@@ -3,7 +3,7 @@ import { test, expect, seedBusiness, seedAppointment, login, one, isoDate, expec
 // Run by the "iphone" (WebKit, i.e. Safari) and "android" projects in
 // playwright.local.config.ts. Most reception desks and patients are on phones.
 
-const OWNER_PAGES = ['/dashboard', '/appointments', '/crm', '/reports', '/settings', '/settings/branches']
+const OWNER_PAGES = ['/dashboard', '/clinic', '/appointments', '/crm', '/reports', '/settings', '/settings/branches']
 const PUBLIC_PAGES = ['/', '/product', '/faq', '/guides', '/tools/no-show-calculator', '/login', '/register', '/forgot-password', '/partner', '/admin']
 
 async function overflow(page) {
@@ -204,4 +204,30 @@ test('every button on the phone menus and dialogs fits the screen', async ({ pag
     els.filter(e => !e.closest('.pointer-events-none, .overflow-x-auto'))
       .map(e => e.getBoundingClientRect()).filter(r => r.right > width + 1 || r.left < -1).length, vw)
   expect(offscreen).toBe(0)
+})
+
+test('the front desk on a phone: big call button, thumb-sized row buttons, no sideways scroll', async ({ page }, info) => {
+  const s = await seedBusiness()
+  for (const i of [0, 1, 2, 3, 4]) await seedAppointment(s, { client_name: `مريض الدور ${i + 1}`, appointment_date: isoDate(0), appointment_time: `1${5 + i}:00` })
+  await seedAppointment(s, { client_name: 'بكرا', appointment_date: isoDate(1) })
+  await login(page, s)
+  await page.goto('/clinic')
+
+  const desk = page.getByTestId('front-desk')
+  const call = desk.getByTestId('call-next')
+  await expect(call).toBeVisible()
+  expect((await call.boundingBox())!.height).toBeGreaterThanOrEqual(48)
+  const arrived = desk.getByTestId('waiting-row').first().getByRole('button', { name: 'وصل' })
+  expect((await arrived.boundingBox())!.height).toBeGreaterThanOrEqual(36)
+  expect(await overflow(page)).toBeNull()
+  await page.screenshot({ path: info.outputPath('front-desk-phone.png'), fullPage: true })
+
+  await call.click()
+  await expectToast(page, 'مريض الدور 1 جوه')
+  await expect(desk.getByTestId('waiting-row')).toHaveCount(4)
+
+  // The dashboard keeps only tomorrow's reminders above the calendar.
+  await page.goto('/dashboard')
+  await expect(page.getByTestId('tomorrow-reminders')).toBeVisible()
+  expect(await overflow(page)).toBeNull()
 })

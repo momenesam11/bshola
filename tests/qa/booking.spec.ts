@@ -1,4 +1,4 @@
-import { test, expect, seedBusiness, seedAppointment, one, sql, phone, isoDate } from './helpers'
+import { test, expect, seedBusiness, seedAppointment, one, sql, phone, isoDate, API } from './helpers'
 import type { Page } from '@playwright/test'
 
 // The public page patients use. No login anywhere in this file.
@@ -202,14 +202,14 @@ for (const [name, fields] of [
     const s = await seedBusiness({ fields })
     await page.goto(`/book/${s.slug}`)
     await expect(page.getByText('الحجز غير متاح حالياً')).toBeVisible()
-    const denied = await page.evaluate(async ({ business, branch, service, date }) => {
-      const res = await fetch('http://127.0.0.1:54399/rest/v1/appointments', {
+    const denied = await page.evaluate(async ({ api, business, branch, service, date }) => {
+      const res = await fetch(`${api}/rest/v1/appointments`, {
         method: 'POST',
         headers: { apikey: 'local-anon-key', authorization: 'Bearer local-anon-key', 'content-type': 'application/json' },
         body: JSON.stringify({ business_id: business, branch_id: branch, service_id: service, client_name: 'مهاجم', client_phone: '201000000000', appointment_date: date, appointment_time: '09:00', status: 'confirmed' }),
       })
       return res.status
-    }, { business: s.businessId, branch: s.branchId, service: s.serviceId, date: isoDate(1) })
+    }, { api: API, business: s.businessId, branch: s.branchId, service: s.serviceId, date: isoDate(1) })
     expect(denied).toBeGreaterThanOrEqual(400)
   })
 }

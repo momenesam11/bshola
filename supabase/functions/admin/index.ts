@@ -109,6 +109,35 @@ serve(async (req) => {
     return json({ success: true, businesses: data ?? [] })
   }
 
+  // Per-clinic usage counts for the "sleeping clinics" alert (migration 050).
+  // Counts and dates only, never patient rows.
+  if (action === 'activity') {
+    const { data, error } = await supabase.rpc('admin_business_activity')
+    if (error) return json({ success: false, error: error.message }, 500)
+    return json({ success: true, activity: data ?? [] })
+  }
+
+  // Feature use per clinic and numbers for every clinic together (migration
+  // 059). Counts only. Apart from 'activity', so a missing 059 hides just this.
+  if (action === 'insights') {
+    const [features, platform] = await Promise.all([
+      supabase.rpc('admin_feature_usage'),
+      supabase.rpc('admin_platform_stats'),
+    ])
+    const error = features.error ?? platform.error
+    if (error) return json({ success: false, error: error.message }, 500)
+    return json({ success: true, features: features.data ?? [], platform: platform.data })
+  }
+
+  // One clinic's last 30 days in numbers, for the renewal summary (migration 052).
+  if (action === 'summary') {
+    const { id } = body as { id?: string }
+    if (!id) return json({ success: false, error: 'بيانات ناقصة' }, 400)
+    const { data, error } = await supabase.rpc('admin_business_summary', { p_business_id: id, p_days: 30 })
+    if (error) return json({ success: false, error: error.message }, 500)
+    return json({ success: true, summary: (data ?? [])[0] ?? null })
+  }
+
   if (action === 'activate') {
     const { id, days, amount, method } = body as { id?: string; days?: number; amount?: number | null; method?: string }
     if (!id || !Number.isInteger(days) || days! < 1 || days! > MAX_ACTIVATION_DAYS) {
@@ -265,14 +294,14 @@ serve(async (req) => {
       .from('businesses')
       .select(`id, name, type, phone, country, currency, booking_slug, specialty, bio, years_experience,
         brand_color, logo_url, cover_url, instagram_url, facebook_url, google_reviews_url,
-        welcome_message, cancellation_policy`)
+        welcome_message, cancellation_policy, booking_mode, queue_limit, queue_notify_ahead, booking_window_days`)
       .eq('id', id)
       .maybeSingle()
     if (error) return json({ success: false, error: error.message }, 500)
     if (!business) return json({ success: false, error: 'الحساب مش موجود' }, 404)
     const [services, branches] = await Promise.all([
       supabase.from('services').select('id, name, duration_minutes, price').eq('business_id', id).order('name'),
-      supabase.from('branches').select('id, name, address, is_main, capacity, schedule_blocks').eq('business_id', id).order('is_main', { ascending: false }).order('created_at'),
+      supabase.from('branches').select('id, name, address, map_url, is_main, capacity, schedule_blocks').eq('business_id', id).order('is_main', { ascending: false }).order('created_at'),
     ])
     if (services.error || branches.error) return json({ success: false, error: (services.error ?? branches.error)!.message }, 500)
     return json({ success: true, business, services: services.data ?? [], branches: branches.data ?? [] })
@@ -320,6 +349,31 @@ serve(async (req) => {
     return json({ success: true })
   }
 
+  // How patients book (055, 057) and the WhatsApp heads-up (053): by time or by
+  // turn, the online limit per period, how far ahead, and when to tell them.
+  if (action === 'setup_booking') {
+    const { id, booking_mode: mode, queue_limit: limitIn, queue_notify_ahead: aheadIn, booking_window_days: windowIn } = body as {
+      id?: string; booking_mode?: string; queue_limit?: number | string | null; queue_notify_ahead?: number | string; booking_window_days?: number | string | null
+    }
+    if (!id) return json({ success: false, error: 'بيانات ناقصة' }, 400)
+    if (mode !== 'time' && mode !== 'queue') return json({ success: false, error: 'طريقة الحجز مش صحيحة' }, 400)
+    const optional = (v: unknown) => (v === '' || v === null || v === undefined ? null : Number(v))
+    const limit = mode === 'queue' ? optional(limitIn) : null
+    if (limit !== null && (!Number.isInteger(limit) || limit < 1 || limit > 500)) return json({ success: false, error: 'الحد لازم يبقى من 1 لـ 500، أو فاضي' }, 400)
+    const ahead = Number(aheadIn ?? 3)
+    if (!Number.isInteger(ahead) || ahead < 1 || ahead > 10) return json({ success: false, error: 'عدد اللي قدامه لازم يبقى من 1 لـ 10' }, 400)
+    const windowDays = optional(windowIn)
+    if (windowDays !== null && (!Number.isInteger(windowDays) || windowDays < 1 || windowDays > 365)) return json({ success: false, error: 'مدة الحجز لقدام مش صحيحة' }, 400)
+    const { data, error } = await supabase
+      .from('businesses')
+      .update({ booking_mode: mode, queue_limit: limit, queue_notify_ahead: ahead, booking_window_days: windowDays })
+      .eq('id', id)
+      .select('id')
+    if (error) return json({ success: false, error: error.message }, 500)
+    if (!data?.length) return json({ success: false, error: 'الحساب مش موجود' }, 404)
+    return json({ success: true })
+  }
+
   if (action === 'setup_services') {
     const { id, services, remove } = body as {
       id?: string
@@ -354,8 +408,8 @@ serve(async (req) => {
   }
 
   if (action === 'setup_branch') {
-    const { id, branchId, name, address, capacity, schedule_blocks: blocks } = body as {
-      id?: string; branchId?: string; name?: string; address?: string; capacity?: number; schedule_blocks?: unknown
+    const { id, branchId, name, address, map_url: mapIn, capacity, schedule_blocks: blocks } = body as {
+      id?: string; branchId?: string; name?: string; address?: string; map_url?: string; capacity?: number; schedule_blocks?: unknown
     }
     if (!id || !branchId || !blocks || typeof blocks !== 'object' || Array.isArray(blocks)) {
       return json({ success: false, error: 'بيانات ناقصة' }, 400)
@@ -364,6 +418,9 @@ serve(async (req) => {
     if (!branchName) return json({ success: false, error: 'اسم الفرع مايبقاش فاضي' }, 400)
     const seats = Number(capacity)
     if (!Number.isInteger(seats) || seats < 1 || seats > 50) return json({ success: false, error: 'عدد الكراسي مش صحيح' }, 400)
+    // The branch's Google Maps link (058), for the patient's directions button.
+    const mapUrl = typeof mapIn === 'string' ? mapIn.trim() : ''
+    if (mapUrl && (!/^https:\/\/\S+$/i.test(mapUrl) || mapUrl.length > 500)) return json({ success: false, error: 'لينك الخريطة لازم يبدأ بـ https://' }, 400)
     const time = /^([01]\d|2[0-3]):[0-5]\d$/
     for (const day of Object.values(blocks as Record<string, unknown>)) {
       if (!Array.isArray(day) || !day.every((b) => b && time.test(b.start) && time.test(b.end) && b.start < b.end)) {
@@ -372,7 +429,11 @@ serve(async (req) => {
     }
     const { data, error } = await supabase
       .from('branches')
-      .update({ name: branchName, address: typeof address === 'string' ? address.trim().slice(0, 300) || null : null, capacity: seats, schedule_blocks: blocks })
+      .update({
+        name: branchName, address: typeof address === 'string' ? address.trim().slice(0, 300) || null : null,
+        capacity: seats, schedule_blocks: blocks,
+        ...(mapIn !== undefined && { map_url: mapUrl || null }),
+      })
       .eq('id', branchId)
       .eq('business_id', id)
       .select('id')

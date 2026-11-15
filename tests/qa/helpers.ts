@@ -1,6 +1,7 @@
 import { test as base, expect, type Page, type Route } from '@playwright/test'
 
-export const API = 'http://127.0.0.1:54399'
+// Set by playwright.local.config.ts for the slot being run (QA_SLOT).
+export const API = `http://127.0.0.1:${process.env.QA_API_PORT || 54399}`
 export const ADMIN_PASSWORD = 'local-admin-password'
 const PASSWORD = 'TestPass123'
 

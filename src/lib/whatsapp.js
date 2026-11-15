@@ -1,5 +1,43 @@
 // WhatsApp Manual Sender — opens WhatsApp Web/App with pre-filled message, no API needed
 
+import { SITE_URL } from './seo'
+
+// The patient's own page (/m/<code>, migrations 054 and 056): their
+// appointments at this clinic, their place in today's queue, and cancelling
+// within its policy. It only ever reaches them in a message the clinic sends
+// to their number, and it stops working a week after that appointment.
+export function manageLink(appointment) {
+  if (!appointment?.manage_code) return ''
+  // On a local copy or a Vercel preview the link should open that copy.
+  const host = typeof window !== 'undefined' ? window.location.host : ''
+  const base = /^(localhost|127\.0\.0\.1)(:\d+)?$|\.vercel\.app$/.test(host) ? window.location.origin : SITE_URL
+  return `${base}/m/${appointment.manage_code}`
+}
+
+// Just the link, for a patient who booked by phone or walked in and so got no
+// confirmation or reminder: they follow their turn and can cancel from it.
+export function generateManageLinkMessage(appointment, business) {
+  return `أهلاً يا ${appointment.client_name}
+
+ده لينك مواعيدك في ${business.name}. تقدر تتابع منه دورك ومواعيدك:
+${manageLink(appointment)}
+
+— ${business.name}`
+}
+
+// Booking by turn (057): the number and when the period starts, instead of a time.
+function whenLine(appointment, timeFormatted) {
+  return appointment.queue_number != null
+    ? `رقمك في الدور: ${appointment.queue_number}
+الفترة بتبدأ: ${timeFormatted}`
+    : `الساعة: ${timeFormatted}`
+}
+
+function manageLine(appointment) {
+  const link = manageLink(appointment)
+  return link ? `\n\nتابع دورك ومواعيدك من هنا:\n${link}` : ''
+}
+
 // The text onboarding saves for everyone. A clinic still on it gets the fuller
 // built-in reminder (it has the date and branch); a clinic that wrote its own
 // text in Settings gets exactly that.
@@ -18,8 +56,9 @@ export function generateReminderMessage(appointment, business, branch) {
       date: dateFormatted,
       business_name: business.name || '',
       branch: branch?.name || business.name || '',
+      manage_link: manageLink(appointment),
     }
-    return template.replace(/\{(client_name|service|time|date|business_name|branch)\}/g, (_, key) => values[key])
+    return template.replace(/\{(client_name|service|time|date|business_name|branch|manage_link)\}/g, (_, key) => values[key])
   }
   const branchLine = branch?.name
     ? `المكان: ${branch.name}${branch.address ? ' — ' + branch.address : ''}`
@@ -29,11 +68,11 @@ export function generateReminderMessage(appointment, business, branch) {
 
 تذكير بموعدك غداً عند ${business.name}:
 التاريخ: ${dateFormatted}
-الساعة: ${timeFormatted}
+${whenLine(appointment, timeFormatted)}
 الخدمة: ${appointment.services?.name || appointment.service_name || ''}
-${branchLine}
+${branchLine}${manageLine(appointment)}
 
-لو محتاج تغيير أو إلغاء، ردّ على هذه الرسالة.
+لو محتاج تغيّر الميعاد، ردّ على الرسالة دي.
 
 نتطلع نشوفك!
 — ${business.name}`
@@ -50,9 +89,9 @@ export function generateConfirmationMessage(appointment, business, branch) {
 
 تم تأكيد حجزك عند ${business.name}:
 التاريخ: ${dateFormatted}
-الساعة: ${timeFormatted}
+${whenLine(appointment, timeFormatted)}
 الخدمة: ${appointment.services?.name || appointment.service_name || ''}
-${branchLine}
+${branchLine}${manageLine(appointment)}
 
 نتطلع نشوفك!
 — ${business.name}`
@@ -66,9 +105,24 @@ export function removeEmoji(text) {
 
 // Returns false when the browser blocked the new tab, so a caller sending many
 // messages can say which ones never opened instead of reporting them as sent.
+// Phones are different: window.open to wa.me often returns null while handing
+// off to the WhatsApp app, which looked like a blocked popup. There a link click
+// inside the user's tap is never blocked and the hand-off can't be seen anyway,
+// so it reports true.
 export function openWhatsApp(phone, message) {
   const cleanPhone = String(phone).replace(/[^0-9]/g, '')
-  const tab = window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(removeEmoji(message))}`, '_blank')
+  const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(removeEmoji(message))}`
+  if (window.matchMedia?.('(pointer: coarse)').matches) {
+    const link = document.createElement('a')
+    link.href = url
+    link.target = '_blank'
+    link.rel = 'noopener noreferrer'
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    return true
+  }
+  const tab = window.open(url, '_blank')
   return !!tab
 }
 

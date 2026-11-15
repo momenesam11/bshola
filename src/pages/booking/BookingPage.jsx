@@ -3,9 +3,9 @@ import { useParams } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { format, addDays } from 'date-fns'
+import { format } from 'date-fns'
 import { ar } from 'date-fns/locale'
 import {
   HiOutlineClock,
@@ -27,10 +27,12 @@ import { bookingClientSchema } from '../../lib/validators'
 import { supabase } from '../../lib/supabase'
 import Seo from '../../components/seo/Seo'
 import { bookingFooterPath } from '../../lib/growth/links'
+import { bookableDates } from '../../lib/bookingWindow'
 import {
   getDayKey, getDayPeriods, getServiceSlots, getSlotStep, branchHasScheduleBlocks,
-  formatTime12, toISODateString,
+  formatTime12, toISODateString, todayISO,
 } from '../../utils/dateHelpers'
+import { periodLabel, periodName, periodStatus } from '../../lib/queueBooking'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import { Skeleton } from '../../components/ui/Skeleton'
@@ -103,21 +105,105 @@ function getOpenDaysSummary(branch, workingHours) {
   return describeOpenDays(openDays)
 }
 
-function generateAvailableDates(branch, workingHours, count = 30) {
+// lastDate is the clinic's booking window (migration 055); without one the
+// page offers the next 30 open days, as it always did.
+function generateAvailableDates(branch, workingHours, lastDate = null) {
   const useBlocks = branchHasScheduleBlocks(branch?.schedule_blocks)
-  const dates = []
-  let d = addDays(new Date(), 0)
-  let guard = 0
-  while (dates.length < count && guard < 365) {
-    guard++
+  const isOpen = (d) => {
     const key = getDayKey(d)
-    const isOpen = useBlocks
-      ? (branch.schedule_blocks?.[key]?.length || 0) > 0
-      : !!workingHours?.[key]?.active
-    if (isOpen) dates.push(toISODateString(d))
-    d = addDays(d, 1)
+    return useBlocks ? (branch.schedule_blocks?.[key]?.length || 0) > 0 : !!workingHours?.[key]?.active
   }
-  return dates
+  return bookableDates(new Date(), isOpen, toISODateString, lastDate)
+}
+
+// The last day patients may book, in the clinic's own time zone, or null.
+function useLastBookableDate(businessId) {
+  return useQuery({
+    queryKey: ['last-bookable-date', businessId],
+    enabled: !!businessId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('last_bookable_date', { p_business_id: businessId })
+      // Before 055 runs the function doesn't exist: keep the old behaviour.
+      if (error) return null
+      return data || null
+    },
+  })
+}
+
+// A queue clinic's periods for the chosen day (057): the number the visitor
+// would get, how many took one, and on the day itself who is inside now.
+function QueuePeriodList({ periods, stats, limit, dateStr, brandColor, onPick, onWaitlist }) {
+  const isToday = dateStr === todayISO()
+  const rows = periods.map(p => ({ p, st: periodStatus(p, stats[String(p.start).slice(0, 5)], limit, { dateStr }) }))
+  const anyOpen = rows.some(r => !r.st.full && !r.st.over)
+  return (
+    <div className="space-y-2.5" data-testid="queue-periods">
+      {rows.map(({ p, st }) => {
+        const closed = st.full || st.over
+        return (
+          <button key={p.start} type="button" disabled={closed} onClick={() => onPick(p)} data-testid="queue-period"
+            className={`w-full text-right rounded-2xl border-2 p-4 transition-all ${closed ? 'border-slate-200 bg-slate-50 cursor-not-allowed' : 'border-gray-200 hover:border-[var(--brand-color)] active:scale-[0.99]'}`}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="font-bold text-gray-900">{periodName(p)}</p>
+                <p className="text-sm text-gray-500">{periodLabel(p)}</p>
+              </div>
+              {!closed && (
+                <div className="text-center flex-shrink-0">
+                  <p className="text-[11px] text-gray-400">هتاخد رقم</p>
+                  <p className="text-2xl font-bold leading-none" style={{ color: brandColor }}>{st.nextNumber}</p>
+                </div>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-1.5 mt-2.5 text-xs">
+              {st.over && <span className="px-2 py-1 rounded-lg bg-slate-200 text-slate-600">الفترة خلصت</span>}
+              {!st.over && st.full && <span className="px-2 py-1 rounded-lg bg-red-50 text-red-600 font-semibold">الفترة اتملت</span>}
+              {!st.over && <span className="px-2 py-1 rounded-lg bg-gray-100 text-gray-600">{limit != null ? `اتحجز ${st.taken} من ${limit}` : `اتحجز ${st.taken}`}</span>}
+              {isToday && !st.over && (st.started && st.currentNumber != null
+                ? <span data-testid="inside-now" className="px-2 py-1 rounded-lg font-semibold" style={{ backgroundColor: `${brandColor}14`, color: brandColor }}>جوه دلوقتي رقم {st.currentNumber}</span>
+                : <span data-testid="inside-now" className="px-2 py-1 rounded-lg bg-gray-100 text-gray-600">الكشف لسه ما بدأش</span>)}
+            </div>
+          </button>
+        )
+      })}
+      {periods.length === 0 && <p className="text-gray-400 text-sm text-center py-6">مفيش فترات شغل في اليوم ده</p>}
+      {periods.length > 0 && !anyOpen && (
+        <button type="button" onClick={onWaitlist}
+          className="w-full py-3 text-white text-sm font-bold rounded-xl min-h-[48px]" style={{ backgroundColor: brandColor }}>
+          انضم لقائمة الانتظار
+        </button>
+      )}
+    </div>
+  )
+}
+
+// Whether the clinic books by time or by turn, and its per-period limit (057).
+function useBookingMode(businessId) {
+  return useQuery({
+    queryKey: ['booking-mode', businessId],
+    enabled: !!businessId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('public_booking_mode', { p_business_id: businessId })
+      // Before 057 runs the function doesn't exist: book by time as always.
+      if (error) return { mode: 'time', queue_limit: null }
+      return data || { mode: 'time', queue_limit: null }
+    },
+  })
+}
+
+// Each period's numbers for one day, counts only. Today it refreshes every
+// minute, so "inside now" keeps up with the clinic.
+function useQueuePeriods(businessId, branchId, date, enabled) {
+  return useQuery({
+    queryKey: ['queue-periods', businessId, branchId, date],
+    enabled: enabled && !!businessId && !!date,
+    refetchInterval: date === todayISO() ? 60_000 : false,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('public_queue_periods', { p_business_id: businessId, p_branch_id: branchId || null, p_date: date })
+      if (error) throw error
+      return Object.fromEntries((data || []).map(r => [String(r.period_start).slice(0, 5), r]))
+    },
+  })
 }
 
 export default function BookingPage() {
@@ -128,6 +214,7 @@ export default function BookingPage() {
   const [selectedService, setSelectedService] = useState(null)
   const [selectedDate, setSelectedDate] = useState(null)
   const [selectedTime, setSelectedTime] = useState(null)
+  const [selectedPeriod, setSelectedPeriod] = useState(null)
   const [submitted, setSubmitted] = useState(null)
   const [waitlistMode, setWaitlistMode] = useState(false)
   const [waitlistSubmitted, setWaitlistSubmitted] = useState(false)
@@ -208,19 +295,29 @@ export default function BookingPage() {
     defaultValues: { client_name: '', client_phone: '' },
   })
 
-  const availableDates = business ? generateAvailableDates(activeBranch, business.working_hours) : []
+  const { data: modeInfo } = useBookingMode(business?.id)
+  const queueMode = modeInfo?.mode === 'queue'
+  const { data: periodStats = {} } = useQueuePeriods(business?.id, activeBranch?.id, selectedDate, queueMode)
+  const { data: lastBookableDate = null, isLoading: windowLoading } = useLastBookableDate(business?.id)
+  const availableDates = business && !windowLoading ? generateAvailableDates(activeBranch, business.working_hours, lastBookableDate) : []
 
   // Returns every slot for the selected day, each annotated with
   // { time, isAvailable, bookedCount, capacity, isPast } — booked/past slots
   // are never dropped from the list, only marked unavailable, so the UI can
   // show them visibly as "محجوز" instead of just disappearing.
-  function getSlots() {
-    if (!selectedDate || !business || !selectedService) return []
+  // The selected day's working periods, [{ start, end }].
+  function dayPeriods() {
+    if (!selectedDate || !business) return []
     const dayKey = getDayKey(selectedDate)
     const hours = business.working_hours?.[dayKey]
-    const periods = branchHasScheduleBlocks(activeBranch?.schedule_blocks)
+    return branchHasScheduleBlocks(activeBranch?.schedule_blocks)
       ? activeBranch.schedule_blocks?.[dayKey] || []
       : hours?.active ? getDayPeriods(hours).map(p => ({ start: p.open, end: p.close })) : []
+  }
+
+  function getSlots() {
+    if (!selectedDate || !business || !selectedService) return []
+    const periods = dayPeriods()
     return getServiceSlots(periods, {
       duration: selectedService.duration_minutes || business.slot_duration || 30,
       step: getSlotStep(services, business.slot_duration || 30),
@@ -251,7 +348,11 @@ export default function BookingPage() {
           return
         }
       }
+      // Visitors can't read the row back, so a random id sent with it lets the
+      // page ask for the number the database gave it (057).
+      const bookingRef = queueMode && !waitlistMode ? crypto.randomUUID() : null
       await createAppt.mutateAsync({
+        ...(bookingRef && { booking_ref: bookingRef }),
         business_id: business.id,
         service_id: selectedService.id,
         // Guarded above — activeBranch.id is always set here. Never fall back
@@ -264,8 +365,14 @@ export default function BookingPage() {
         appointment_time: selectedTime,
         status: waitlistMode ? 'waitlist' : 'confirmed',
       })
+      let queueNumber = null
+      if (bookingRef) {
+        const { data: n } = await supabase.rpc('public_my_queue_number', { p_booking_ref: bookingRef })
+        queueNumber = n ?? null
+        qc.invalidateQueries({ queryKey: ['queue-periods', business.id] })
+      }
       if (waitlistMode) setWaitlistSubmitted(true)
-      else setSubmitted({ client_name, service: selectedService.name, date: selectedDate, time: selectedTime, branch: selectedBranch?.name })
+      else setSubmitted({ client_name, service: selectedService.name, date: selectedDate, time: selectedTime, branch: selectedBranch?.name, queueNumber, period: queueMode ? selectedPeriod : null })
     } catch (e) {
       if (e.message?.includes('CAPACITY_EXCEEDED')) {
         setSelectedTime(null)
@@ -276,6 +383,16 @@ export default function BookingPage() {
         setLimitError('عندك بالفعل أقصى عدد حجوزات مسموح (2). لازم تنهي أو تلغي حجز قبل ما تحجز تاني')
       } else if (e.message?.includes('RATE_LIMITED')) {
         toast.error('حجوزات كتير من نفس الشبكة. جرّب تاني بعد شوية، أو كلّم المكان مباشرة')
+      } else if (e.message?.includes('QUEUE_FULL')) {
+        setSelectedTime(null)
+        setStep(STEP_DATETIME)
+        qc.invalidateQueries({ queryKey: ['queue-periods', business.id] })
+        toast.error('الفترة دي اتملت للتو. اختار فترة تانية أو ادخل قايمة الانتظار')
+      } else if (e.message?.includes('too_far')) {
+        setSelectedTime(null)
+        setStep(STEP_DATETIME)
+        qc.invalidateQueries({ queryKey: ['last-bookable-date', business.id] })
+        toast.error('الحجز لليوم ده لسه ما اتفتحش. اختار يوم أقرب')
       } else if (e.message?.includes('INVALID_BOOKING')) {
         toast.error('راجع الاسم ورقم الموبايل وجرّب تاني')
       } else {
@@ -369,11 +486,14 @@ export default function BookingPage() {
                 submitted.branch && { label: 'الفرع', value: submitted.branch },
                 { label: 'الخدمة', value: submitted.service },
                 { label: 'التاريخ', value: format(new Date(submitted.date + 'T00:00:00'), 'EEEE d MMMM yyyy', { locale: ar }) },
-                { label: 'الوقت', value: formatTime12(submitted.time), ltr: true },
-              ].filter(Boolean).map(({ label, value, ltr }) => (
+                submitted.queueNumber != null && { label: 'رقمك في الدور', value: String(submitted.queueNumber), big: true },
+                submitted.period
+                  ? { label: 'الفترة', value: periodLabel(submitted.period) }
+                  : { label: 'الوقت', value: formatTime12(submitted.time), ltr: true },
+              ].filter(Boolean).map(({ label, value, ltr, big }) => (
                 <div key={label} className="flex items-center justify-between py-2 border-b border-dashed border-gray-100 last:border-0">
                   <span className="text-gray-400">{label}</span>
-                  <span className={`font-semibold text-gray-900 ${ltr ? 'font-mono' : ''}`} dir={ltr ? 'ltr' : undefined}>{value}</span>
+                  <span data-testid={big ? 'queue-number' : undefined} className={`font-semibold text-gray-900 ${ltr ? 'font-mono' : ''} ${big ? 'text-2xl' : ''}`} dir={ltr ? 'ltr' : undefined} style={big ? { color: brandColor } : undefined}>{value}</span>
                 </div>
               ))}
             </div>
@@ -543,6 +663,13 @@ export default function BookingPage() {
               </div>
               <p className="text-xs text-gray-400 mb-4 px-1">الخدمة: <strong className="text-gray-700">{selectedService?.name}</strong></p>
 
+              {/* A short booking window can leave no open day yet (055). */}
+              {!windowLoading && availableDates.length === 0 && (
+                <p data-testid="no-open-days" className="text-sm text-gray-600 bg-gray-50 border border-gray-100 rounded-xl px-3 py-3 mb-4">
+                  مفيش أيام متاحة للحجز دلوقتي. الحجز بيتفتح أول بأول، فجرّب تاني بكرا أو كلّم العيادة.
+                </p>
+              )}
+
               {/* Date strip */}
               <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 mb-4">
                 {availableDates.map(date => {
@@ -563,7 +690,17 @@ export default function BookingPage() {
               </div>
 
               {/* Time slots */}
-              {!selectedDate ? (
+              {queueMode && selectedDate ? (
+                <QueuePeriodList
+                  periods={dayPeriods()}
+                  stats={periodStats}
+                  limit={modeInfo?.queue_limit ?? null}
+                  dateStr={selectedDate}
+                  brandColor={brandColor}
+                  onPick={(p) => { setWaitlistMode(false); setSelectedPeriod(p); setSelectedTime(String(p.start).slice(0, 5)); setStep(STEP_CLIENT) }}
+                  onWaitlist={() => { setWaitlistMode(true); setSelectedPeriod(null); setSelectedTime('00:00'); setStep(STEP_CLIENT) }}
+                />
+              ) : !selectedDate ? (
                 <p className="text-gray-400 text-sm text-center py-8">اختر تاريخاً لعرض الأوقات المتاحة</p>
               ) : slots.length === 0 || !hasAnyAvailable ? (
                 <div className="text-center py-6 space-y-4">
@@ -629,7 +766,7 @@ export default function BookingPage() {
                 {[
                   selectedService?.name,
                   selectedDate && format(new Date(selectedDate + 'T00:00:00'), 'EEEE d MMMM', { locale: ar }),
-                  !waitlistMode && formatTime12(selectedTime),
+                  !waitlistMode && (queueMode && selectedPeriod ? `${periodName(selectedPeriod)} · هتاخد رقم في الدور` : formatTime12(selectedTime)),
                 ].filter(Boolean).map((value, i) => (
                   <span key={i} className="px-3 py-1.5 rounded-full text-xs font-bold" style={{ backgroundColor: `${brandColor}12`, color: brandColor }}>
                     {value}
