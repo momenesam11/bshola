@@ -156,7 +156,9 @@ BEGIN
     AND branch_id IS NOT DISTINCT FROM a.branch_id
     AND status = 'confirmed' AND called_at IS NOT NULL AND id <> a.id;
 
-  UPDATE appointments SET called_at = now(), arrived_at = coalesce(arrived_at, now())
+  -- Called is not arrived: someone called who never shows goes back with "ما دخلش"
+  -- and must still get their heads-up, so arrived_at stays as the desk set it.
+  UPDATE appointments SET called_at = now()
   WHERE id = a.id;
 END;
 $$;
@@ -193,14 +195,15 @@ BEGIN
   ) t;
 
   IF v_after IS NULL THEN
-    UPDATE appointments SET called_at = NULL WHERE id = a.id;
+    UPDATE appointments SET called_at = NULL, queue_notified_at = NULL WHERE id = a.id;
     RETURN;
   END IF;
 
   v_target := v_after[least(v_steps, array_length(v_after, 1))];
   v_next := v_after[least(v_steps, array_length(v_after, 1)) + 1];
   UPDATE appointments
-  SET called_at = NULL,
+  -- Sent back, they get told again when their turn comes near.
+  SET called_at = NULL, queue_notified_at = NULL,
       queue_sort = CASE WHEN v_next IS NOT NULL AND v_next > v_target THEN (v_target + v_next) / 2
                         ELSE v_target + 0.0001 END
   WHERE id = a.id;

@@ -17,6 +17,7 @@ import { openWhatsApp, formatTimeArabic, generateManageLinkMessage } from '../..
 import { phoneMatches } from '../../lib/countries'
 import { formatWait, notifyAheadOf, queueMessage, visitMinutes, waitingQueue } from '../../lib/queue'
 import { todayISO } from '../../utils/dateHelpers'
+import { periodsOfDay, walkInPeriodStart } from '../../lib/queueBooking'
 
 // /clinic: the front desk (migration 058). The secretary keeps this open all
 // day: who is inside, one button to call the next, who arrived, a WhatsApp
@@ -172,6 +173,12 @@ export default function FrontDesk() {
   const pushBack = (appt) => run(appt, () => rpc('front_desk_push_back', { p_appointment_id: appt.id, p_steps: PUSH_BACK }), `${appt.client_name} رجع ${PUSH_BACK} أدوار`)
   const setStatus = (appt, status, msg) => run(appt, () => update.mutateAsync({ id: appt.id, status }), msg)
   const arrived = (appt) => run(appt, () => update.mutateAsync({ id: appt.id, arrived_at: new Date().toISOString() }), `${appt.client_name} وصل`)
+  // A mistaken "وصل": back to on their way, so the WhatsApp heads-up counts them again.
+  const notArrived = (appt) => run(appt, () => update.mutateAsync({ id: appt.id, arrived_at: null }), `${appt.client_name}: اتشال الوصول`)
+
+  // A walk-in joins today's running period (or the next) in a queue clinic, so
+  // they get that period's next number; a time clinic books them now.
+  const walkInTime = (business?.booking_mode === 'queue' && walkInPeriodStart(periodsOfDay(branch, business, date), nowTime())) || nowTime()
 
   function label(appt) {
     return appt.queue_number != null ? `رقم ${appt.queue_number}` : appt.client_name
@@ -323,7 +330,8 @@ export default function FrontDesk() {
                         </div>
                       </div>
                       {a.arrived_at
-                        ? <span className="text-xs font-semibold px-2 py-1 rounded-lg bg-green-50 text-green-700 flex-shrink-0">وصل {clock(a.arrived_at)}</span>
+                        ? <button onClick={() => notArrived(a)} disabled={busy} title="اتداست غلط؟ دوس تاني تشيل الوصول"
+                            className="text-xs font-semibold px-2 py-1 rounded-lg bg-green-50 text-green-700 flex-shrink-0 disabled:opacity-60">وصل {clock(a.arrived_at)}</button>
                         : <button onClick={() => arrived(a)} disabled={busy}
                             className="text-xs font-semibold px-2.5 h-9 rounded-lg border border-accent-200 text-accent-700 hover:bg-accent-50 flex-shrink-0 disabled:opacity-60">وصل</button>}
                     </div>
@@ -356,7 +364,15 @@ export default function FrontDesk() {
                   </div>
                 )
               })}
-              {search && !shown.length && <p className="text-center text-sm text-slate-400 py-3">مفيش حد بالاسم أو الرقم ده في الدور.</p>}
+              {search && !shown.length && (
+                <p className="text-center text-sm text-slate-400 py-3">
+                  {inside && (inside.client_name?.includes(search.trim()) || phoneMatches(inside.client_phone, search))
+                    ? `${inside.client_name} جوه دلوقتي.`
+                    : done.find(a => a.client_name?.includes(search.trim()) || phoneMatches(a.client_phone, search))
+                      ? 'خلص النهارده، تلاقيه في «خلصوا النهارده».'
+                      : 'مفيش حد بالاسم أو الرقم ده في دور النهارده.'}
+                </p>
+              )}
             </div>
 
             <p className="text-xs text-slate-400 text-center">
@@ -415,8 +431,9 @@ export default function FrontDesk() {
         onClose={() => setModal(null)}
         businessId={business.id}
         initialDate={date}
-        initialTime={modal?.appointment ? null : nowTime()}
+        initialTime={modal?.appointment ? null : walkInTime}
         appointment={modal?.appointment || null}
+        walkIn={!modal?.appointment}
       />
     </PageWrapper>
   )

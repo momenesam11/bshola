@@ -59,7 +59,8 @@ describe('058 front desk', () => {
     let row = await one('SELECT status, called_at, arrived_at FROM appointments WHERE id = $1', [a.id])
     expect(row.status).toBe('confirmed')
     expect(row.called_at).not.toBeNull()
-    expect(row.arrived_at).not.toBeNull()
+    // Being called is not arriving: that stays the desk's "وصل".
+    expect(row.arrived_at).toBeNull()
 
     await call(c, b.id)
     row = await one('SELECT status, finished_at FROM appointments WHERE id = $1', [a.id])
@@ -90,8 +91,11 @@ describe('058 front desk', () => {
     const c = await clinic('late')
     const rows = []
     for (const name of ['1', '2', '3', '4', '5', '6']) rows.push(await ownerAdds(c, name))
+    await db.query('UPDATE appointments SET queue_notified_at = now() WHERE id = $1', [rows[0].id])
     await call(c, rows[0].id)
     await pushBack(c, rows[0].id)
+    // Told before, late anyway: they'll be told again when it's near.
+    expect((await one('SELECT queue_notified_at FROM appointments WHERE id = $1', [rows[0].id])).queue_notified_at).toBeNull()
     expect(await order(c)).toEqual(['2', '3', '4', '1', '5', '6'])
     expect((await one('SELECT queue_number, called_at FROM appointments WHERE id = $1', [rows[0].id]))).toEqual({ queue_number: 1, called_at: null })
 

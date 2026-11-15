@@ -52,7 +52,8 @@ const STATUS_OPTIONS = [
   { value: 'no_show', label: 'لم يحضر', colors: 'bg-amber-50 text-amber-700 border-amber-300', dot: 'bg-amber-400' },
 ]
 
-export default function AppointmentModal({ open, onClose, businessId, initialDate, initialTime, appointment, prefill }) {
+// walkIn (the front desk, 058): the patient is here now, so a new booking is saved as arrived.
+export default function AppointmentModal({ open, onClose, businessId, initialDate, initialTime, appointment, prefill, walkIn = false }) {
   const navigate = useNavigate()
   const isEdit = !!appointment
   const [submitError, setSubmitError] = useState('')
@@ -169,6 +170,7 @@ export default function AppointmentModal({ open, onClose, businessId, initialDat
         await createAppt.mutateAsync({
           ...payload, business_id: businessId, branch_id: targetBranchId,
           plan_visit_id: prefill?.plan_visit_id || null,
+          ...(walkIn && { arrived_at: new Date().toISOString() }),
         })
         toast.success('تم الحجز بنجاح')
       }

@@ -1,4 +1,4 @@
-import { test, expect, seedBusiness, seedAppointment, isoDate, login, one, sql, expectToast } from './helpers'
+import { test, expect, seedBusiness, seedAppointment, isoDate, login, one, sql, expectToast, phone } from './helpers'
 
 // /clinic: the front desk (migration 058). Call the next patient, mark who
 // arrived, send a late one back, and the patient's page follows it.
@@ -88,6 +88,56 @@ test.describe('front desk', () => {
     // The map iframe can't reach Google here (the internet is blocked), and the
     // test's sign-in script then fails inside that error frame: not the app.
     expect(problems.filter(p => !/localStorage/.test(p.detail))).toEqual([])
+  })
+
+  test('a patient who already arrived never gets the come-now WhatsApp, and a mistaken arrival can be undone', async ({ page }) => {
+    const s = await seedBusiness({ fields: { booking_mode: 'queue' } })
+    const rows = []
+    for (const name of ['واحد', 'اتنين', 'تلاتة', 'اربعة', 'خمسة', 'ستة']) rows.push(await seedAppointment(s, { client_name: name, appointment_date: isoDate(0), appointment_time: '10:00' }))
+    // Number 4 came early.
+    await sql('UPDATE appointments SET arrived_at = now() WHERE id = $1', [rows[3].id])
+    await page.addInitScript(captureWhatsApp)
+    await login(page, s)
+    await page.goto('/clinic')
+    const desk = page.getByTestId('front-desk')
+
+    // Calling 1 would tell number 4 (3 ahead), but 4 is here: number 3 is told instead.
+    await expect(desk.getByTestId('call-tells')).toContainText('تلاتة')
+    await desk.getByTestId('call-next').click()
+    await expect(desk.getByTestId('inside')).toContainText('واحد')
+    expect(await lastMessage(page)).toContain('أهلاً يا تلاتة')
+    // Next call: 4 still skipped; 5 (3 ahead after the call) is told.
+    await expect(desk.getByTestId('call-tells')).toContainText('خمسة')
+    await desk.getByTestId('call-next').click()
+    expect(await lastMessage(page)).toContain('أهلاً يا خمسة')
+    const told = await sql<{ n: string }>('SELECT client_name n FROM appointments WHERE business_id = $1 AND queue_notified_at IS NOT NULL ORDER BY 1', [s.businessId])
+    expect(told.map(r => r.n).sort()).toEqual(['تلاتة', 'خمسة'].sort())
+
+    // Being called doesn't count as arrived.
+    expect((await one<{ a: string | null }>('SELECT arrived_at a FROM appointments WHERE id=$1', [rows[1].id])).a).toBeNull()
+
+    // A mistaken arrival: tapping it again takes it off.
+    const four = desk.getByTestId('waiting-row').filter({ hasText: 'اربعة' })
+    await four.getByRole('button', { name: /وصل/ }).click()
+    await expect(four.getByRole('button', { name: 'وصل', exact: true })).toBeVisible()
+    await expect.poll(async () => (await one<{ a: string | null }>('SELECT arrived_at a FROM appointments WHERE id=$1', [rows[3].id])).a).toBeNull()
+  })
+
+  test('a walk-in is saved as arrived and takes the next number of the running period', async ({ page }) => {
+    const s = await seedBusiness({ fields: { booking_mode: 'queue' } })
+    for (const name of ['قديم1', 'قديم2']) await seedAppointment(s, { client_name: name, appointment_date: isoDate(0), appointment_time: '00:00' })
+    await login(page, s)
+    await page.goto('/clinic')
+    await page.getByRole('button', { name: 'مريض جاي من غير حجز' }).click()
+    const tel = phone()
+    await page.getByPlaceholder('محمد أحمد').fill('جاي دلوقتي')
+    await page.getByRole('textbox', { name: /واتساب/ }).fill(tel)
+    await page.getByRole('button', { name: 'إضافة الموعد' }).click()
+    await expect(page.getByTestId('waiting-row').filter({ hasText: 'جاي دلوقتي' })).toContainText('وصل')
+    const row = await one<{ n: number; t: string; a: string | null }>('SELECT queue_number n, appointment_time::text t, arrived_at a FROM appointments WHERE client_phone = $1', [tel])
+    expect(row.n).toBe(3)
+    expect(row.t).toBe('00:00:00')
+    expect(row.a).not.toBeNull()
   })
 
   test('a time clinic uses the same desk, and a walk-in can be added from it', async ({ page, problems }) => {

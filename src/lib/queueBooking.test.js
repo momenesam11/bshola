@@ -40,3 +40,15 @@ describe('dashboard turns view', () => {
     expect(turnStatus({ status: 'no_show' }).label).toBe('ما جاش')
   })
 })
+
+describe('walk-in period', () => {
+  const periods = [{ start: '16:00', end: '22:00' }, { start: '10:00', end: '14:00' }]
+  it('joins the running period, else the next one, else the last', async () => {
+    const { walkInPeriodStart } = await import('./queueBooking')
+    expect(walkInPeriodStart(periods, '11:30')).toBe('10:00')
+    expect(walkInPeriodStart(periods, '15:00')).toBe('16:00')
+    expect(walkInPeriodStart(periods, '08:00')).toBe('10:00')
+    expect(walkInPeriodStart(periods, '23:00')).toBe('16:00')
+    expect(walkInPeriodStart([], '11:00')).toBeNull()
+  })
+})

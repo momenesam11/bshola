@@ -92,3 +92,17 @@ export function groupByPeriod(appointments, periods) {
   groups.sort((x, y) => x.period.start.localeCompare(y.period.start))
   return { groups, waitlist: waitlist.sort(byNumber), cancelled }
 }
+
+/**
+ * The period a walk-in joins at `now` ('HH:MM'): the one running, else the
+ * next today, else the day's last. Its start is the booking's time, so the
+ * database gives the next number of that period. null on a day off.
+ */
+export function walkInPeriodStart(periods, now) {
+  if (!periods?.length) return null
+  const sorted = [...periods].sort((a, b) => a.start.localeCompare(b.start))
+  const running = sorted.find(p => now >= p.start && now < p.end)
+  if (running) return running.start
+  const next = sorted.find(p => p.start > now)
+  return (next || sorted[sorted.length - 1]).start
+}
