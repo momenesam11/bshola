@@ -141,7 +141,7 @@ export default function FrontDesk() {
     if (error) throw new Error(error.message)
   }
 
-  const call = (appt) => run(appt, () => rpc('front_desk_call', { p_appointment_id: appt.id }), `${label(appt)}: ${appt.client_name} جوه`)
+  const call = (appt) => run(appt, () => rpc('front_desk_call', { p_appointment_id: appt.id }), `${appt.queue_number != null ? `رقم ${appt.queue_number}: ` : ''}${appt.client_name} جوه`)
   const pushBack = (appt) => run(appt, () => rpc('front_desk_push_back', { p_appointment_id: appt.id, p_steps: PUSH_BACK }), `${appt.client_name} رجع ${PUSH_BACK} أدوار`)
   const setStatus = (appt, status, msg) => run(appt, () => update.mutateAsync({ id: appt.id, status }), msg)
   const arrived = (appt) => run(appt, () => update.mutateAsync({ id: appt.id, arrived_at: new Date().toISOString() }), `${appt.client_name} وصل`)
@@ -292,7 +292,7 @@ export default function FrontDesk() {
                         <FaWhatsapp className="w-4 h-4" />
                       </button>
                       {a.manage_code && (
-                        <button onClick={() => sendLink(a)} title="ابعتله لينك متابعة دوره" aria-label="ابعتله لينك متابعة دوره"
+                        <button onClick={() => sendLink(a)} title="ابعتله لينك مواعيده" aria-label="ابعتله لينك مواعيده"
                           className="h-9 w-9 flex items-center justify-center rounded-lg border border-accent-200 text-accent-700 hover:bg-accent-50">
                           <HiOutlineLink className="w-4 h-4" />
                         </button>

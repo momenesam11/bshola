@@ -1,6 +1,7 @@
 import { test, expect, seedBusiness, seedAppointment, isoDate, login, one, expectToast } from './helpers'
 
-// "How many are ahead of you": the dashboard's today queue (migration 053).
+// "How many are ahead of you" (migration 053), now on the front desk page
+// /clinic (058). The dashboard keeps only tomorrow's reminders.
 
 const captureWhatsApp = () => {
   (window as unknown as { __urls: string[] }).__urls = []
@@ -12,7 +13,7 @@ const lastMessage = async (page: import('@playwright/test').Page) => {
   return { url, text: decodeURIComponent(url.split('text=')[1]) }
 }
 
-test.describe('today queue', () => {
+test.describe('today queue on the front desk', () => {
   test('orders by booking time, flags who to tell, and moves on when one is done', async ({ page }) => {
     const s = await seedBusiness()
     const names = ['الأول', 'التاني', 'التالت', 'الرابع', 'الخامس']
@@ -25,15 +26,15 @@ test.describe('today queue', () => {
     await seedAppointment(s, { client_name: 'خلص بدري', appointment_date: isoDate(0), appointment_time: '08:00', status: 'completed' })
     await page.addInitScript(captureWhatsApp)
     await login(page, s)
-    await page.goto('/dashboard')
+    await page.goto('/clinic')
 
-    const queue = page.getByTestId('today-queue')
+    const desk = page.getByTestId('front-desk')
     const order = names.map((n, i) => ({ n, h: 9 + ((i * 3) % 5) })).sort((x, y) => x.h - y.h).map(x => x.n)
-    await expect(queue.getByTestId('queue-row')).toHaveCount(5)
-    for (const [i, n] of order.entries()) await expect(queue.getByTestId('queue-row').nth(i)).toContainText(n)
+    await expect(desk.getByTestId('waiting-row')).toHaveCount(5)
+    for (const [i, n] of order.entries()) await expect(desk.getByTestId('waiting-row').nth(i)).toContainText(n)
 
     // With the default of 3, the fourth in line is due.
-    const due = queue.getByTestId('queue-due')
+    const due = desk.getByTestId('queue-due')
     await expect(due).toContainText(`${order[3]} بقى قدامه 3`)
     await due.getByRole('button', { name: 'ابعتله' }).click()
     const sent = await lastMessage(page)
@@ -43,23 +44,25 @@ test.describe('today queue', () => {
     await expect(due).toHaveCount(0)
     await expect.poll(async () => (await one<{ t: string | null }>('SELECT queue_notified_at t FROM appointments WHERE id=$1', [fourth.id])).t).not.toBeNull()
 
-    // The first one is done: they leave the queue and the fifth is now due.
-    await queue.getByTestId('queue-row').first().getByRole('button', { name: 'خلص' }).click()
+    // The first one is called in and then done: the fifth is now due.
+    await desk.getByTestId('call-next').click()
+    await expect(desk.getByTestId('inside')).toContainText(order[0])
+    await desk.getByTestId('inside').getByRole('button', { name: 'خلص' }).click()
     await expectToast(page, `${order[0]} خلص`)
-    await expect(queue.getByTestId('queue-row')).toHaveCount(4)
-    await expect(queue.getByTestId('queue-due')).toContainText(`${order[4]} بقى قدامه 3`)
+    await expect(desk.getByTestId('waiting-row')).toHaveCount(4)
+    await expect(desk.getByTestId('queue-due')).toContainText(`${order[4]} بقى قدامه 3`)
     const first = appts[names.indexOf(order[0])]
     expect((await one<{ s: string }>('SELECT status s FROM appointments WHERE id=$1', [first.id])).s).toBe('completed')
 
     // Any patient can be told their place; the one in front hears it's their turn.
-    await queue.getByTestId('queue-row').first().getByTitle('ابعتله دوره').click()
+    await desk.getByTestId('waiting-row').first().getByTitle('ابعتله دوره').click()
     expect((await lastMessage(page)).text).toContain('دورك دلوقتي')
 
-    await queue.getByTestId('queue-row').first().getByRole('button', { name: 'ما جاش' }).click()
-    await expect(queue.getByTestId('queue-row')).toHaveCount(3)
+    await desk.getByTestId('waiting-row').first().getByRole('button', { name: 'ما جاش' }).click()
+    await expect(desk.getByTestId('waiting-row')).toHaveCount(3)
 
     // A name opens that appointment, like the calendar does.
-    await queue.getByTestId('queue-row').first().getByRole('button', { name: order[2] }).click()
+    await desk.getByTestId('waiting-row').first().getByRole('button', { name: order[2] }).click()
     await expect(page.getByText('تعديل الموعد')).toBeVisible()
   })
 
@@ -77,49 +80,28 @@ test.describe('today queue', () => {
     await page.getByRole('button', { name: 'حفظ العدد' }).click()
     await expect.poll(async () => (await one<{ n: number }>('SELECT queue_notify_ahead n FROM businesses WHERE id=$1', [s.businessId])).n).toBe(2)
 
-    await page.goto('/dashboard')
+    await page.goto('/clinic')
     await expect(page.getByTestId('queue-due')).toContainText('مريض ج بقى قدامه 2')
-  })
-
-  test('no queue panel on a day without waiting patients', async ({ page }) => {
-    const s = await seedBusiness()
-    await seedAppointment(s, { appointment_date: isoDate(1) })
-    await login(page, s)
-    await page.goto('/dashboard')
-    await expect(page.getByRole('tab', { name: /تذكيرات بكرا/ })).toBeVisible()
-    await expect(page.getByTestId('today-queue')).toHaveCount(0)
   })
 })
 
-test.describe('dashboard today card', () => {
-  test('one card with a tab per list, its counts, and the choice remembered', async ({ page }) => {
+test.describe('dashboard', () => {
+  test('keeps only the tomorrow reminders card above the calendar, as before', async ({ page }) => {
     const s = await seedBusiness()
     for (const i of [0, 1, 2]) await seedAppointment(s, { client_name: `دور ${i}`, appointment_date: isoDate(0), appointment_time: `2${i}:00` })
-    await seedAppointment(s, { client_name: 'بكرا', appointment_date: isoDate(1) })
-    await seedAppointment(s, { client_name: 'خلص امبارح', appointment_date: isoDate(-1), status: 'completed' })
+    await seedAppointment(s, { client_name: 'مريض بكرا', appointment_date: isoDate(1) })
     await login(page, s)
     await page.goto('/dashboard')
 
-    const card = page.getByTestId('today-tasks')
-    await expect(card).toHaveCount(1)
-    await expect(card.getByRole('tab', { name: /الدور النهارده/ })).toContainText('3')
-    await expect(card.getByRole('tab', { name: /تذكيرات بكرا/ })).toContainText('1')
-    await expect(card.getByRole('tab')).toHaveCount(2)
-    await expect(card.getByTestId('today-queue')).toBeVisible()
+    const card = page.getByTestId('tomorrow-reminders')
+    await expect(card).toContainText('تذكيرات بكرا')
+    await expect(card).toContainText('مريض بكرا')
+    await expect(page.getByTestId('today-queue')).toHaveCount(0)
+    await expect(page.getByTestId('today-tasks')).toHaveCount(0)
+    await expect(page.getByRole('tab', { name: /الدور/ })).toHaveCount(0)
 
-    await card.getByRole('tab', { name: /تذكيرات بكرا/ }).click()
-    await expect(card.getByTestId('tomorrow-reminders')).toContainText('بكرا')
-    await expect(card.getByTestId('today-queue')).toHaveCount(0)
-    await page.reload()
-    await expect(page.getByTestId('tomorrow-reminders')).toBeVisible()
-
-    await page.getByRole('button', { name: 'اقفل المربع' }).click()
-    await expect(page.getByTestId('tomorrow-reminders')).toHaveCount(0)
-    await page.reload()
-    await expect(page.getByRole('button', { name: 'افتح المربع' })).toBeVisible()
-    await expect(page.getByTestId('tomorrow-reminders')).toHaveCount(0)
-    // A tab opens the card again.
-    await page.getByRole('tab', { name: /الدور النهارده/ }).click()
-    await expect(page.getByTestId('today-queue')).toBeVisible()
+    // The header folds the list away.
+    await card.getByText('تذكيرات بكرا').click()
+    await expect(card).not.toContainText('مريض بكرا')
   })
 })

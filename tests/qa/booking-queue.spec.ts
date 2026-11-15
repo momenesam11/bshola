@@ -77,7 +77,7 @@ test.describe('booking by turn', () => {
     await expect(page.getByTestId('queue-period').first()).toContainText('هتاخد رقم3')
   })
 
-  test('the dashboard queue follows the numbers, and the reminder carries the number', async ({ page }) => {
+  test('the front desk follows the numbers, and the reminder carries the number', async ({ page }) => {
     const s = await queueClinic()
     for (const name of ['رقم واحد', 'رقم اتنين']) await seedAppointment(s, { client_name: name, appointment_date: isoDate(0), appointment_time: '00:00' })
     const tomorrow = await seedAppointment(s, { client_name: 'بكرا', appointment_date: isoDate(1), appointment_time: '00:00' })
@@ -87,13 +87,13 @@ test.describe('booking by turn', () => {
       window.open = (u?: string | URL) => { (window as unknown as { __urls: string[] }).__urls.push(String(u)); return window }
     })
     await login(page, s)
-    await page.goto('/dashboard')
-    const rows = page.getByTestId('queue-row')
+    await page.goto('/clinic')
+    const rows = page.getByTestId('waiting-row')
     await expect(rows.nth(0)).toContainText('رقم واحد')
     await expect(rows.nth(0)).toContainText('1')
     await expect(rows.nth(1)).toContainText('رقم اتنين')
 
-    await page.getByRole('tab', { name: /تذكيرات بكرا/ }).click()
+    await page.goto('/dashboard')
     await page.getByRole('button', { name: 'تذكير', exact: true }).click()
     const url = await page.evaluate(() => (window as unknown as { __urls: string[] }).__urls[0])
     expect(decodeURIComponent(url.split('text=')[1])).toContain('رقمك في الدور: 1')

@@ -771,10 +771,10 @@ export default function Settings() {
         )}
 
         {tab === 'reminders' && (
-          <Section title="الدور النهارده" subtitle="لما المرضى يقربوا من دورهم، الرئيسية هتقولك تبعت لمين رسالة «باقي قدامك كام»">
+          <Section title="الدور النهارده" subtitle="لما المرضى يقربوا من دورهم، صفحة «العيادة» هتقولك تبعت لمين رسالة «باقي قدامك كام»">
             <Input label="ابعت للمريض لما يبقى قدامه" type="number" min={1} max={MAX_NOTIFY_AHEAD} value={queueAhead}
               onChange={e => setQueueAhead(e.target.value)} dir="ltr" />
-            <p className="text-xs text-slate-500">الترتيب بميعاد الحجز. الرسالة بتتبعت من واتساب العيادة، والمريض مش محتاج يفتح أي لينك.</p>
+            <p className="text-xs text-slate-500">الترتيب بميعاد الحجز أو الرقم. الرسالة بتتبعت من واتساب العيادة، والمريض مش محتاج يفتح أي لينك.</p>
             <div className="flex items-center gap-3">
               <Button onClick={saveQueueAhead} loading={saveStatus.queue === 'loading'} size="sm">حفظ العدد</Button>
               <SaveFeedback status={saveStatus.queue} msg={saveStatus.queueMsg} />

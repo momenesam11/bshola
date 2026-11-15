@@ -120,17 +120,17 @@ test.describe('sending the patient their link', () => {
       window.open = (u?: string | URL) => { (window as unknown as { __urls: string[] }).__urls.push(String(u)); return window }
     })
     await login(page, s)
-    await page.goto('/dashboard')
+    await page.goto('/clinic')
     const code = await codeOf(a.id)
     const last = async () => {
       const urls = await page.evaluate(() => (window as unknown as { __urls: string[] }).__urls)
       return decodeURIComponent(urls[urls.length - 1].split('text=')[1])
     }
 
-    await page.getByTestId('today-queue').getByRole('button', { name: 'ابعتله لينك مواعيده' }).click()
+    await page.getByTestId('front-desk').getByRole('button', { name: 'ابعتله لينك مواعيده' }).click()
     expect(await last()).toContain(`/m/${code}`)
 
-    await page.getByTestId('today-queue').getByRole('button', { name: 'حجز بالتليفون' }).click()
+    await page.getByTestId('waiting-row').getByRole('button', { name: 'حجز بالتليفون', exact: true }).click()
     await page.locator('form').getByRole('button', { name: 'ابعتله لينك مواعيده' }).click()
     const text = await last()
     expect(text).toContain('أهلاً يا حجز بالتليفون')

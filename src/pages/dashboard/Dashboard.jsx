@@ -4,7 +4,7 @@ import { HiOutlinePlus } from 'react-icons/hi2'
 import PageWrapper from '../../components/layout/PageWrapper'
 import AppointmentModal from '../../components/appointments/AppointmentModal'
 import BesholaCalendar from '../../components/calendar/BesholaCalendar'
-import TodayTasks from './TodayTasks'
+import TomorrowReminders from './TomorrowReminders'
 import { useBusiness } from '../../hooks/useBusiness'
 import { toISODateString } from '../../utils/dateHelpers'
 
@@ -37,7 +37,7 @@ export default function Dashboard() {
         <title>الرئيسية — بسهولة</title>
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
-      {business && <TodayTasks business={business} onOpen={handleApptClick} />}
+      {business && <TomorrowReminders businessId={business.id} business={business} />}
 
       {business && (
         <BesholaCalendar
