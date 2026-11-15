@@ -33,36 +33,41 @@ test.describe('today queue on the front desk', () => {
     await expect(desk.getByTestId('waiting-row')).toHaveCount(5)
     for (const [i, n] of order.entries()) await expect(desk.getByTestId('waiting-row').nth(i)).toContainText(n)
 
-    // With the default of 3, the fourth in line is due.
-    const due = desk.getByTestId('queue-due')
-    await expect(due).toContainText(`${order[3]} بقى قدامه 3`)
-    await due.getByRole('button', { name: 'ابعتله' }).click()
-    const sent = await lastMessage(page)
-    expect(sent.text).toContain('باقي قدامك 3 مرضى')
+    // With the default of 3, calling the first also tells the fourth to come.
     const fourth = appts[names.indexOf(order[3])]
-    expect(sent.url).toContain(`wa.me/${fourth.client_phone}`)
-    await expect(due).toHaveCount(0)
-    await expect.poll(async () => (await one<{ t: string | null }>('SELECT queue_notified_at t FROM appointments WHERE id=$1', [fourth.id])).t).not.toBeNull()
-
-    // The first one is called in and then done: the fifth is now due.
+    await expect(desk.getByTestId('call-tells')).toContainText(order[3])
     await desk.getByTestId('call-next').click()
     await expect(desk.getByTestId('inside')).toContainText(order[0])
-    await desk.getByTestId('inside').getByRole('button', { name: 'خلص' }).click()
-    await expectToast(page, `${order[0]} خلص`)
-    await expect(desk.getByTestId('waiting-row')).toHaveCount(4)
-    await expect(desk.getByTestId('queue-due')).toContainText(`${order[4]} بقى قدامه 3`)
+    const sent = await lastMessage(page)
+    expect(sent.text).toContain('باقي قدامك 3 مرضى')
+    expect(sent.text).toContain('الوقت المتوقع حوالي')
+    expect(sent.url).toContain(`wa.me/${fourth.client_phone}`)
+    await expect.poll(async () => (await one<{ t: string | null }>('SELECT queue_notified_at t FROM appointments WHERE id=$1', [fourth.id])).t).not.toBeNull()
+
+    // The next call finishes the first and tells the fifth, who now has 3 ahead.
+    const fifth = appts[names.indexOf(order[4])]
+    await expect(desk.getByTestId('call-tells')).toContainText(order[4])
+    await desk.getByTestId('call-next').click()
+    await expect(desk.getByTestId('inside')).toContainText(order[1])
+    expect((await lastMessage(page)).url).toContain(`wa.me/${fifth.client_phone}`)
+    await expect(desk.getByTestId('waiting-row')).toHaveCount(3)
     const first = appts[names.indexOf(order[0])]
     expect((await one<{ s: string }>('SELECT status s FROM appointments WHERE id=$1', [first.id])).s).toBe('completed')
+    // Everyone within 3 was told, so the button has nobody more to tell.
+    await expect(desk.getByTestId('call-tells')).toHaveCount(0)
+    await desk.getByTestId('inside').getByRole('button', { name: 'خلص' }).click()
+    await expectToast(page, `${order[1]} خلص`)
+    await expect(desk.getByTestId('waiting-row')).toHaveCount(3)
 
     // Any patient can be told their place; the one in front hears it's their turn.
     await desk.getByTestId('waiting-row').first().getByTitle('ابعتله دوره').click()
     expect((await lastMessage(page)).text).toContain('دورك دلوقتي')
 
     await desk.getByTestId('waiting-row').first().getByRole('button', { name: 'ما جاش' }).click()
-    await expect(desk.getByTestId('waiting-row')).toHaveCount(3)
+    await expect(desk.getByTestId('waiting-row')).toHaveCount(2)
 
     // A name opens that appointment, like the calendar does.
-    await desk.getByTestId('waiting-row').first().getByRole('button', { name: order[2] }).click()
+    await desk.getByTestId('waiting-row').first().getByRole('button', { name: order[3] }).click()
     await expect(page.getByText('تعديل الموعد')).toBeVisible()
   })
 
@@ -81,7 +86,7 @@ test.describe('today queue on the front desk', () => {
     await expect.poll(async () => (await one<{ n: number }>('SELECT queue_notify_ahead n FROM businesses WHERE id=$1', [s.businessId])).n).toBe(2)
 
     await page.goto('/clinic')
-    await expect(page.getByTestId('queue-due')).toContainText('مريض ج بقى قدامه 2')
+    await expect(page.getByTestId('call-tells')).toContainText('مريض ج')
   })
 })
 

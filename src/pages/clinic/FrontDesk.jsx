@@ -15,7 +15,7 @@ import { useBranch } from '../../context/branchState'
 import { supabase } from '../../lib/supabase'
 import { openWhatsApp, formatTimeArabic, generateManageLinkMessage } from '../../lib/whatsapp'
 import { phoneMatches } from '../../lib/countries'
-import { dueForNotice, formatWait, notifyAheadOf, queueMessage, visitMinutes, waitingQueue } from '../../lib/queue'
+import { formatWait, notifyAheadOf, queueMessage, visitMinutes, waitingQueue } from '../../lib/queue'
 import { todayISO } from '../../utils/dateHelpers'
 
 // /clinic: the front desk (migration 058). The secretary keeps this open all
@@ -91,7 +91,7 @@ export default function FrontDesk() {
   // Realtime covers most changes; this catches a dropped connection, and keeps
   // the "inside for N minutes" clock moving.
   useEffect(() => {
-    const t = setInterval(() => { setNow(Date.now()); refetch() }, 30_000)
+    const t = setInterval(() => { setNow(Date.now()); refetch() }, 15_000)
     return () => clearInterval(t)
   }, [refetch])
 
@@ -113,7 +113,20 @@ export default function FrontDesk() {
     .filter(a => !branchId || !a.branch_id || a.branch_id === branchId)
     .sort((a, b) => String(b.finished_at || b.updated_at || '').localeCompare(String(a.finished_at || a.updated_at || '')))
   const notifyAhead = notifyAheadOf(business)
-  const due = dueForNotice(line, notifyAhead)
+  // Calling in also tells the next one to come: once this call is done, the
+  // patient furthest back with notifyAhead or fewer ahead who wasn't told yet
+  // and isn't here. Usually that's the one who just reached notifyAhead, so
+  // each call gives one patient the clinic's full heads-up.
+  function dueAfterCall(target) {
+    if (!target) return null
+    const after = [target, ...line.filter(a => a !== target && a !== inside)]
+    for (let i = Math.min(notifyAhead, after.length - 1); i >= 1; i--) {
+      const p = after[i]
+      if (!p.queue_notified_at && !p.arrived_at) return { appt: p, ahead: i }
+    }
+    return null
+  }
+  const due = dueAfterCall(next)
   const shown = search.trim()
     ? waiting.filter(a => a.client_name?.includes(search.trim()) || phoneMatches(a.client_phone, search))
     : waiting
@@ -141,7 +154,21 @@ export default function FrontDesk() {
     if (error) throw new Error(error.message)
   }
 
-  const call = (appt) => run(appt, () => rpc('front_desk_call', { p_appointment_id: appt.id }), `${appt.queue_number != null ? `رقم ${appt.queue_number}: ` : ''}${appt.client_name} جوه`)
+  // The WhatsApp tab has to open on the click itself (a browser blocks it after
+  // an await), so the message goes first and the call is saved after it.
+  function call(appt) {
+    const tell = dueAfterCall(appt)
+    let told = false
+    if (tell) {
+      told = openWhatsApp(tell.appt.client_phone, queueMessage(tell.appt, tell.ahead, business, branch, { minutes: tell.ahead * minutes }))
+      if (!told) toast.error('المتصفح منع فتح واتساب — اسمح بالنوافذ المنبثقة وجرّب تاني')
+    }
+    return run(appt, async () => {
+      await rpc('front_desk_call', { p_appointment_id: appt.id })
+      if (told) await update.mutateAsync({ id: tell.appt.id, queue_notified_at: new Date().toISOString() })
+    }, callToast(appt))
+  }
+  const callToast = (appt) => `${appt.queue_number != null ? `رقم ${appt.queue_number}: ` : ''}${appt.client_name} جوه`
   const pushBack = (appt) => run(appt, () => rpc('front_desk_push_back', { p_appointment_id: appt.id, p_steps: PUSH_BACK }), `${appt.client_name} رجع ${PUSH_BACK} أدوار`)
   const setStatus = (appt, status, msg) => run(appt, () => update.mutateAsync({ id: appt.id, status }), msg)
   const arrived = (appt) => run(appt, () => update.mutateAsync({ id: appt.id, arrived_at: new Date().toISOString() }), `${appt.client_name} وصل`)
@@ -209,6 +236,19 @@ export default function FrontDesk() {
 
         {tab === 'now' && (
           <>
+            {/* First thing on the page: someone walks in without a booking, or asks for their turn. */}
+            <div className="flex flex-col sm:flex-row gap-2">
+              <button onClick={() => setModal({ appointment: null })}
+                className="h-11 px-4 rounded-xl bg-white border-2 border-accent-300 text-sm font-bold text-accent-700 flex items-center justify-center gap-1.5 hover:bg-accent-50 flex-shrink-0">
+                <HiOutlinePlus className="w-5 h-5" /> مريض جاي من غير حجز
+              </button>
+              <div className="relative flex-1 min-w-0">
+                <HiOutlineMagnifyingGlass className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
+                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="دوره كام؟ ابحث باسم أو رقم موبايل" aria-label="ابحث في الدور"
+                  className="w-full h-11 bg-white border border-slate-200 rounded-xl pr-9 pl-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent-400" />
+              </div>
+            </div>
+
             {/* Inside now */}
             <div data-testid="inside" className="rounded-2xl bg-ink text-white p-4">
               {inside ? (
@@ -236,32 +276,29 @@ export default function FrontDesk() {
             </div>
 
             {next ? (
+              // One big line to read from across the room; the details stay small under it.
+              // Whoever is inside is finished by the same tap.
               <button data-testid="call-next" onClick={() => call(next)} disabled={!!busyId}
-                className="w-full h-14 rounded-2xl bg-accent-500 hover:bg-accent-600 text-white text-lg font-bold flex items-center justify-center gap-2 disabled:opacity-60 transition-colors">
-                <HiOutlineMegaphone className="w-6 h-6" />
-                {inside ? 'خلص و' : ''}نادي {label(next)}
-                {next.queue_number != null && <span className="text-sm font-medium opacity-80">({next.client_name})</span>}
-                {!next.arrived_at && <span className="text-xs font-medium bg-white/20 rounded-md px-1.5 py-0.5">لسه ما وصلش</span>}
+                title={inside ? `${inside.client_name} هيخلص و${next.client_name} يدخل` : undefined}
+                className="w-full min-h-[60px] py-2 rounded-2xl bg-accent-500 hover:bg-accent-600 text-white flex flex-col items-center justify-center disabled:opacity-60 transition-colors">
+                <span className="flex items-center gap-2 text-lg font-bold">
+                  <HiOutlineMegaphone className="w-6 h-6" />
+                  نادي {label(next)}
+                </span>
+                {(next.queue_number != null || !next.arrived_at || due) && (
+                  <span className="text-xs text-white/85">
+                    {[next.queue_number != null && next.client_name, !next.arrived_at && 'لسه ما وصلش'].filter(Boolean).join(' · ')}
+                    {due && (
+                      <span data-testid="call-tells" className="inline-flex items-center gap-1">
+                        {next.queue_number != null || !next.arrived_at ? ' · ' : ''}<FaWhatsapp className="w-3 h-3" /> {due.appt.client_name}
+                      </span>
+                    )}
+                  </span>
+                )}
               </button>
             ) : (
               <p className="text-center text-sm text-slate-400 py-2">{line.length ? 'مفيش حد مستني بعده.' : 'مفيش حد في الدور النهارده.'}</p>
             )}
-
-            {due && !due.called_at && (
-              <div data-testid="queue-due" className="flex flex-wrap items-center justify-between gap-2 bg-accent-50 border border-accent-200 rounded-xl px-3 py-2.5">
-                <p className="text-sm text-ink"><b>{due.client_name}</b> بقى قدامه {notifyAhead}. ابعتله يتحرك.</p>
-                <button onClick={() => sendPlace(due)} disabled={!!busyId}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-accent-500 hover:bg-accent-600 text-white text-xs font-semibold rounded-xl min-h-[36px] disabled:opacity-60">
-                  <FaWhatsapp className="w-3.5 h-3.5" /> ابعتله
-                </button>
-              </div>
-            )}
-
-            <div className="relative">
-              <HiOutlineMagnifyingGlass className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="ابحث باسم أو رقم موبايل" aria-label="ابحث في الدور"
-                className="w-full h-11 bg-white border border-slate-200 rounded-xl pr-9 pl-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent-400" />
-            </div>
 
             <div className="space-y-2" data-testid="waiting">
               {shown.map(a => {
@@ -319,19 +356,13 @@ export default function FrontDesk() {
             </div>
 
             <p className="text-xs text-slate-400 text-center">
-              الكشف بياخد حوالي {minutes} دقيقة. الرقم ده بيتظبط لوحده من مدة الكشف الفعلية مع «نادي» و«خلص».
+              الوقت المتوقع محسوب على إن الكشف بياخد حوالي {minutes} دقيقة، وبيتظبط لوحده من الكشوفات الفعلية.
             </p>
 
-            <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => setModal({ appointment: null })}
-                className="h-11 rounded-xl bg-white border border-slate-200 text-sm font-semibold text-slate-700 flex items-center justify-center gap-1.5 hover:bg-slate-50">
-                <HiOutlinePlus className="w-4 h-4" /> مريض من غير حجز
-              </button>
-              <button onClick={copyBookingLink}
-                className="h-11 rounded-xl bg-accent-50 border border-accent-200 text-sm font-semibold text-accent-700 flex items-center justify-center gap-1.5 hover:bg-accent-100">
-                <HiOutlineClipboard className="w-4 h-4" /> لينك الحجز
-              </button>
-            </div>
+            <button onClick={copyBookingLink}
+              className="w-full h-11 rounded-xl bg-accent-50 border border-accent-200 text-sm font-semibold text-accent-700 flex items-center justify-center gap-1.5 hover:bg-accent-100">
+              <HiOutlineClipboard className="w-4 h-4" /> انسخ لينك الحجز
+            </button>
           </>
         )}
 

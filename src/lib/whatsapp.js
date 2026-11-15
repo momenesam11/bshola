@@ -19,7 +19,7 @@ export function manageLink(appointment) {
 export function generateManageLinkMessage(appointment, business) {
   return `أهلاً يا ${appointment.client_name}
 
-ده لينك مواعيدك في ${business.name}. تقدر تتابع منه دورك وتلغي لو احتجت:
+ده لينك مواعيدك في ${business.name}. تقدر تتابع منه دورك ومواعيدك:
 ${manageLink(appointment)}
 
 — ${business.name}`
@@ -35,7 +35,7 @@ function whenLine(appointment, timeFormatted) {
 
 function manageLine(appointment) {
   const link = manageLink(appointment)
-  return link ? `\n\nمواعيدك عندنا، ولو حابب تلغي:\n${link}` : ''
+  return link ? `\n\nتابع دورك ومواعيدك من هنا:\n${link}` : ''
 }
 
 // The text onboarding saves for everyone. A clinic still on it gets the fuller
@@ -72,7 +72,7 @@ ${whenLine(appointment, timeFormatted)}
 الخدمة: ${appointment.services?.name || appointment.service_name || ''}
 ${branchLine}${manageLine(appointment)}
 
-لو محتاج تغيير أو إلغاء، ردّ على هذه الرسالة.
+لو محتاج تغيّر الميعاد، ردّ على الرسالة دي.
 
 نتطلع نشوفك!
 — ${business.name}`

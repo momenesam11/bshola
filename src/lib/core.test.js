@@ -192,7 +192,7 @@ describe('whatsapp messages', () => {
   it('confirmation and reminder carry the patient\'s own link once they have a token (054)', () => {
     const withToken = { ...appt, manage_code: 'abc-123' }
     for (const m of [generateConfirmationMessage(withToken, biz, null), generateReminderMessage(withToken, biz, null)]) {
-      expect(m).toContain('مواعيدك عندنا، ولو حابب تلغي:\nhttps://www.beshola.co/m/abc-123')
+      expect(m).toContain('تابع دورك ومواعيدك من هنا:\nhttps://www.beshola.co/m/abc-123')
     }
     expect(generateConfirmationMessage(appt, biz, null)).not.toContain('/m/')
     expect(manageLink(appt)).toBe('')

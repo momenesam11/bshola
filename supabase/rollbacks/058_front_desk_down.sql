@@ -7,6 +7,7 @@ DROP TRIGGER IF EXISTS front_desk_fields ON appointments;
 DROP FUNCTION IF EXISTS front_desk_fields();
 DROP FUNCTION IF EXISTS front_desk_call(uuid);
 DROP FUNCTION IF EXISTS front_desk_push_back(uuid, integer);
+DROP INDEX IF EXISTS appointments_one_inside_key;
 
 CREATE OR REPLACE FUNCTION patients_ahead(a appointments)
 RETURNS integer

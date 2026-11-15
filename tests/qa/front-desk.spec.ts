@@ -37,7 +37,7 @@ test.describe('front desk', () => {
     // Call 1, then 2: 1 is done with its times stamped, 2 is inside.
     await desk.getByTestId('call-next').click()
     await expect(desk.getByTestId('inside')).toContainText('أمل')
-    await expect(desk.getByTestId('call-next')).toContainText('خلص ونادي رقم 2')
+    await expect(desk.getByTestId('call-next')).toContainText('نادي رقم 2')
     await desk.getByTestId('call-next').click()
     await expect(desk.getByTestId('inside')).toContainText('بسمة')
     const first = await one<{ status: string; called_at: string | null; finished_at: string | null }>(
@@ -98,7 +98,7 @@ test.describe('front desk', () => {
     await page.goto('/clinic')
     const desk = page.getByTestId('front-desk')
     await expect(desk.getByTestId('call-next')).toContainText('نادي الساعة 9')
-    await desk.getByRole('button', { name: 'مريض من غير حجز' }).click()
+    await desk.getByRole('button', { name: 'مريض جاي من غير حجز' }).click()
     await expect(page.getByText('موعد جديد').first()).toBeVisible()
     expect(problems).toEqual([])
   })

@@ -25,6 +25,12 @@ ALTER TABLE appointments ADD COLUMN IF NOT EXISTS called_at timestamptz;
 ALTER TABLE appointments ADD COLUMN IF NOT EXISTS finished_at timestamptz;
 ALTER TABLE appointments ADD COLUMN IF NOT EXISTS queue_sort numeric;
 
+-- At most one patient inside per branch and day, whatever two screens do at
+-- once. (Two patients never share a number already: 057's unique index.)
+CREATE UNIQUE INDEX IF NOT EXISTS appointments_one_inside_key
+  ON appointments (business_id, coalesce(branch_id, '00000000-0000-0000-0000-000000000000'::uuid), appointment_date)
+  WHERE status = 'confirmed' AND called_at IS NOT NULL;
+
 ALTER TABLE branches ADD COLUMN IF NOT EXISTS map_url text;
 DO $$
 BEGIN
@@ -68,9 +74,11 @@ BEGIN
 
   IF NEW.status = 'completed' AND (TG_OP = 'INSERT' OR OLD.status IS DISTINCT FROM 'completed') THEN
     NEW.finished_at := coalesce(NEW.finished_at, now());
-  ELSIF TG_OP = 'UPDATE' AND NEW.status = 'confirmed' AND OLD.status = 'completed' THEN
-    -- Back to waiting (a mistaken "خلص"): the visit isn't over.
+  ELSIF TG_OP = 'UPDATE' AND NEW.status = 'confirmed' AND OLD.status IN ('completed', 'no_show') THEN
+    -- Back to waiting (a mistaken "خلص" or "ما جاش"): they wait in their
+    -- place again, not inside, since someone else may be inside by now.
     NEW.finished_at := NULL;
+    NEW.called_at := NULL;
   END IF;
   RETURN NEW;
 END;
@@ -136,6 +144,12 @@ DECLARE
 BEGIN
   SELECT * INTO a FROM appointments WHERE id = p_appointment_id AND status = 'confirmed';
   IF NOT FOUND THEN RAISE EXCEPTION 'NOT_WAITING: this patient is not waiting'; END IF;
+  -- One desk action at a time per branch and day: two screens pressing at
+  -- once queue up here, and the second sees what the first did.
+  PERFORM pg_advisory_xact_lock(hashtextextended(
+    'desk|' || a.business_id::text || '|' || coalesce(a.branch_id::text, '') || '|' || a.appointment_date::text, 0));
+  SELECT * INTO a FROM appointments WHERE id = p_appointment_id AND status = 'confirmed';
+  IF NOT FOUND THEN RAISE EXCEPTION 'NOT_WAITING: this patient is not waiting'; END IF;
 
   UPDATE appointments SET status = 'completed'
   WHERE business_id = a.business_id AND appointment_date = a.appointment_date
@@ -161,6 +175,12 @@ DECLARE
   v_next numeric;
   v_steps integer := least(greatest(coalesce(p_steps, 3), 1), 50);
 BEGIN
+  SELECT * INTO a FROM appointments WHERE id = p_appointment_id AND status = 'confirmed';
+  IF NOT FOUND THEN RAISE EXCEPTION 'NOT_WAITING: this patient is not waiting'; END IF;
+  -- One desk action at a time per branch and day: two screens pressing at
+  -- once queue up here, and the second sees what the first did.
+  PERFORM pg_advisory_xact_lock(hashtextextended(
+    'desk|' || a.business_id::text || '|' || coalesce(a.branch_id::text, '') || '|' || a.appointment_date::text, 0));
   SELECT * INTO a FROM appointments WHERE id = p_appointment_id AND status = 'confirmed';
   IF NOT FOUND THEN RAISE EXCEPTION 'NOT_WAITING: this patient is not waiting'; END IF;
 

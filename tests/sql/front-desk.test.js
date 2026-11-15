@@ -69,7 +69,11 @@ describe('058 front desk', () => {
 
     // A mistaken "خلص" undone: the visit isn't over any more.
     await as('authenticated', c.userId, tx => tx.query(`UPDATE appointments SET status = 'confirmed' WHERE id = $1`, [a.id]))
-    expect((await one('SELECT finished_at FROM appointments WHERE id = $1', [a.id])).finished_at).toBeNull()
+    expect(await one('SELECT finished_at, called_at FROM appointments WHERE id = $1', [a.id])).toEqual({ finished_at: null, called_at: null })
+    // So only the one called last is inside, and the returned one waits in its place.
+    expect((await one(`SELECT count(*)::int n FROM appointments WHERE business_id = $1 AND status = 'confirmed' AND called_at IS NOT NULL`, [c.bizId])).n).toBe(1)
+    const page1 = (await as('anon', null, tx => tx.query('SELECT patient_page($1) p', [a.manage_code]))).rows[0].p.upcoming[0]
+    expect(page1).toMatchObject({ inside: false, ahead: 1 })
   })
 
   it('another clinic and visitors cannot call or push back', async () => {
@@ -150,6 +154,58 @@ describe('058 front desk', () => {
     const day = await today()
     const period = (await as('anon', null, tx => tx.query('SELECT * FROM public_queue_periods($1, $2, $3)', [c.bizId, c.branchId, day]))).rows[0]
     expect(period.current_number).toBe(3)
+  })
+
+  it('each branch has its own line: calling in one branch leaves the other branch inside', async () => {
+    const c = await clinic('branches')
+    const second = await one(`INSERT INTO branches (business_id, name, is_main, capacity, schedule_blocks) VALUES ($1,'تاني',false,1,$2::jsonb) RETURNING id`,
+      [c.bizId, JSON.stringify(WEEK)])
+    const a = await ownerAdds(c, 'فرع1-أ')
+    const b = await ownerAdds({ ...c, branchId: second.id }, 'فرع2-أ')
+    const a2 = await ownerAdds(c, 'فرع1-ب')
+    await call(c, a.id)
+    await call(c, b.id)
+    await call(c, a2.id)
+    const rows = (await db.query(`SELECT client_name, status, called_at IS NOT NULL inside FROM appointments WHERE business_id = $1 ORDER BY client_name`, [c.bizId])).rows
+    expect(rows).toEqual([
+      { client_name: 'فرع1-أ', status: 'completed', inside: true },
+      { client_name: 'فرع1-ب', status: 'confirmed', inside: true },
+      { client_name: 'فرع2-أ', status: 'confirmed', inside: true },
+    ])
+  })
+
+  it('a no-show brought back waits in line again, and the patient page counts it', async () => {
+    const c = await clinic('noshow')
+    const rows = []
+    for (const name of ['1', '2', '3']) rows.push(await ownerAdds(c, name))
+    await as('authenticated', c.userId, tx => tx.query(`UPDATE appointments SET status = 'no_show' WHERE id = $1`, [rows[0].id]))
+    expect((await page(rows[2].manage_code)).upcoming[0].ahead).toBe(1)
+    await as('authenticated', c.userId, tx => tx.query(`UPDATE appointments SET status = 'confirmed' WHERE id = $1`, [rows[0].id]))
+    expect(await order(c)).toEqual(['1', '2', '3'])
+    expect((await page(rows[2].manage_code)).upcoming[0].ahead).toBe(2)
+  })
+
+  it('no two patients share a number, and only one is ever inside', async () => {
+    const c = await clinic('unique')
+    // 20 visitors book the same period: numbers 1..20, each once.
+    for (let i = 0; i < 20; i++) {
+      await as('anon', null, tx => tx.query(
+        `INSERT INTO appointments (business_id, branch_id, service_id, client_name, client_phone, appointment_date, appointment_time, status)
+         VALUES ($1, $2, $3, 'زائر', $4, current_date + 1, '16:00', 'confirmed')`, [c.bizId, c.branchId, c.serviceId, phone()]))
+    }
+    const nums = (await db.query(`SELECT queue_number n FROM appointments WHERE business_id = $1 ORDER BY 1`, [c.bizId])).rows.map(r => r.n)
+    expect(nums).toEqual(Array.from({ length: 20 }, (_, i) => i + 1))
+    // Even a direct write can't give a second patient a taken number.
+    await expect(db.query(`UPDATE appointments SET queue_number = 1 WHERE business_id = $1 AND queue_number = 2`, [c.bizId]))
+      .rejects.toThrow(/appointments_queue_number_key/)
+
+    // And the database refuses a second patient inside the same branch and day.
+    const a = await ownerAdds(c, 'جوه')
+    const b = await ownerAdds(c, 'كمان')
+    await call(c, a.id)
+    await expect(db.query(`UPDATE appointments SET called_at = now() WHERE id = $1`, [b.id])).rejects.toThrow(/appointments_one_inside_key/)
+    await call(c, b.id)
+    expect((await one(`SELECT count(*)::int n FROM appointments WHERE business_id = $1 AND status = 'confirmed' AND called_at IS NOT NULL`, [c.bizId])).n).toBe(1)
   })
 
   it('a branch map link must be an https link', async () => {

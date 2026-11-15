@@ -39,7 +39,7 @@ function usePatientPage(code) {
     },
     retry: false,
     // While the patient waits for today's turn, keep the count fresh.
-    refetchInterval: (query) => (query.state.data?.upcoming?.some(a => a.ahead != null) ? 30_000 : false),
+    refetchInterval: (query) => (query.state.data?.upcoming?.some(a => a.ahead != null) ? 15_000 : false),
   })
 }
 
@@ -70,7 +70,7 @@ function Ahead({ a }) {
         <HiOutlineQueueList className="w-6 h-6 text-accent-600 flex-shrink-0" />
         <div>
           <p className="font-bold text-ink">{title}</p>
-          <p className="text-xs text-gray-500">بيتحدث لوحده كل نص دقيقة</p>
+          <p className="text-xs text-gray-500">بيتحدث لوحده أول بأول</p>
         </div>
       </div>
       {!a.inside && (a.now_serving != null || a.eta_minutes > 0) && (
