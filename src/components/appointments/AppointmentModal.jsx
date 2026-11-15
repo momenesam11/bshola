@@ -356,7 +356,7 @@ export default function AppointmentModal({ open, onClose, businessId, initialDat
           </div>
         </div>
 
-        {overlapsAnother && (
+        {overlapsAnother && business?.booking_mode !== 'queue' && (
           <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
             فيه موعد تاني في الوقت ده، وهيتضاف عادي.
           </p>

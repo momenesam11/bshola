@@ -23,7 +23,7 @@ export default function Modal({ open, onClose, title, children, size = 'md' }) {
         {title && (
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 flex-shrink-0">
             <h2 className="text-base font-semibold text-gray-900">{title}</h2>
-            <button
+            <button aria-label="اقفل"
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600 transition-colors p-1.5 rounded-xl hover:bg-gray-100"
             >

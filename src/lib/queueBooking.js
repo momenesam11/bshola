@@ -1,7 +1,7 @@
 // Booking by turn (migration 057). A queue clinic's patients pick a day and
 // one of its working periods, and the database gives them the next number.
 
-import { formatTime12 } from '../utils/dateHelpers'
+import { branchHasScheduleBlocks, formatTime12, getDayKey, getDayPeriods } from '../utils/dateHelpers'
 
 /** "من 4:00 م لـ 10:00 م", for a period { start: 'HH:MM', end: 'HH:MM' }. */
 export function periodLabel(period) {
@@ -38,4 +38,57 @@ export function periodStatus(period, stats, limit, { dateStr, now = new Date() }
     full,
     over: dateStr ? periodOver(dateStr, period, now) : false,
   }
+}
+
+/**
+ * A day's working periods, [{ start, end }]: the branch's schedule blocks if it
+ * has any, else the clinic's working hours. Same rule as the booking page.
+ */
+export function periodsOfDay(branch, business, dateStr) {
+  const key = getDayKey(dateStr)
+  if (branchHasScheduleBlocks(branch?.schedule_blocks)) {
+    return (branch.schedule_blocks?.[key] || []).map(b => ({ start: String(b.start).slice(0, 5), end: String(b.end).slice(0, 5) }))
+  }
+  const hours = business?.working_hours?.[key]
+  return hours?.active ? getDayPeriods(hours).map(p => ({ start: String(p.open).slice(0, 5), end: String(p.close).slice(0, 5) })) : []
+}
+
+// Where a booking stands today, for the dashboard's turns view (058 columns).
+export function turnStatus(a) {
+  if (a.status === 'completed') return { key: 'done', label: 'خلص' }
+  if (a.status === 'no_show') return { key: 'no_show', label: 'ما جاش' }
+  if (a.status === 'cancelled') return { key: 'cancelled', label: 'اتلغى' }
+  if (a.status === 'waitlist') return { key: 'waitlist', label: 'انتظار' }
+  if (a.called_at) return { key: 'inside', label: 'جوه' }
+  if (a.arrived_at) return { key: 'arrived', label: 'وصل' }
+  return { key: 'booked', label: 'حاجز' }
+}
+
+/**
+ * A day's bookings under their periods, by number. A booking whose time falls
+ * in no period (the clinic moved its hours later) gets a period of its own, so
+ * nobody disappears. Waitlist and cancelled bookings are kept apart.
+ */
+export function groupByPeriod(appointments, periods) {
+  const groups = periods.map(p => ({ period: p, items: [] }))
+  const waitlist = []
+  let cancelled = 0
+  for (const a of appointments || []) {
+    if (a.status === 'waitlist') { waitlist.push(a); continue }
+    if (a.status === 'cancelled') { cancelled++; continue }
+    const t = String(a.appointment_time).slice(0, 5)
+    let g = groups.find(x => t >= x.period.start && t < x.period.end)
+    if (!g) {
+      g = groups.find(x => x.period.start === t && x.extra)
+      if (!g) { g = { period: { start: t, end: t }, items: [], extra: true }; groups.push(g) }
+    }
+    g.items.push(a)
+  }
+  const byNumber = (x, y) => (x.queue_number ?? 1e9) - (y.queue_number ?? 1e9) || String(x.created_at || '').localeCompare(String(y.created_at || ''))
+  for (const g of groups) {
+    g.items.sort(byNumber)
+    g.taken = g.items.filter(a => ['confirmed', 'completed', 'no_show'].includes(a.status)).length
+  }
+  groups.sort((x, y) => x.period.start.localeCompare(y.period.start))
+  return { groups, waitlist: waitlist.sort(byNumber), cancelled }
 }

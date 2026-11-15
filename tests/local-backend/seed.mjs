@@ -253,6 +253,11 @@ export async function seedDemoData(db, createUser) {
       called_at: new Date(Date.now() - 7 * 86400000 - m * 60000).toISOString(), finished_at: new Date(Date.now() - 7 * 86400000).toISOString(),
     })
   }
+  // Someone on tomorrow's waitlist, for the dashboard's turns view.
+  await insert(db, 'appointments', {
+    business_id: turn.biz.id, branch_id: turn.branches[0].id, service_id: turn.services[0].id,
+    client_name: 'سامح منتظر', client_phone: phoneOf(65), appointment_date: day(1), appointment_time: '00:00', status: 'waitlist',
+  })
   const { rows: [follow] } = await db.query('SELECT manage_code FROM appointments WHERE id = $1', [turnRows[4].id])
   console.log(`demo queue patient page (number 5): /m/${follow.manage_code}`)
   for (const [i, name] of ['منى سمير', 'خالد عمر'].entries()) {
