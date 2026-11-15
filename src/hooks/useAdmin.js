@@ -165,6 +165,7 @@ function useSetupMutation(action) {
 export const useSetupBusiness = () => useSetupMutation('setup_business')
 export const useSetupServices = () => useSetupMutation('setup_services')
 export const useSetupBranch = () => useSetupMutation('setup_branch')
+export const useSetupBooking = () => useSetupMutation('setup_booking')
 export const useSetupImage = () => useSetupMutation('setup_image')
 
 // Expiry is checked before "paid": a paid period that ran out locks the

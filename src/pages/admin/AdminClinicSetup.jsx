@@ -10,10 +10,12 @@ import PhoneInput from '../../components/ui/PhoneInput'
 import ScheduleBlockEditor from '../../components/ui/ScheduleBlockEditor'
 import PasswordGate from '../../components/admin/AdminPasswordGate'
 import { BRAND_COLORS, CANCELLATION_OPTIONS, cleanSlug } from '../../lib/businessProfile'
-import { hasAdminToken, useClinicSetup, useSetupBusiness, useSetupServices, useSetupBranch, useSetupImage } from '../../hooks/useAdmin'
+import { hasAdminToken, useClinicSetup, useSetupBusiness, useSetupServices, useSetupBranch, useSetupImage, useSetupBooking } from '../../hooks/useAdmin'
+import { BOOKING_WINDOW_OPTIONS } from '../../lib/bookingWindow'
+import { MAX_NOTIFY_AHEAD } from '../../lib/queue'
 
 // /admin/setup/:id — the owner fills in a clinic's settings at the clinic's
-// request: profile, pictures, services, branches and hours. It never shows
+// request: profile, pictures, how patients book, services, branches and hours. It never shows
 // appointments or patients; the admin Edge Function only exposes settings.
 
 function Card({ title, subtitle, children }) {
@@ -183,17 +185,57 @@ function ServicesCard({ business, services: initial }) {
   )
 }
 
+// By time or by turn (057), the online limit per period, how far ahead patients
+// may book (055), and when the front desk tells a patient to come (053).
+function BookingCard({ business }) {
+  const save = useSetupBooking()
+  const [mode, setMode] = useState(business.booking_mode || 'time')
+  const [limit, setLimit] = useState(business.queue_limit ?? '')
+  const [ahead, setAhead] = useState(business.queue_notify_ahead ?? 3)
+  const [windowDays, setWindowDays] = useState(business.booking_window_days ? String(business.booking_window_days) : '')
+
+  async function submit() {
+    try {
+      await save.mutateAsync({ id: business.id, booking_mode: mode, queue_limit: limit, queue_notify_ahead: ahead, booking_window_days: windowDays })
+      saved('طريقة الحجز')
+    } catch (e) { failed(e) }
+  }
+
+  return (
+    <Card title="طريقة الحجز" subtitle="بالميعاد أو بالدور، ومتى المريض يتبعتله «اتحرك»">
+      <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="المرضى بيحجزوا إزاي">
+        {[{ v: 'time', t: 'بالميعاد', d: 'المريض يختار ساعة' }, { v: 'queue', t: 'بالدور', d: 'يختار الفترة وياخد رقم' }].map(o => (
+          <button key={o.v} type="button" role="radio" aria-checked={mode === o.v} onClick={() => setMode(o.v)}
+            className={`p-3 rounded-xl border-2 text-right ${mode === o.v ? 'border-accent-500 bg-accent-50' : 'border-gray-200 bg-white'}`}>
+            <span className="block font-bold text-gray-900">{o.t}</span>
+            <span className="block text-xs text-gray-500">{o.d}</span>
+          </button>
+        ))}
+      </div>
+      {mode === 'queue' && (
+        <Input label="أقصى عدد يحجز أونلاين في الفترة (فاضي = من غير حد)" type="number" min={1} max={500} value={limit}
+          onChange={(e) => setLimit(e.target.value)} dir="ltr" />
+      )}
+      <Dropdown label="المرضى يحجزوا لحد إمتى" value={windowDays} onChange={setWindowDays} options={BOOKING_WINDOW_OPTIONS} />
+      <Input label="ابعت للمريض «اتحرك» لما يبقى قدامه" type="number" min={1} max={MAX_NOTIFY_AHEAD} value={ahead}
+        onChange={(e) => setAhead(e.target.value)} dir="ltr" />
+      <Button onClick={submit} loading={save.isPending} size="sm">حفظ طريقة الحجز</Button>
+    </Card>
+  )
+}
+
 function BranchCard({ business, branch, many }) {
   const save = useSetupBranch()
   const [name, setName] = useState(branch.name || '')
   const [address, setAddress] = useState(branch.address || '')
+  const [mapUrl, setMapUrl] = useState(branch.map_url || '')
   const [capacity, setCapacity] = useState(branch.capacity ?? 1)
   const [blocks, setBlocks] = useState(branch.schedule_blocks || {})
   const [valid, setValid] = useState(true)
 
   async function submit() {
     try {
-      await save.mutateAsync({ id: business.id, branchId: branch.id, name, address, capacity: Number(capacity), schedule_blocks: blocks })
+      await save.mutateAsync({ id: business.id, branchId: branch.id, name, address, map_url: mapUrl, capacity: Number(capacity), schedule_blocks: blocks })
       saved(many ? `فرع ${name}` : 'مواعيد الشغل')
     } catch (e) { failed(e) }
   }
@@ -204,6 +246,7 @@ function BranchCard({ business, branch, many }) {
         <Input label="اسم الفرع" value={name} onChange={(e) => setName(e.target.value)} />
         <div className="sm:col-span-2"><Input label="العنوان" value={address} onChange={(e) => setAddress(e.target.value)} /></div>
       </div>
+      <Input label="لينك المكان على جوجل ماب" value={mapUrl} onChange={(e) => setMapUrl(e.target.value)} dir="ltr" placeholder="https://maps.app.goo.gl/..." />
       <Input label="عدد المرضى في نفس الوقت" type="number" min={1} max={50} value={capacity} onChange={(e) => setCapacity(e.target.value)} dir="ltr" />
       <ScheduleBlockEditor value={blocks} onChange={setBlocks} onValidityChange={setValid} />
       <Button onClick={submit} loading={save.isPending} disabled={!valid} size="sm">{many ? 'حفظ الفرع' : 'حفظ المواعيد'}</Button>
@@ -243,6 +286,7 @@ function Setup() {
               <ImagePicker business={data.business} kind="logo" label="اللوجو أو الصورة الشخصية" />
               <ImagePicker business={data.business} kind="cover" label="صورة الغلاف" wide />
             </Card>
+            <BookingCard key={`b-${data.business.id}-${data.business.booking_mode}`} business={data.business} />
             <ServicesCard key={`s-${data.services.map((s) => s.id).join()}`} business={data.business} services={data.services} />
             {data.branches.map((b) => (
               <BranchCard key={b.id} business={data.business} branch={b} many={data.branches.length > 1} />

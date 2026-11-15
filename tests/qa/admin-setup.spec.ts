@@ -84,6 +84,11 @@ test.describe('admin clinic setup', () => {
       { action: 'setup_services', id: s.businessId, services: [{ name: 'كشف', duration_minutes: 30, price: -5 }] },
       { action: 'setup_branch', id: s.businessId, branchId: s.branchId, name: 'ف', capacity: 1, schedule_blocks: { saturday: [{ start: '18:00', end: '10:00' }] } },
       { action: 'setup_image', id: s.businessId, kind: 'logo', base64: 'AAAA', contentType: 'application/pdf' },
+      { action: 'setup_booking', id: s.businessId, booking_mode: 'walk' },
+      { action: 'setup_booking', id: s.businessId, booking_mode: 'queue', queue_limit: 0 },
+      { action: 'setup_booking', id: s.businessId, booking_mode: 'queue', queue_notify_ahead: 11 },
+      { action: 'setup_booking', id: s.businessId, booking_mode: 'time', booking_window_days: 400 },
+      { action: 'setup_branch', id: s.businessId, branchId: s.branchId, name: 'ف', capacity: 1, schedule_blocks: {}, map_url: 'javascript:alert(1)' },
     ]
     for (const p of bad) expect((await call({ ...p, token })).status, JSON.stringify(p)).toBe(400)
 
@@ -96,5 +101,27 @@ test.describe('admin clinic setup', () => {
     expect((await one<{ name: string }>('SELECT name FROM services WHERE id=$1', [other.serviceId])).name).toBe(other.serviceName)
     const branch = await call({ action: 'setup_branch', id: s.businessId, branchId: other.branchId, name: 'مسروق', capacity: 1, schedule_blocks: {}, token })
     expect(branch.status).toBe(404)
+  })
+
+  test('sets how patients book and the branch map link', async ({ page }) => {
+    const s = await seedBusiness()
+    await adminIn(page)
+    await page.goto(`/admin/setup/${s.businessId}`)
+    await page.getByRole('radio', { name: /بالدور/ }).click()
+    await page.getByLabel(/أقصى عدد يحجز أونلاين/).fill('12')
+    await page.getByLabel(/ابعت للمريض «اتحرك»/).fill('4')
+    await page.getByRole('button', { name: 'حفظ طريقة الحجز' }).click()
+    await expectToast(page, 'اتحفظ طريقة الحجز')
+    const b = await one<{ m: string; l: number; a: number }>('SELECT booking_mode m, queue_limit l, queue_notify_ahead a FROM businesses WHERE id=$1', [s.businessId])
+    expect(b).toEqual({ m: 'queue', l: 12, a: 4 })
+
+    // Back to by time: the limit goes with it.
+    await page.getByRole('radio', { name: /بالميعاد/ }).click()
+    await page.getByRole('button', { name: 'حفظ طريقة الحجز' }).click()
+    await expect.poll(async () => (await one<{ m: string; l: number | null }>('SELECT booking_mode m, queue_limit l FROM businesses WHERE id=$1', [s.businessId]))).toEqual({ m: 'time', l: null })
+
+    await page.getByLabel('لينك المكان على جوجل ماب').fill('https://maps.app.goo.gl/admin1')
+    await page.getByRole('button', { name: /حفظ المواعيد|حفظ الفرع/ }).click()
+    await expect.poll(async () => (await one<{ u: string | null }>('SELECT map_url u FROM branches WHERE id=$1', [s.branchId])).u).toBe('https://maps.app.goo.gl/admin1')
   })
 })
