@@ -3,7 +3,7 @@ import { test, expect, seedBusiness, seedAppointment, login, one, isoDate, expec
 // Run by the "iphone" (WebKit, i.e. Safari) and "android" projects in
 // playwright.local.config.ts. Most reception desks and patients are on phones.
 
-const OWNER_PAGES = ['/dashboard', '/appointments', '/crm', '/reports', '/settings', '/settings/branches']
+const OWNER_PAGES = ['/dashboard', '/clinic', '/appointments', '/crm', '/reports', '/settings', '/settings/branches']
 const PUBLIC_PAGES = ['/', '/product', '/faq', '/guides', '/tools/no-show-calculator', '/login', '/register', '/forgot-password', '/partner', '/admin']
 
 async function overflow(page) {

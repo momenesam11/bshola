@@ -66,12 +66,14 @@ function BranchRow({ branch, onEdit, onDelete, canDelete }) {
       <div className="flex items-center gap-1 flex-shrink-0">
         <button
           onClick={() => onEdit(branch)}
+          aria-label="تعديل الفرع"
           className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
         >
           <HiOutlinePencil className="w-4 h-4" />
         </button>
         <button
           onClick={() => canDelete && onDelete(branch)}
+          aria-label="حذف الفرع"
           disabled={!canDelete}
           className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] flex items-center justify-center"
         >
@@ -86,6 +88,7 @@ function BranchForm({ branch, onSave, onCancel, saving, isClinic, defaultCountry
   const [name, setName] = useState(branch?.name || '')
   const [address, setAddress] = useState(branch?.address || '')
   const [phone, setPhone] = useState(branch?.phone || '')
+  const [mapUrl, setMapUrl] = useState(branch?.map_url || '')
   const [capacity, setCapacity] = useState(branch?.capacity || 1)
   const [scheduleBlocks, setScheduleBlocks] = useState(branch?.schedule_blocks || {})
   const [isValid, setIsValid] = useState(true)
@@ -93,8 +96,13 @@ function BranchForm({ branch, onSave, onCancel, saving, isClinic, defaultCountry
   function handleSubmit(e) {
     e.preventDefault()
     if (!name.trim()) return
+    const map = mapUrl.trim()
+    if (map && !/^https:\/\/\S+$/i.test(map)) {
+      toast.error('لينك الخريطة لازم يبدأ بـ https://')
+      return
+    }
     onSave({
-      name: name.trim(), address: address.trim(), phone: phone.trim(),
+      name: name.trim(), address: address.trim(), phone: phone.trim(), map_url: map || null,
       capacity: isClinic ? 1 : capacity, schedule_blocks: scheduleBlocks,
     })
   }
@@ -120,6 +128,18 @@ function BranchForm({ branch, onSave, onCancel, saving, isClinic, defaultCountry
           placeholder="عنوان الفرع"
           className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent-400"
         />
+      </div>
+      <div>
+        <label className="block text-xs font-medium text-slate-600 mb-1" htmlFor="branch-map-url">لينك المكان على جوجل ماب</label>
+        <input
+          id="branch-map-url"
+          value={mapUrl}
+          onChange={e => setMapUrl(e.target.value)}
+          placeholder="https://maps.app.goo.gl/..."
+          dir="ltr"
+          className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent-400"
+        />
+        <p className="text-[11px] text-slate-400 mt-1">من جوجل ماب: افتح مكان العيادة ← مشاركة ← نسخ اللينك. المريض بيلاقي زرار «الاتجاهات» في صفحة مواعيده.</p>
       </div>
       <div>
         <label className="block text-xs font-medium text-slate-600 mb-1">رقم الهاتف</label>

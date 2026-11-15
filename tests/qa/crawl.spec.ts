@@ -179,6 +179,7 @@ test.describe('every button on every screen', () => {
 
   const ownerScreens: Array<[string, (phone: string) => string, string?]> = [
     ['dashboard', () => '/dashboard'],
+    ['clinic', () => '/clinic'],
     ['appointments', () => '/appointments'],
     ['clients', () => '/crm'],
     ['patient record (clinic)', p => `/patients/${p}`],

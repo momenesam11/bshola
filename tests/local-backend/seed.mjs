@@ -229,14 +229,32 @@ export async function seedDemoData(db, createUser) {
     branches: [{ name: 'الفرع الرئيسي', is_main: true, capacity: 1, schedule_blocks: week([{ start: '10:00', end: '14:00' }, { start: '16:00', end: '23:30' }]) }],
     services: [{ name: 'كشف', duration_minutes: 15, price: 300 }, { name: 'استشارة', duration_minutes: 10, price: 150 }],
   })
+  // The front desk (058) on /clinic: number 1 is done, number 2 is inside,
+  // 3 and 4 have arrived, the rest are on their way. The branch has a map link.
+  await db.query(`UPDATE branches SET map_url = 'https://www.google.com/maps/@29.9602,31.2569,17z', address = '14 شارع 9، المعادي' WHERE id = $1`, [turn.branches[0].id])
+  const minutesAgo = (m) => new Date(Date.now() - m * 60000).toISOString()
   const turnNames = ['فاطمة علي', 'حسن محمود', 'سلوى أحمد', 'رامي سعد', 'نادية فؤاد', 'عادل حسين']
+  const turnRows = []
   for (const [i, name] of turnNames.entries()) {
-    const row = await insert(db, 'appointments', {
+    turnRows.push(await insert(db, 'appointments', {
       business_id: turn.biz.id, branch_id: turn.branches[0].id, service_id: turn.services[0].id,
       client_name: name, client_phone: phoneOf(50 + i), appointment_date: day(0), appointment_time: '16:00', status: 'confirmed',
-    })
-    if (i === 0) await db.query(`UPDATE appointments SET status = 'completed' WHERE id = $1`, [row.id])
+    }))
   }
+  await db.query(`UPDATE appointments SET status = 'completed', arrived_at = $2, called_at = $3, finished_at = $4 WHERE id = $1`,
+    [turnRows[0].id, minutesAgo(40), minutesAgo(20), minutesAgo(8)])
+  await db.query(`UPDATE appointments SET arrived_at = $2, called_at = $3 WHERE id = $1`, [turnRows[1].id, minutesAgo(30), minutesAgo(8)])
+  await db.query(`UPDATE appointments SET arrived_at = $2 WHERE id = ANY($1)`, [[turnRows[2].id, turnRows[3].id], minutesAgo(15)])
+  // Visits timed last week, so "about how long" comes from them (≈ 12 minutes).
+  for (const [i, m] of [10, 12, 14].entries()) {
+    await insert(db, 'appointments', {
+      business_id: turn.biz.id, branch_id: turn.branches[0].id, service_id: turn.services[0].id,
+      client_name: NAMES[i], client_phone: phoneOf(70 + i), appointment_date: day(-7), appointment_time: '16:00', status: 'completed',
+      called_at: new Date(Date.now() - 7 * 86400000 - m * 60000).toISOString(), finished_at: new Date(Date.now() - 7 * 86400000).toISOString(),
+    })
+  }
+  const { rows: [follow] } = await db.query('SELECT manage_code FROM appointments WHERE id = $1', [turnRows[4].id])
+  console.log(`demo queue patient page (number 5): /m/${follow.manage_code}`)
   for (const [i, name] of ['منى سمير', 'خالد عمر'].entries()) {
     await insert(db, 'appointments', {
       business_id: turn.biz.id, branch_id: turn.branches[0].id, service_id: turn.services[0].id,

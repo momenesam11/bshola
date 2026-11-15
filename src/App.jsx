@@ -34,6 +34,7 @@ const MyAppointments = lazy(() => import('./pages/patient/MyAppointments'))
 const ClientsPage = lazy(() => import('./pages/crm/ClientsPage'))
 const PatientRecord = lazy(() => import('./pages/patients/PatientRecord'))
 const BranchSettings = lazy(() => import('./pages/settings/BranchSettings'))
+const FrontDesk = lazy(() => import('./pages/clinic/FrontDesk'))
 
 // Marketing pages stay eagerly imported: they are the entry point for search
 // traffic, so an extra round-trip before first paint would be the wrong trade.
@@ -194,6 +195,7 @@ export function AppRoutes() {
           {/* Protected */}
           <Route path="/onboarding" element={<AuthGuard><OnboardingFlow /></AuthGuard>} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/clinic" element={<ProtectedRoute><FrontDesk /></ProtectedRoute>} />
           <Route path="/appointments" element={<ProtectedRoute><AppointmentList /></ProtectedRoute>} />
           <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />

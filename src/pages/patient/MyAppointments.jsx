@@ -6,6 +6,7 @@ import { HiOutlineCalendarDays, HiOutlineClock, HiOutlineMapPin, HiOutlinePhone,
 import { supabase } from '../../lib/supabase'
 import { formatDateArabic, formatTimeArabic } from '../../lib/whatsapp'
 import { telHref } from '../../lib/countries'
+import { formatWait } from '../../lib/queue'
 import Modal from '../../components/ui/Modal'
 import Button from '../../components/ui/Button'
 
@@ -38,7 +39,7 @@ function usePatientPage(code) {
     },
     retry: false,
     // While the patient waits for today's turn, keep the count fresh.
-    refetchInterval: (query) => (query.state.data?.upcoming?.some(a => a.ahead != null) ? 60_000 : false),
+    refetchInterval: (query) => (query.state.data?.upcoming?.some(a => a.ahead != null) ? 30_000 : false),
   })
 }
 
@@ -57,14 +58,62 @@ function When({ a }) {
   )
 }
 
-function Ahead({ count }) {
+// Today's turn (058): who is inside, how many are ahead, about how long.
+function Ahead({ a }) {
+  const count = a.ahead
+  const title = a.inside ? 'اتفضل، دورك جوه دلوقتي'
+    : count === 0 ? 'دورك دلوقتي'
+    : `قدامك ${count === 1 ? 'مريض واحد' : count === 2 ? 'اتنين' : `${count} ${count <= 10 ? 'مرضى' : 'مريض'}`}`
   return (
-    <div data-testid="ahead" className="flex items-center gap-3 rounded-xl bg-accent-50 border border-accent-200 px-3 py-2.5">
-      <HiOutlineQueueList className="w-6 h-6 text-accent-600 flex-shrink-0" />
-      <div>
-        <p className="font-bold text-ink">{count === 0 ? 'دورك دلوقتي' : `قدامك ${count === 1 ? 'مريض واحد' : count === 2 ? 'اتنين' : `${count} ${count <= 10 ? 'مرضى' : 'مريض'}`}`}</p>
-        <p className="text-xs text-gray-500">بيتحدث لوحده كل دقيقة</p>
+    <div data-testid="ahead" className="rounded-xl bg-accent-50 border border-accent-200 px-3 py-2.5 space-y-2">
+      <div className="flex items-center gap-3">
+        <HiOutlineQueueList className="w-6 h-6 text-accent-600 flex-shrink-0" />
+        <div>
+          <p className="font-bold text-ink">{title}</p>
+          <p className="text-xs text-gray-500">بيتحدث لوحده كل نص دقيقة</p>
+        </div>
       </div>
+      {!a.inside && (a.now_serving != null || a.eta_minutes > 0) && (
+        <div className="grid grid-cols-2 gap-2 text-center">
+          {a.now_serving != null && (
+            <div className="bg-white rounded-lg py-1.5">
+              <p className="text-[11px] text-gray-500">جوه دلوقتي</p>
+              <p data-testid="now-serving" className="font-bold text-ink tabular-nums">رقم {a.now_serving}</p>
+            </div>
+          )}
+          {a.eta_minutes > 0 && (
+            <div className="bg-white rounded-lg py-1.5">
+              <p className="text-[11px] text-gray-500">هتدخل بعد حوالي</p>
+              <p data-testid="eta" className="font-bold text-ink">{formatWait(a.eta_minutes)}</p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// A Google Maps link with coordinates in it (@30.0,31.2 or ?q=30.0,31.2) can
+// show a small map; a short share link (maps.app.goo.gl) only opens directions.
+function mapEmbed(url) {
+  const m = String(url || '').match(/[@=](-?\d{1,2}\.\d+),\s*(-?\d{1,3}\.\d+)/)
+  return m ? `https://maps.google.com/maps?q=${m[1]},${m[2]}&z=16&output=embed` : null
+}
+
+function Directions({ a }) {
+  const href = a.map_url || (a.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(a.address)}` : null)
+  if (!href) return null
+  const embed = mapEmbed(a.map_url)
+  return (
+    <div className="space-y-2">
+      {embed && (
+        <iframe data-testid="map" title="مكان العيادة" src={embed} loading="lazy" referrerPolicy="no-referrer"
+          className="w-full h-40 rounded-xl border border-gray-100" />
+      )}
+      <a data-testid="directions" href={href} target="_blank" rel="noopener noreferrer"
+        className="flex items-center justify-center gap-2 h-11 rounded-xl border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+        <HiOutlineMapPin className="w-4 h-4" /> الاتجاهات للعيادة
+      </a>
     </div>
   )
 }
@@ -182,7 +231,8 @@ export default function MyAppointments() {
             {(a.branch || a.address) && (
               <p className="flex items-center gap-1 text-sm text-gray-500"><HiOutlineMapPin className="w-4 h-4" />{[a.branch, a.address].filter(Boolean).join(' — ')}</p>
             )}
-            {a.ahead != null && <Ahead count={a.ahead} />}
+            {a.ahead != null && <Ahead a={a} />}
+            <Directions a={a} />
             {a.can_cancel ? (
               <button onClick={() => openCancel(a)}
                 className="w-full mt-1 h-11 rounded-xl border-2 border-red-200 text-red-600 text-sm font-semibold hover:bg-red-50">

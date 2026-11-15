@@ -13,6 +13,7 @@
     { "source": "/partner/:path*", "destination": "/app" },
     { "source": "/onboarding", "destination": "/app" },
     { "source": "/dashboard", "destination": "/app" },
+    { "source": "/clinic", "destination": "/app" },
     { "source": "/appointments", "destination": "/app" },
     { "source": "/reports", "destination": "/app" },
     { "source": "/settings/:path*", "destination": "/app" },

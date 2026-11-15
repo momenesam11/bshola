@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { dueForNotice, notifyAheadOf, queueMessage, waitingQueue } from './queue'
+import { dueForNotice, formatWait, notifyAheadOf, queueKey, queueMessage, visitMinutes, waitingQueue } from './queue'
 
 const a = (id, time, extra = {}) => ({ id, client_name: id, appointment_time: time, status: 'confirmed', branch_id: 'b1', ...extra })
 
@@ -36,5 +36,39 @@ describe('today queue', () => {
     const now = queueMessage({ client_name: 'منى' }, 0, biz, null)
     expect(now).toContain('دورك دلوقتي في عيادة النور، اتفضل.')
     expect(now).not.toContain('http')
+  })
+})
+
+describe('front desk (058)', () => {
+  it('puts whoever is inside first and follows a pushed-back place', () => {
+    const q = waitingQueue([
+      a('1', '16:00', { queue_number: 1, queue_sort: 57600.0035 }),
+      a('2', '16:00', { queue_number: 2 }),
+      a('3', '16:00', { queue_number: 3 }),
+      a('4', '16:00', { queue_number: 4 }),
+      a('5', '16:00', { queue_number: 5, called_at: '2026-11-15T14:00:00Z' }),
+    ])
+    expect(q.map(x => x.id)).toEqual(['5', '2', '3', '1', '4'])
+    expect(queueKey(a('x', '10:30:00', { queue_number: 7 }))).toBeCloseTo(37800.007)
+  })
+
+  it('uses the measured visit time, else the services, else the slot', () => {
+    expect(visitMinutes(12, [{ duration_minutes: 30 }])).toBe(12)
+    expect(visitMinutes(null, [{ duration_minutes: 10 }, { duration_minutes: 20 }])).toBe(15)
+    expect(visitMinutes(undefined, [], { slot_duration: 25 })).toBe(25)
+    expect(visitMinutes(null, [], null)).toBe(15)
+  })
+
+  it('formats a wait in minutes and hours', () => {
+    expect(formatWait(0)).toBe('دلوقتي')
+    expect(formatWait(25)).toBe('≈ 25 د')
+    expect(formatWait(60)).toBe('≈ ساعة')
+    expect(formatWait(130)).toBe('≈ ساعتين و10 د')
+  })
+
+  it('adds the number and the expected wait when given', () => {
+    const msg = queueMessage({ client_name: 'منى', queue_number: 7 }, 2, { name: 'عيادة النور' }, null, { minutes: 20 })
+    expect(msg).toContain('رقمك 7. باقي قدامك اتنين في عيادة النور.')
+    expect(msg).toContain('الوقت المتوقع حوالي 20 دقيقة.')
   })
 })
