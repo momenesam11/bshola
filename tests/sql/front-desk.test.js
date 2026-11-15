@@ -208,6 +208,29 @@ describe('058 front desk', () => {
     expect((await one(`SELECT count(*)::int n FROM appointments WHERE business_id = $1 AND status = 'confirmed' AND called_at IS NOT NULL`, [c.bizId])).n).toBe(1)
   })
 
+  it('the waiting-room screen shows numbers only: who is inside and the line in order', async () => {
+    const c = await clinic('screen', { minutes: 15 })
+    await db.query(`UPDATE businesses SET booking_slug = $2 WHERE id = $1`, [c.bizId, `screen-${c.bizId.slice(0, 8)}`])
+    const rows = []
+    for (const name of ['سري1', 'سري2', 'سري3', 'سري4']) rows.push(await ownerAdds(c, name, '16:00'))
+    await call(c, rows[0].id)
+    await pushBack(c, rows[1].id, 1)
+    const screen = async (ref) => (await as('anon', null, tx => tx.query('SELECT public_queue_screen($1) s', [ref]))).rows[0].s
+    const s = await screen(`screen-${c.bizId.slice(0, 8)}`)
+    expect(s.inside.number).toBe(1)
+    expect(s.line.map(x => x.number)).toEqual([3, 2, 4])
+    expect(s.minutes).toBe(15)
+    expect(s.mode).toBe('queue')
+    // Nothing that names a patient leaves the database.
+    const text = JSON.stringify(s)
+    expect(text).not.toMatch(/سري|2010/)
+    // By id too; an unknown one or a locked clinic shows nothing.
+    expect((await screen(c.bizId)).line).toHaveLength(3)
+    expect((await screen('no-such-clinic')).error).toBe('NOT_FOUND')
+    await db.query(`UPDATE businesses SET is_active = false WHERE id = $1`, [c.bizId])
+    expect(await screen(c.bizId)).toEqual({ error: 'LOCKED' })
+  })
+
   it('a branch map link must be an https link', async () => {
     const c = await clinic('map')
     await expect(db.query(`UPDATE branches SET map_url = 'javascript:alert(1)' WHERE id = $1`, [c.branchId])).rejects.toThrow(/map_url/)

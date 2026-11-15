@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import {
   HiOutlineMagnifyingGlass, HiOutlineCheck, HiOutlineArrowUturnDown, HiOutlineLink,
-  HiOutlinePlus, HiOutlineClipboard, HiOutlineMegaphone,
+  HiOutlinePlus, HiOutlineClipboard, HiOutlineMegaphone, HiOutlineTv,
 } from 'react-icons/hi2'
 import { FaWhatsapp } from 'react-icons/fa'
 import PageWrapper from '../../components/layout/PageWrapper'
@@ -192,6 +192,10 @@ export default function FrontDesk() {
     }
   }
 
+  const screenPath = business
+    ? `/q/${business.booking_slug || business.id}${branches.length > 1 && branchId ? `?b=${branchId}` : ''}`
+    : '/'
+
   async function copyBookingLink() {
     try {
       await navigator.clipboard.writeText(`${window.location.origin}/book/${business.booking_slug || business.id}`)
@@ -359,10 +363,20 @@ export default function FrontDesk() {
               الوقت المتوقع محسوب على إن الكشف بياخد حوالي {minutes} دقيقة، وبيتظبط لوحده من الكشوفات الفعلية.
             </p>
 
-            <button onClick={copyBookingLink}
-              className="w-full h-11 rounded-xl bg-accent-50 border border-accent-200 text-sm font-semibold text-accent-700 flex items-center justify-center gap-1.5 hover:bg-accent-100">
-              <HiOutlineClipboard className="w-4 h-4" /> انسخ لينك الحجز
-            </button>
+            <div className="grid grid-cols-2 gap-2">
+              {/* The waiting-room screen (058): open it on the clinic's TV, or copy the link. */}
+              <a href={screenPath} target="_blank" rel="noopener noreferrer"
+                className="h-11 rounded-xl bg-ink text-white text-sm font-semibold flex items-center justify-center gap-1.5 hover:opacity-90">
+                <HiOutlineTv className="w-4 h-4" /> شاشة الدور
+              </a>
+              <button onClick={copyBookingLink}
+                className="h-11 rounded-xl bg-accent-50 border border-accent-200 text-sm font-semibold text-accent-700 flex items-center justify-center gap-1.5 hover:bg-accent-100">
+                <HiOutlineClipboard className="w-4 h-4" /> انسخ لينك الحجز
+              </button>
+            </div>
+            <p className="text-[11px] text-slate-400 text-center">
+              «شاشة الدور» افتحها على تليفزيون العيادة: بتعرض الأرقام بس من غير أسامي، وعليها كود يمسحه المريض ويتابع دوره من موبايله.
+            </p>
           </>
         )}
 

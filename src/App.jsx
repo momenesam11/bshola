@@ -35,6 +35,7 @@ const ClientsPage = lazy(() => import('./pages/crm/ClientsPage'))
 const PatientRecord = lazy(() => import('./pages/patients/PatientRecord'))
 const BranchSettings = lazy(() => import('./pages/settings/BranchSettings'))
 const FrontDesk = lazy(() => import('./pages/clinic/FrontDesk'))
+const QueueScreen = lazy(() => import('./pages/patient/QueueScreen'))
 
 // Marketing pages stay eagerly imported: they are the entry point for search
 // traffic, so an extra round-trip before first paint would be the wrong trade.
@@ -185,6 +186,7 @@ export function AppRoutes() {
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/book/:businessSlug" element={<BookingPage />} />
           <Route path="/m/:code" element={<MyAppointments />} />
+          <Route path="/q/:ref" element={<QueueScreen />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/growth" element={<GrowthPage />} />
           <Route path="/admin/setup/:id" element={<AdminClinicSetup />} />
