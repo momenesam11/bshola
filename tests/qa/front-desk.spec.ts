@@ -186,6 +186,30 @@ test.describe('front desk', () => {
     expect(problems).toEqual([])
   })
 
+  test('by turn, the desk opens on the tab that has patients, never an empty list', async ({ page }) => {
+    const s = await seedBusiness({ fields: { booking_mode: 'queue' } })
+    // One period all day; the patients were booked under another time (before 060),
+    // so they sit under their own tab and the running period's tab is empty.
+    for (const [i, name] of ['مريضة أ', 'مريضة ب'].entries()) {
+      const r = await seedAppointment(s, { client_name: name, appointment_date: isoDate(0), appointment_time: '00:00' })
+      // As a booking made before 060 sits: the numbering trigger is off for this write only.
+      await sql('ALTER TABLE appointments DISABLE TRIGGER assign_queue_number')
+      await sql(`UPDATE appointments SET appointment_time = '13:15', queue_number = $2 WHERE id = $1`, [r.id, i + 1])
+      await sql('ALTER TABLE appointments ENABLE TRIGGER assign_queue_number')
+    }
+    await login(page, s)
+    await page.goto('/clinic')
+    const desk = page.getByTestId('front-desk')
+    await expect(desk.getByTestId('waiting-row')).toHaveCount(2)
+    await expect(desk.getByTestId('waiting')).toContainText('مريضة أ')
+
+    // Picking the empty tab says where the patients are, and one tap goes back.
+    await desk.getByTestId('period-tabs').getByRole('tab').filter({ hasText: '(0)' }).first().click()
+    await expect(desk.getByTestId('waiting-row')).toHaveCount(0)
+    await desk.getByTestId('other-tabs').click()
+    await expect(desk.getByTestId('waiting-row')).toHaveCount(2)
+  })
+
   test('the branch map link is saved from the branches page', async ({ page }) => {
     const s = await seedBusiness()
     await login(page, s)
