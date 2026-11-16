@@ -153,6 +153,39 @@ test.describe('front desk', () => {
     expect(problems).toEqual([])
   })
 
+  test('by turn, the desk shows one period at a time and flags a patient booked twice', async ({ page, problems }) => {
+    const s = await seedBusiness({ fields: { booking_mode: 'queue' } })
+    const blocks = Object.fromEntries(['sat', 'sun', 'mon', 'tue', 'wed', 'thu', 'fri']
+      .map(d => [d, [{ start: '00:00', end: '12:00' }, { start: '12:00', end: '23:30' }]]))
+    await sql('UPDATE branches SET schedule_blocks = $2::jsonb WHERE id = $1', [s.branchId, JSON.stringify(blocks)])
+    const twice = phone()
+    for (const name of ['صباح أ', 'صباح ب']) await seedAppointment(s, { client_name: name, appointment_date: isoDate(0), appointment_time: '00:00' })
+    await seedAppointment(s, { client_name: 'مكررة', client_phone: twice, appointment_date: isoDate(0), appointment_time: '00:00' })
+    await seedAppointment(s, { client_name: 'مكررة', client_phone: twice, appointment_date: isoDate(0), appointment_time: '12:00' })
+    await seedAppointment(s, { client_name: 'مساء ب', appointment_date: isoDate(0), appointment_time: '12:00' })
+    await login(page, s)
+    await page.goto('/clinic')
+    const desk = page.getByTestId('front-desk')
+    const tabs = desk.getByTestId('period-tabs')
+    await expect(tabs.getByRole('tab')).toHaveCount(2)
+    await expect(tabs.getByRole('tab', { name: /الصباحية/ })).toContainText('(3)')
+    await expect(tabs.getByRole('tab', { name: /الضهر|المسائية/ })).toContainText('(2)')
+
+    // Morning: its three patients numbered 1, 2, 3, nothing from the other period.
+    await tabs.getByRole('tab', { name: /الصباحية/ }).click()
+    const rows = desk.getByTestId('waiting-row')
+    await expect(rows).toHaveCount(3)
+    await expect(desk.getByTestId('waiting')).not.toContainText('مساء ب')
+    await expect(rows.filter({ hasText: 'مكررة' }).getByTestId('booked-twice')).toBeVisible()
+
+    // The other period: its own number 1 and 2.
+    await tabs.getByRole('tab', { name: /الضهر|المسائية/ }).click()
+    await expect(rows).toHaveCount(2)
+    await expect(desk.getByTestId('waiting')).not.toContainText('صباح أ')
+    await expect(rows.first()).toContainText('1')
+    expect(problems).toEqual([])
+  })
+
   test('the branch map link is saved from the branches page', async ({ page }) => {
     const s = await seedBusiness()
     await login(page, s)

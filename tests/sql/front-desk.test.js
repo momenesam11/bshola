@@ -242,4 +242,39 @@ describe('058 front desk', () => {
     const r = await ownerAdds(c, 'خريطة')
     expect((await page(r.manage_code)).upcoming[0].map_url).toBe('https://maps.app.goo.gl/abc')
   })
+
+  it('060: by turn, ahead and the waiting-room screen stay inside one period', async () => {
+    const c = await clinic('periods', { minutes: 10 })
+    const slug = `periods-${c.bizId.slice(0, 8)}`
+    await db.query('UPDATE businesses SET booking_slug = $2 WHERE id = $1', [c.bizId, slug])
+    // The period running now covers almost the whole day; a short late one follows.
+    const blocks = Object.fromEntries(['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
+      .map(k => [k, [{ start: '00:00', end: '23:58' }, { start: '23:58', end: '23:59' }]]))
+    await db.query('UPDATE branches SET schedule_blocks = $2::jsonb WHERE id = $1', [c.branchId, JSON.stringify(blocks)])
+    const now1 = await ownerAdds(c, 'الآن1', '10:00')
+    const now2 = await ownerAdds(c, 'الآن2', '10:00')
+    const late1 = await ownerAdds(c, 'آخر1', '23:58')
+    expect([now1.queue_number, now2.queue_number, late1.queue_number]).toEqual([1, 2, 1])
+
+    // The late period's number 1 has nobody ahead from the other period.
+    expect((await page(late1.manage_code)).upcoming[0].ahead).toBe(0)
+    expect((await page(now2.manage_code)).upcoming[0].ahead).toBe(1)
+    // Whoever is inside still counts, whatever period they're from.
+    await call(c, now1.id)
+    expect((await page(late1.manage_code)).upcoming[0].ahead).toBe(1)
+
+    // The screen shows the running period only: no second number 1.
+    const screen = (await as('anon', null, tx => tx.query('SELECT public_queue_screen($1) s', [slug]))).rows[0].s
+    expect(screen.period_start).toBe('00:00')
+    expect(screen.line.map(x => x.number)).toEqual([2])
+    expect(screen.inside.number).toBe(1)
+  })
+
+  it('060: a clinic that books by time keeps the whole day', async () => {
+    const c = await clinic('time-day', { mode: 'time' })
+    const a = await ownerAdds(c, 'ص', '09:00')
+    const b = await ownerAdds(c, 'م', '18:00')
+    expect((await page(b.manage_code)).upcoming[0].ahead).toBe(1)
+    expect((await page(a.manage_code)).upcoming[0].ahead).toBe(0)
+  })
 })

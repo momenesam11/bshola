@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { dueForNotice, formatWait, notifyAheadOf, queueKey, queueMessage, visitMinutes, waitingQueue } from './queue'
+import { dueForNotice, formatWait, notifyAheadOf, periodChoices, periodLine, queueKey, queueMessage, visitMinutes, waitingQueue } from './queue'
 
 const a = (id, time, extra = {}) => ({ id, client_name: id, appointment_time: time, status: 'confirmed', branch_id: 'b1', ...extra })
 
@@ -70,5 +70,31 @@ describe('front desk (058)', () => {
     const msg = queueMessage({ client_name: 'منى', queue_number: 7 }, 2, { name: 'عيادة النور' }, null, { minutes: 20 })
     expect(msg).toContain('رقمك 7. باقي قدامك اتنين في عيادة النور.')
     expect(msg).toContain('الوقت المتوقع حوالي 20 دقيقة.')
+  })
+})
+
+describe('front desk periods (queue clinics)', () => {
+  const periods = [{ start: '10:00', end: '14:00' }, { start: '17:00', end: '22:00' }]
+  const day = waitingQueue([
+    a('m1', '10:00', { queue_number: 1 }), a('m2', '10:00', { queue_number: 2 }),
+    a('e1', '17:00', { queue_number: 1 }), a('e2', '17:00', { queue_number: 2 }),
+    a('odd', '15:30', { queue_number: 1 }),
+  ])
+
+  it('shows one period at a time, so a number appears once', () => {
+    expect(periodLine(day, periods, '10:00').map(x => x.id)).toEqual(['m1', 'm2'])
+    expect(periodLine(day, periods, '17:00').map(x => x.id)).toEqual(['e1', 'e2'])
+    expect(periodLine(day, periods, '15:30').map(x => x.id)).toEqual(['odd'])
+  })
+
+  it('keeps whoever is inside at the top, whatever period is shown', () => {
+    const withInside = waitingQueue([...day, a('in', '10:00', { queue_number: 3, called_at: '2026-11-16T10:00:00Z' })])
+    expect(periodLine(withInside, periods, '17:00').map(x => x.id)).toEqual(['in', 'e1', 'e2'])
+  })
+
+  it('lists the periods with how many wait in each', () => {
+    expect(periodChoices(day, periods).map(c => [c.start, c.waiting, !!c.period])).toEqual([
+      ['10:00', 2, true], ['15:30', 1, false], ['17:00', 2, true],
+    ])
   })
 })

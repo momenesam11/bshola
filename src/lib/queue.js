@@ -84,3 +84,35 @@ ${line}
 
 — ${business.name}`
 }
+
+// Booking by turn: each period numbers from 1, so the front desk works one
+// period at a time. A visit belongs to the period its time falls in; a time in
+// no period (hours changed later) is a period of its own.
+export function periodStartOf(appt, periods) {
+  const t = String(appt.appointment_time || '').slice(0, 5)
+  const p = (periods || []).find(x => t >= x.start && t < x.end)
+  return p ? p.start : t
+}
+
+/**
+ * The front desk's line for one period of a queue clinic: whoever is inside
+ * (from any period: the doctor is with them now), then that period's waiting
+ * patients in line order. `dayLine` is waitingQueue() of the whole day.
+ */
+export function periodLine(dayLine, periods, start) {
+  const inside = dayLine.find(a => a.called_at) || null
+  const waiting = dayLine.filter(a => !a.called_at && periodStartOf(a, periods) === start)
+  return inside ? [inside, ...waiting] : waiting
+}
+
+/** Periods of the day that have someone waiting or are on the schedule, with their waiting counts. */
+export function periodChoices(dayLine, periods) {
+  const counts = {}
+  for (const a of dayLine) if (!a.called_at) counts[periodStartOf(a, periods)] = (counts[periodStartOf(a, periods)] || 0) + 1
+  const starts = new Set([...(periods || []).map(p => p.start), ...Object.keys(counts)])
+  return [...starts].sort().map(start => ({
+    start,
+    period: (periods || []).find(p => p.start === start) || null,
+    waiting: counts[start] || 0,
+  }))
+}
