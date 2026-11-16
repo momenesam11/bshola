@@ -270,6 +270,30 @@ describe('058 front desk', () => {
     expect(screen.inside.number).toBe(1)
   })
 
+  it('060: with only the clinic\'s hours, a booking inside a period joins its numbers', async () => {
+    const c = await clinic('hours', { minutes: 10 })
+    const days = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
+    await db.query(`UPDATE branches SET schedule_blocks = '{}'::jsonb WHERE id = $1`, [c.branchId])
+    await db.query('UPDATE businesses SET working_hours = $2::jsonb WHERE id = $1', [c.bizId,
+      JSON.stringify(Object.fromEntries(days.map(d => [d, { active: true, periods: [{ open: '10:00', close: '14:00' }, { open: '16:00', close: '22:00' }] }])))])
+    const first = await ownerAdds(c, 'أول', '16:00')
+    const fromCalendar = await ownerAdds(c, 'من الكاليندر', '17:30')
+    const morning = await ownerAdds(c, 'صباحي', '11:15')
+    const row = async (id) => one('SELECT appointment_time::text t, queue_number n FROM appointments WHERE id = $1', [id])
+    expect(await row(first.id)).toEqual({ t: '16:00:00', n: 1 })
+    expect(await row(fromCalendar.id)).toEqual({ t: '16:00:00', n: 2 })
+    expect(await row(morning.id)).toEqual({ t: '10:00:00', n: 1 })
+
+    // The old style (open/close without periods) works too.
+    const c2 = await clinic('hours-old', { minutes: 10 })
+    await db.query(`UPDATE branches SET schedule_blocks = '{}'::jsonb WHERE id = $1`, [c2.branchId])
+    await db.query('UPDATE businesses SET working_hours = $2::jsonb WHERE id = $1', [c2.bizId,
+      JSON.stringify(Object.fromEntries(days.map(d => [d, { active: true, open: '09:00', close: '17:00' }])))])
+    await ownerAdds(c2, 'أ', '09:00')
+    const late = await ownerAdds(c2, 'ب', '12:40')
+    expect(await row(late.id)).toEqual({ t: '09:00:00', n: 2 })
+  })
+
   it('060: a clinic that books by time keeps the whole day', async () => {
     const c = await clinic('time-day', { mode: 'time' })
     const a = await ownerAdds(c, 'ص', '09:00')

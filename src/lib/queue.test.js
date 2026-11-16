@@ -79,12 +79,15 @@ describe('front desk periods (queue clinics)', () => {
     a('m1', '10:00', { queue_number: 1 }), a('m2', '10:00', { queue_number: 2 }),
     a('e1', '17:00', { queue_number: 1 }), a('e2', '17:00', { queue_number: 2 }),
     a('odd', '15:30', { queue_number: 1 }),
+    a('mid', '17:30', { queue_number: 1 }),
   ])
 
   it('shows one period at a time, so a number appears once', () => {
     expect(periodLine(day, periods, '10:00').map(x => x.id)).toEqual(['m1', 'm2'])
     expect(periodLine(day, periods, '17:00').map(x => x.id)).toEqual(['e1', 'e2'])
     expect(periodLine(day, periods, '15:30').map(x => x.id)).toEqual(['odd'])
+    // Booked from the calendar at 17:30 before 060: its own number 1, its own tab.
+    expect(periodLine(day, periods, '17:30').map(x => x.id)).toEqual(['mid'])
   })
 
   it('keeps whoever is inside at the top, whatever period is shown', () => {
@@ -94,7 +97,7 @@ describe('front desk periods (queue clinics)', () => {
 
   it('lists the periods with how many wait in each', () => {
     expect(periodChoices(day, periods).map(c => [c.start, c.waiting, !!c.period])).toEqual([
-      ['10:00', 2, true], ['15:30', 1, false], ['17:00', 2, true],
+      ['10:00', 2, true], ['15:30', 1, false], ['17:00', 2, true], ['17:30', 1, false],
     ])
   })
 })

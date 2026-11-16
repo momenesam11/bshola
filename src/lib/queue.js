@@ -85,13 +85,13 @@ ${line}
 — ${business.name}`
 }
 
-// Booking by turn: each period numbers from 1, so the front desk works one
-// period at a time. A visit belongs to the period its time falls in; a time in
-// no period (hours changed later) is a period of its own.
-export function periodStartOf(appt, periods) {
-  const t = String(appt.appointment_time || '').slice(0, 5)
-  const p = (periods || []).find(x => t >= x.start && t < x.end)
-  return p ? p.start : t
+// Booking by turn: the database numbers each start time from 1, and snaps a
+// booking to its period's start (057, 060), so the front desk works one start
+// time at a time. A booking at any other time (made before 060 from the
+// calendar, or after the hours changed) has its own numbers, so it gets its
+// own tab rather than a second number 1 inside a period.
+export function periodStartOf(appt) {
+  return String(appt.appointment_time || '').slice(0, 5)
 }
 
 /**
@@ -101,14 +101,14 @@ export function periodStartOf(appt, periods) {
  */
 export function periodLine(dayLine, periods, start) {
   const inside = dayLine.find(a => a.called_at) || null
-  const waiting = dayLine.filter(a => !a.called_at && periodStartOf(a, periods) === start)
+  const waiting = dayLine.filter(a => !a.called_at && periodStartOf(a) === start)
   return inside ? [inside, ...waiting] : waiting
 }
 
 /** Periods of the day that have someone waiting or are on the schedule, with their waiting counts. */
 export function periodChoices(dayLine, periods) {
   const counts = {}
-  for (const a of dayLine) if (!a.called_at) counts[periodStartOf(a, periods)] = (counts[periodStartOf(a, periods)] || 0) + 1
+  for (const a of dayLine) if (!a.called_at) counts[periodStartOf(a)] = (counts[periodStartOf(a)] || 0) + 1
   const starts = new Set([...(periods || []).map(p => p.start), ...Object.keys(counts)])
   return [...starts].sort().map(start => ({
     start,

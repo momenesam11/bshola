@@ -77,7 +77,8 @@ export function groupByPeriod(appointments, periods) {
     if (a.status === 'waitlist') { waitlist.push(a); continue }
     if (a.status === 'cancelled') { cancelled++; continue }
     const t = String(a.appointment_time).slice(0, 5)
-    let g = groups.find(x => t >= x.period.start && t < x.period.end)
+    // Numbers run per start time, so only a booking at the period's start is in it.
+    let g = groups.find(x => !x.extra && x.period.start === t)
     if (!g) {
       g = groups.find(x => x.period.start === t && x.extra)
       if (!g) { g = { period: { start: t, end: t }, items: [], extra: true }; groups.push(g) }
