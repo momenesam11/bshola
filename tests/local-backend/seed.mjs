@@ -253,6 +253,16 @@ export async function seedDemoData(db, createUser) {
       called_at: new Date(Date.now() - 7 * 86400000 - m * 60000).toISOString(), finished_at: new Date(Date.now() - 7 * 86400000).toISOString(),
     })
   }
+  // Booked tomorrow at 10:20 before the morning period moved to 10:00 (061): its
+  // own number 1, so the front desk offers to move it into the 10:00 period.
+  await db.query('ALTER TABLE appointments DISABLE TRIGGER assign_queue_number')
+  await insert(db, 'appointments', {
+    business_id: turn.biz.id, branch_id: turn.branches[0].id, service_id: turn.services[0].id,
+    client_name: 'سامي قبل تغيير المواعيد', client_phone: phoneOf(66), appointment_date: day(1), appointment_time: '10:20',
+    status: 'confirmed', queue_number: 1, created_at: new Date(Date.now() - 2 * 86400000).toISOString(),
+  })
+  await db.query('ALTER TABLE appointments ENABLE TRIGGER assign_queue_number')
+
   // Someone on tomorrow's waitlist, for the dashboard's turns view.
   await insert(db, 'appointments', {
     business_id: turn.biz.id, branch_id: turn.branches[0].id, service_id: turn.services[0].id,

@@ -9,6 +9,7 @@ import {
 import { FaWhatsapp } from 'react-icons/fa'
 import PageWrapper from '../../components/layout/PageWrapper'
 import AppointmentModal from '../../components/appointments/AppointmentModal'
+import QueueRealign from '../../components/appointments/QueueRealign'
 import { useBusiness } from '../../hooks/useBusiness'
 import { useAppointments, useUpdateAppointment, invalidateAll } from '../../hooks/useAppointments'
 import { useBranch } from '../../context/branchState'
@@ -269,6 +270,9 @@ export default function FrontDesk() {
 
         {tab === 'now' && (
           <>
+            {/* Hours changed after people booked: offer to move them into their period (061). */}
+            <QueueRealign business={business} />
+
             {/* Queue clinics: one period at a time, each with its own numbers. */}
             {byTurn && choices.length > 1 && (
               <div className="flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="الفترة" data-testid="period-tabs">

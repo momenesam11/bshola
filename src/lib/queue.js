@@ -116,3 +116,17 @@ export function periodChoices(dayLine, periods) {
     waiting: counts[start] || 0,
   }))
 }
+
+/**
+ * After the clinic moved bookings into their period (061): the patient's new
+ * number, the day and when the period starts. Sent by hand like every message.
+ */
+export function renumberMessage(row, business, { date, time }) {
+  return `أهلاً يا ${row.client_name}
+
+مواعيد الفترة في ${business.name} اتظبطت، ورقمك في الدور بقى ${row.new_number}.
+يوم ${date}، والفترة بتبدأ ${time}.
+
+لو محتاج حاجة ردّ على الرسالة دي.
+— ${business.name}`
+}
