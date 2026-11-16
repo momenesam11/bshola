@@ -14,10 +14,10 @@ import { useAppointments, useUpdateAppointment, invalidateAll } from '../../hook
 import { useBranch } from '../../context/branchState'
 import { supabase } from '../../lib/supabase'
 import { openWhatsApp, formatTimeArabic, generateManageLinkMessage } from '../../lib/whatsapp'
-import { phoneMatches } from '../../lib/countries'
-import { formatWait, notifyAheadOf, queueMessage, visitMinutes, waitingQueue } from '../../lib/queue'
-import { todayISO } from '../../utils/dateHelpers'
-import { periodsOfDay, walkInPeriodStart } from '../../lib/queueBooking'
+import { phoneDigits, phoneMatches } from '../../lib/countries'
+import { formatWait, notifyAheadOf, periodChoices, periodLine, queueMessage, visitMinutes, waitingQueue } from '../../lib/queue'
+import { formatTime12, todayISO } from '../../utils/dateHelpers'
+import { periodName, periodsOfDay, walkInPeriodStart } from '../../lib/queueBooking'
 
 // /clinic: the front desk (migration 058). The secretary keeps this open all
 // day: who is inside, one button to call the next, who arrived, a WhatsApp
@@ -88,6 +88,7 @@ export default function FrontDesk() {
   const [modal, setModal] = useState(null)
   const [now, setNow] = useState(() => Date.now())
   const [pickedBranch, setPickedBranch] = useState(null)
+  const [pickedPeriod, setPickedPeriod] = useState(null)
 
   // Realtime covers most changes; this catches a dropped connection, and keeps
   // the "inside for N minutes" clock moving.
@@ -105,8 +106,21 @@ export default function FrontDesk() {
   const branchId = branch?.id || null
 
   const minutes = visitMinutes(measured, services, business)
-  const line = useMemo(() => waitingQueue(all, branchId), [all, branchId])
+  const dayLine = useMemo(() => waitingQueue(all, branchId), [all, branchId])
+  // A clinic that books by turn numbers each period from 1, so the desk shows
+  // one period at a time: the one running now, or the next, unless picked.
+  const byTurn = business?.booking_mode === 'queue'
+  const periods = byTurn ? periodsOfDay(branch, business, date) : []
+  const choices = byTurn ? periodChoices(dayLine, periods) : []
+  const periodStart = byTurn
+    ? (choices.some(c => c.start === pickedPeriod) ? pickedPeriod : walkInPeriodStart(periods, nowTime()) || choices.find(c => c.waiting)?.start || null)
+    : null
+  const line = byTurn ? periodLine(dayLine, periods, periodStart) : dayLine
   const inside = line[0]?.called_at ? line[0] : null
+  // The same number booked twice today (e.g. morning and evening).
+  const phoneCount = {}
+  for (const a of dayLine) { const p = phoneDigits(a.client_phone); phoneCount[p] = (phoneCount[p] || 0) + 1 }
+  const bookedTwice = (a) => phoneCount[phoneDigits(a.client_phone)] > 1
   const waiting = inside ? line.slice(1) : line
   const next = waiting[0] || null
   const done = all
@@ -247,6 +261,18 @@ export default function FrontDesk() {
 
         {tab === 'now' && (
           <>
+            {/* Queue clinics: one period at a time, each with its own numbers. */}
+            {byTurn && choices.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="الفترة" data-testid="period-tabs">
+                {choices.map(c => (
+                  <button key={c.start} role="tab" aria-selected={c.start === periodStart} onClick={() => setPickedPeriod(c.start)}
+                    className={`flex-shrink-0 px-3 h-10 rounded-xl border text-sm font-semibold ${c.start === periodStart ? 'bg-accent-500 border-accent-500 text-white' : 'bg-white border-slate-200 text-slate-600'}`}>
+                    {c.period ? periodName(c.period) : `الساعة ${formatTime12(c.start)}`} <span className="tabular-nums opacity-80">({c.waiting})</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
             {/* First thing on the page: someone walks in without a booking, or asks for their turn. */}
             <div className="flex flex-col sm:flex-row gap-2">
               <button onClick={() => setModal({ appointment: null })}
@@ -326,6 +352,7 @@ export default function FrontDesk() {
                           {a.services?.name && <span>{a.queue_number == null ? '· ' : ''}{a.services.name}</span>}
                           <span>· قدامه {ahead} · {formatWait(ahead * minutes)}</span>
                           {a.queue_sort != null && <span className="px-1.5 rounded-md bg-amber-50 text-amber-700">اتأخر</span>}
+                          {bookedTwice(a) && <span data-testid="booked-twice" className="px-1.5 rounded-md bg-sky-50 text-sky-700">حاجز مرتين النهارده</span>}
                           {a.queue_notified_at && <span className="px-1.5 rounded-md bg-green-50 text-green-700">اتبعتله</span>}
                         </div>
                       </div>

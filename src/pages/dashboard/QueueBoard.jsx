@@ -6,7 +6,7 @@ import { useAppointments, useAllAppointments } from '../../hooks/useAppointments
 import { useBranch } from '../../context/branchState'
 import { displayPhone } from '../../lib/countries'
 import { groupByPeriod, periodLabel, periodName, periodsOfDay, turnStatus } from '../../lib/queueBooking'
-import { formatDateAr, toISODateString, todayISO } from '../../utils/dateHelpers'
+import { formatDateAr, formatTime12, toISODateString, todayISO } from '../../utils/dateHelpers'
 
 // The dashboard of a clinic that books by turn (057): instead of a calendar of
 // times, each day's periods with who took which number. The front desk
@@ -103,8 +103,8 @@ export default function QueueBoard({ business, onOpen, onNew }) {
           <section key={g.period.start} data-testid="board-period" className="bg-white rounded-2xl border border-slate-100 shadow-sm">
             <div className="flex items-center gap-3 px-4 pt-3 pb-2">
               <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-slate-900">{g.extra ? 'برة ساعات العمل' : periodName(g.period)}</h3>
-                <p className="text-xs text-slate-500">{g.extra ? `الساعة ${g.period.start}` : periodLabel(g.period)}</p>
+                <h3 className="font-bold text-slate-900">{g.extra ? `حجوزات الساعة ${formatTime12(g.period.start)}` : periodName(g.period)}</h3>
+                <p className="text-xs text-slate-500">{g.extra ? 'أرقامهم لوحدهم، اتسجلوا بساعة غير بداية الفترة' : periodLabel(g.period)}</p>
               </div>
               <div className="text-left flex-shrink-0">
                 <p data-testid="period-count" className={`text-sm font-bold tabular-nums ${full ? 'text-amber-600' : 'text-ink'}`}>

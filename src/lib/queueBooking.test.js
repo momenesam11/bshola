@@ -21,13 +21,16 @@ describe('dashboard turns view', () => {
       a('x', '16:00', { queue_number: 2, status: 'cancelled' }),
       a('w', '00:00', { status: 'waitlist' }),
       a('late', '23:00', { queue_number: 1 }),
+      a('mid', '17:30', { queue_number: 1 }),
     ], [{ start: '16:00', end: '22:00' }, { start: '10:00', end: '14:00' }])
     expect(groups.map(g => [g.period.start, g.items.map(i => i.id), g.taken])).toEqual([
       ['10:00', ['m1', 'm2'], 2],
       ['16:00', ['e1'], 1],
+      ['17:30', ['mid'], 1],
       ['23:00', ['late'], 1],
     ])
     expect(groups[2].extra).toBe(true)
+    expect(groups[3].extra).toBe(true)
     expect(waitlist.map(w => w.id)).toEqual(['w'])
     expect(cancelled).toBe(1)
   })
