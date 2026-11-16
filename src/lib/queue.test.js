@@ -101,3 +101,14 @@ describe('front desk periods (queue clinics)', () => {
     ])
   })
 })
+
+describe('renumber message (061)', () => {
+  it('tells the patient their new number, the day and the period start', async () => {
+    const { renumberMessage } = await import('./queue')
+    const msg = renumberMessage({ client_name: 'رحمة', new_number: 4 }, { name: 'عيادة النور' }, { date: 'الأحد 16 نوفمبر', time: '6:00 م' })
+    expect(msg).toContain('أهلاً يا رحمة')
+    expect(msg).toContain('رقمك في الدور بقى 4.')
+    expect(msg).toContain('يوم الأحد 16 نوفمبر، والفترة بتبدأ 6:00 م.')
+    expect(msg).not.toMatch(/تلغي|إلغاء/)
+  })
+})

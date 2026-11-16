@@ -9,6 +9,7 @@ import {
 import { FaWhatsapp } from 'react-icons/fa'
 import PageWrapper from '../../components/layout/PageWrapper'
 import AppointmentModal from '../../components/appointments/AppointmentModal'
+import QueueRealign from '../../components/appointments/QueueRealign'
 import { useBusiness } from '../../hooks/useBusiness'
 import { useAppointments, useUpdateAppointment, invalidateAll } from '../../hooks/useAppointments'
 import { useBranch } from '../../context/branchState'
@@ -112,9 +113,17 @@ export default function FrontDesk() {
   const byTurn = business?.booking_mode === 'queue'
   const periods = byTurn ? periodsOfDay(branch, business, date) : []
   const choices = byTurn ? periodChoices(dayLine, periods) : []
+  // Opens on the period running now only if someone waits in it; otherwise on
+  // the first tab that has patients, so the desk never opens on an empty list
+  // while patients wait under another time.
+  const scheduled = walkInPeriodStart(periods, nowTime())
   const periodStart = byTurn
-    ? (choices.some(c => c.start === pickedPeriod) ? pickedPeriod : walkInPeriodStart(periods, nowTime()) || choices.find(c => c.waiting)?.start || null)
+    ? (choices.some(c => c.start === pickedPeriod) ? pickedPeriod
+      : choices.find(c => c.start === scheduled && c.waiting)?.start
+        || choices.find(c => c.waiting)?.start
+        || scheduled || null)
     : null
+  const otherTabsWaiting = byTurn ? choices.filter(c => c.start !== periodStart && c.waiting) : []
   const line = byTurn ? periodLine(dayLine, periods, periodStart) : dayLine
   const inside = line[0]?.called_at ? line[0] : null
   // The same number booked twice today (e.g. morning and evening).
@@ -261,6 +270,9 @@ export default function FrontDesk() {
 
         {tab === 'now' && (
           <>
+            {/* Hours changed after people booked: offer to move them into their period (061). */}
+            <QueueRealign business={business} />
+
             {/* Queue clinics: one period at a time, each with its own numbers. */}
             {byTurn && choices.length > 1 && (
               <div className="flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="الفترة" data-testid="period-tabs">
@@ -334,7 +346,15 @@ export default function FrontDesk() {
                 )}
               </button>
             ) : (
-              <p className="text-center text-sm text-slate-400 py-2">{line.length ? 'مفيش حد مستني بعده.' : 'مفيش حد في الدور النهارده.'}</p>
+              otherTabsWaiting.length ? (
+                // Never a silent empty list while patients wait under another tab.
+                <button data-testid="other-tabs" onClick={() => setPickedPeriod(otherTabsWaiting[0].start)}
+                  className="w-full rounded-2xl border-2 border-amber-300 bg-amber-50 text-amber-800 px-4 py-3 text-sm font-semibold">
+                  الفترة دي فاضية. فيه {otherTabsWaiting.reduce((n, c) => n + c.waiting, 0)} مستنيين في تاب تاني، دوس هنا تشوفهم
+                </button>
+              ) : (
+                <p className="text-center text-sm text-slate-400 py-2">{line.length ? 'مفيش حد مستني بعده.' : 'مفيش حد في الدور النهارده.'}</p>
+              )
             )}
 
             <div className="space-y-2" data-testid="waiting">

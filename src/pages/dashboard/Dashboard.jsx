@@ -6,6 +6,7 @@ import AppointmentModal from '../../components/appointments/AppointmentModal'
 import BesholaCalendar from '../../components/calendar/BesholaCalendar'
 import TomorrowReminders from './TomorrowReminders'
 import QueueBoard from './QueueBoard'
+import QueueRealign from '../../components/appointments/QueueRealign'
 import { useBusiness } from '../../hooks/useBusiness'
 import { toISODateString } from '../../utils/dateHelpers'
 
@@ -65,6 +66,8 @@ export default function Dashboard() {
           ))}
         </div>
       )}
+
+      {business && byTurn && <QueueRealign business={business} />}
 
       {business && byTurn && view === 'turns' && (
         <QueueBoard business={business} onOpen={handleApptClick} onNew={handleNewAppt} />
