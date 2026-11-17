@@ -21,6 +21,8 @@ import Button from '../ui/Button'
 import Dropdown from '../ui/Dropdown'
 import DatePicker from '../ui/DatePicker'
 import TimePicker from '../ui/TimePicker'
+import QueuePeriodPicker from './QueuePeriodPicker'
+import { bookablePeriods } from '../../lib/queueBooking'
 import { getAppointmentSchema } from '../../lib/validators'
 import { useCreateAppointment, useUpdateAppointment, useDeleteAppointment, invalidateAll } from '../../hooks/useAppointments'
 import { useServices, useBusiness } from '../../hooks/useBusiness'
@@ -149,6 +151,26 @@ export default function AppointmentModal({ open, onClose, businessId, initialDat
     }
   }, [services, open, isEdit, setValue, getValues])
 
+  // Booking by turn: the period picker replaces the time, from the branch the
+  // booking is (or will be) in. Only the working hours' periods, never a time.
+  const byTurn = business?.booking_mode === 'queue'
+  const periodBranch = branches.find(b => b.id === (isEdit ? appointment?.branch_id : targetBranchId)) || null
+  const keptPeriod = isEdit && appointment?.appointment_date === watchedDate ? String(appointment.appointment_time || '').slice(0, 5) : null
+  const openPeriods = byTurn && periodBranch
+    ? bookablePeriods(periodBranch, business, watchedDate, { keep: keptPeriod, today: todayISO() }).filter(p => !p.over)
+    : []
+  const periodKey = openPeriods.map(p => p.start).join(',')
+  // Lands on a period the booking can take: its own when editing, else the
+  // first still open (the front desk passes the running one).
+  useEffect(() => {
+    if (!open || !byTurn) return
+    const current = String(getValues('appointment_time') || '').slice(0, 5)
+    // An edited booking keeps its own time (even an old one off the hours) until another period is picked.
+    if (isEdit && current === keptPeriod) return
+    if (!openPeriods.some(p => p.start === current)) setValue('appointment_time', openPeriods[0]?.start || '')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, byTurn, periodKey])
+
   // Offered while the owner is cancelling an appointment that wasn't cancelled.
   // Also for one the patient cancelled from their link (054): the slot is free
   // and someone may be waiting for that day.
@@ -157,6 +179,12 @@ export default function AppointmentModal({ open, onClose, businessId, initialDat
 
   async function saveAppointment(values) {
     setSubmitError('')
+    // By turn: only one of the day's open periods, never a time of its own.
+    const pickedTime = String(values.appointment_time || '').slice(0, 5)
+    if (byTurn && !(isEdit && pickedTime === keptPeriod) && !openPeriods.some(p => p.start === pickedTime)) {
+      setSubmitError(openPeriods.length ? 'اختاري فترة من فترات اليوم ده' : 'مفيش فترة متاحة في اليوم ده، اختاري يوم تاني')
+      return
+    }
     // payment_type has a CHECK constraint allowing only specific strings or
     // NULL — an empty string from the "— اختر —" placeholder option violates it.
     const payload = { ...values, payment_type: values.payment_type || null }
@@ -330,9 +358,10 @@ export default function AppointmentModal({ open, onClose, businessId, initialDat
           )}
         </div>
 
-        {/* Date + Time — stacked on mobile */}
+        {/* Date + Time — stacked on mobile. A clinic that books by turn picks a
+            period instead of a time (QueuePeriodPicker). */}
         <div className="flex flex-col sm:flex-row gap-2">
-          <div className="w-full sm:w-1/2">
+          <div className={`w-full ${byTurn ? '' : 'sm:w-1/2'}`}>
             <label className="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1">
               <HiOutlineCalendarDays className="w-3.5 h-3.5" /> التاريخ
             </label>
@@ -344,19 +373,38 @@ export default function AppointmentModal({ open, onClose, businessId, initialDat
               )}
             />
           </div>
-          <div className="w-full sm:w-1/2">
+          {!byTurn && (
+            <div className="w-full sm:w-1/2">
+              <label className="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1">
+                <HiOutlineClock className="w-3.5 h-3.5" /> الوقت
+              </label>
+              <Controller
+                control={control}
+                name="appointment_time"
+                render={({ field }) => (
+                  <TimePicker value={field.value} onChange={field.onChange} label="وقت الموعد" className={fieldCls(errors.appointment_time)} />
+                )}
+              />
+            </div>
+          )}
+        </div>
+
+        {byTurn && (
+          <div>
             <label className="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1">
-              <HiOutlineClock className="w-3.5 h-3.5" /> الوقت
+              <HiOutlineClock className="w-3.5 h-3.5" /> الفترة
             </label>
             <Controller
               control={control}
               name="appointment_time"
               render={({ field }) => (
-                <TimePicker value={field.value} onChange={field.onChange} label="وقت الموعد" className={fieldCls(errors.appointment_time)} />
+                <QueuePeriodPicker business={business} branch={periodBranch} date={watchedDate}
+                  value={String(field.value || '').slice(0, 5)} onChange={field.onChange} appointment={appointment}
+                  error={errors.appointment_time ? 'اختاري الفترة' : null} />
               )}
             />
           </div>
-        </div>
+        )}
 
         {overlapsAnother && business?.booking_mode !== 'queue' && (
           <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">

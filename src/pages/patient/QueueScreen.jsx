@@ -7,13 +7,17 @@ import { supabase } from '../../lib/supabase'
 import { formatTimeArabic } from '../../lib/whatsapp'
 import { formatWait } from '../../lib/queue'
 import QrCode from '../../components/ui/QrCode'
+import AnimatedNumber from '../../components/ui/AnimatedNumber'
 
 // /q/<clinic>: the waiting-room screen (migration 058). On a TV in the clinic:
 // the number inside and who is next, big enough to read across the room, with
 // a QR code to the same page. On a phone: the same, and "what's my number?"
 // gives how many are ahead and about how long. Numbers only, never names.
 
-const REFRESH_MS = 10_000
+// Every 3 s while the screen is in view, so a call shows almost at once;
+// slower when the tab is hidden (a phone in a pocket).
+const REFRESH_MS = 3_000
+const HIDDEN_REFRESH_MS = 15_000
 const MY_NUMBER_KEY = 'beshola_my_turn'
 
 function useScreen(ref, branchId) {
@@ -24,7 +28,7 @@ function useScreen(ref, branchId) {
       if (error) throw error
       return data
     },
-    refetchInterval: REFRESH_MS,
+    refetchInterval: () => (typeof document !== 'undefined' && document.hidden ? HIDDEN_REFRESH_MS : REFRESH_MS),
     refetchIntervalInBackground: true,
     retry: 1,
   })
@@ -121,10 +125,13 @@ export default function QueueScreen() {
 
       <main className="flex-1 grid lg:grid-cols-2 gap-3 lg:gap-8 p-4 lg:p-10">
         {/* Inside now */}
-        <section className="rounded-3xl bg-white/5 border border-white/10 flex flex-col items-center justify-center py-6 lg:py-0">
+        <section className="relative rounded-3xl bg-white/5 border border-white/10 flex flex-col items-center justify-center py-6 lg:py-0">
+          {/* Keyed by who is inside, so each new call replays the flash (the
+              card itself stays mounted, so the number still counts up). */}
+          {inside && <span key={turnText(inside, mode)} aria-hidden="true" className="pointer-events-none absolute inset-0 rounded-3xl animate-enter-flash" />}
           <p className="text-base lg:text-4xl text-white/70 font-semibold">جوه دلوقتي</p>
-          <p data-testid="screen-inside" className="font-bold leading-none tabular-nums my-2" style={{ fontSize: 'min(34vw, 32vh)' }}>
-            {turnText(inside, mode) || '—'}
+          <p className="font-bold leading-none tabular-nums my-2" style={{ fontSize: 'min(34vw, 32vh)' }}>
+            <AnimatedNumber testId="screen-inside" value={turnText(inside, mode) || '—'} />
           </p>
           {!inside && <p className="text-sm lg:text-2xl text-white/50">{line.length ? 'الكشف هيبدأ قريب' : 'مفيش حد في الدور دلوقتي'}</p>}
         </section>
@@ -132,8 +139,8 @@ export default function QueueScreen() {
         {/* Next */}
         <section className="rounded-3xl bg-accent-500 flex flex-col items-center justify-center py-6 lg:py-0">
           <p className="text-base lg:text-4xl font-semibold text-white/90">اللي عليه الدور</p>
-          <p data-testid="screen-next" className="font-bold leading-none tabular-nums my-2" style={{ fontSize: 'min(24vw, 22vh)' }}>
-            {turnText(next, mode) || '—'}
+          <p className="font-bold leading-none tabular-nums my-2" style={{ fontSize: 'min(24vw, 22vh)' }}>
+            <AnimatedNumber testId="screen-next" value={turnText(next, mode) || '—'} />
           </p>
           {after.length > 0 && (
             <div className="flex items-center gap-2 lg:gap-4 mt-1" data-testid="screen-after">
@@ -166,7 +173,7 @@ export default function QueueScreen() {
               )}
             </div>
           )}
-          <p className="text-xs text-white/50 text-center">الصفحة بتتحدث لوحدها كل 10 ثواني</p>
+          <p className="text-xs text-white/50 text-center">الصفحة بتتحدث لوحدها أول بأول</p>
         </section>
       )}
 

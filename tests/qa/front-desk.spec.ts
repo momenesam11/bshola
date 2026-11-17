@@ -186,25 +186,27 @@ test.describe('front desk', () => {
     expect(problems).toEqual([])
   })
 
-  test('by turn, the desk opens on the tab that has patients, never an empty list', async ({ page }) => {
+  test('by turn, the desk opens on the tab that has patients, and a booking off the hours stays in a period', async ({ page }) => {
     const s = await seedBusiness({ fields: { booking_mode: 'queue' } })
-    // One period all day; the patients were booked under another time (before 060),
-    // so they sit under their own tab and the running period's tab is empty.
-    for (const [i, name] of ['مريضة أ', 'مريضة ب'].entries()) {
-      const r = await seedAppointment(s, { client_name: name, appointment_date: isoDate(0), appointment_time: '00:00' })
-      // As a booking made before 060 sits: the numbering trigger is off for this write only.
-      await sql('ALTER TABLE appointments DISABLE TRIGGER assign_queue_number')
-      await sql(`UPDATE appointments SET appointment_time = '13:15', queue_number = $2 WHERE id = $1`, [r.id, i + 1])
-      await sql('ALTER TABLE appointments ENABLE TRIGGER assign_queue_number')
-    }
+    const DAYS = ['sat', 'sun', 'mon', 'tue', 'wed', 'thu', 'fri']
+    await sql('UPDATE branches SET schedule_blocks = $2::jsonb WHERE id = $1', [s.branchId,
+      JSON.stringify(Object.fromEntries(DAYS.map(d => [d, [{ start: '00:00', end: '12:00' }, { start: '12:00', end: '23:30' }]])))])
+    // Both patients are in the second period, one of them on 13:15 (booked before 060).
+    await seedAppointment(s, { client_name: 'مريضة أ', appointment_date: isoDate(0), appointment_time: '12:00' })
+    const odd = await seedAppointment(s, { client_name: 'مريضة ب', appointment_date: isoDate(0), appointment_time: '12:00' })
+    await sql('ALTER TABLE appointments DISABLE TRIGGER assign_queue_number')
+    await sql(`UPDATE appointments SET appointment_time = '13:15', queue_number = 1 WHERE id = $1`, [odd.id])
+    await sql('ALTER TABLE appointments ENABLE TRIGGER assign_queue_number')
     await login(page, s)
     await page.goto('/clinic')
     const desk = page.getByTestId('front-desk')
+    // Two tabs only (the hours' periods), and it opens on the one with patients.
+    await expect(desk.getByTestId('period-tabs').getByRole('tab')).toHaveCount(2)
     await expect(desk.getByTestId('waiting-row')).toHaveCount(2)
-    await expect(desk.getByTestId('waiting')).toContainText('مريضة أ')
+    await expect(desk.getByTestId('waiting')).toContainText('مريضة ب')
 
     // Picking the empty tab says where the patients are, and one tap goes back.
-    await desk.getByTestId('period-tabs').getByRole('tab').filter({ hasText: '(0)' }).first().click()
+    await desk.getByTestId('period-tabs').getByRole('tab').filter({ hasText: '(0)' }).click()
     await expect(desk.getByTestId('waiting-row')).toHaveCount(0)
     await desk.getByTestId('other-tabs').click()
     await expect(desk.getByTestId('waiting-row')).toHaveCount(2)

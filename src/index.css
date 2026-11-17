@@ -60,3 +60,19 @@
   aside, nav, header { display: none !important; }
   main { margin: 0 !important; padding: 0 !important; }
 }
+
+/* Waiting-room screen (/q): a new number rises into place, and the "inside"
+   card flashes once when the next patient goes in. Off with reduced motion. */
+@keyframes number-in {
+  from { opacity: 0; transform: translateY(12%); }
+  to { opacity: 1; transform: none; }
+}
+.animate-number-in { display: inline-block; animation: number-in 0.45s ease-out; }
+@keyframes enter-flash {
+  0% { transform: scale(1.03); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.55); }
+  100% { transform: none; box-shadow: 0 0 0 28px rgba(255, 255, 255, 0); }
+}
+.animate-enter-flash { animation: enter-flash 0.9s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .animate-number-in, .animate-enter-flash { animation: none; }
+}
