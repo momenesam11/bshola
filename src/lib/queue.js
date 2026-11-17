@@ -111,6 +111,11 @@ export function periodStartOf(appt, periods = []) {
 export function periodLine(dayLine, periods, start) {
   const inside = dayLine.find(a => a.called_at) || null
   const waiting = dayLine.filter(a => !a.called_at && periodStartOf(a, periods) === start)
+    // By number inside the period (queue_period_key in 062): a booking left on an
+    // old start time still lines up by its number. A place set by "رجّعه" wins.
+    .map(a => ({ a, k: a.queue_sort != null ? Number(a.queue_sort) : queueKey(periods.length ? { ...a, appointment_time: periodStartOf(a, periods) } : a) }))
+    .sort((x, y) => x.k - y.k || String(x.a.created_at || '').localeCompare(String(y.a.created_at || '')))
+    .map(x => x.a)
   return inside ? [inside, ...waiting] : waiting
 }
 
