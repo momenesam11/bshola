@@ -128,11 +128,55 @@ describe('061 queue realign', () => {
     await db.query(`UPDATE appointments SET status = 'no_show' WHERE business_id = $1`, [c.bizId])
     await setHours(c, [{ open: '17:00', close: '23:00' }])
     await visitorBooks(c, 'حاضرة', '17:00', 30)
-    // 18:00 is now inside 17:00-23:00 but the only booking there is a no-show: nothing waits to move.
+    // 18:00 is now inside 17:00-23:00 (063: every status moves): the no-show joins
+    // the period after the waiting patient, who becomes 1.
+    const plan = (await realign(c, false)).rows
+    expect(plan.map(p => [p.client_name, p.old_time, p.new_time, p.old_number, p.new_number])).toEqual([
+      ['حاضرة', '17:00:00', '17:00:00', 2, 1],
+      ['غايب', '18:00:00', '17:00:00', 1, 2],
+    ])
+    await realign(c, true)
     expect((await realign(c, false)).rows).toEqual([])
 
     await setHours(c, [{ open: '10:00', close: '12:00' }])
     // 17:00 is outside every period now: left as it is.
+    expect((await realign(c, false)).rows).toEqual([])
+  })
+
+  it('063: a clinic switched from booking by time: the whole period gets one numbering', async () => {
+    // Today's visits each numbered 1 on its own time: done, inside, waiting and a no-show.
+    const c = await clinic('switched', [{ open: '00:00', close: '23:59' }])
+    const rows = [
+      ['خلص أول', '09:00', 'completed', 300], ['خلص تاني', '09:30', 'completed', 200],
+      ['جوه', '10:00', 'confirmed', 100], ['مستني', '10:30', 'confirmed', 400], ['غايب', '11:00', 'no_show', 500],
+    ]
+    await db.query('ALTER TABLE appointments DISABLE TRIGGER assign_queue_number')
+    for (const [name, time, status, minutesAgo] of rows) {
+      await db.query(
+        `INSERT INTO appointments (business_id, branch_id, client_name, client_phone, appointment_date, appointment_time, status, queue_number, created_at)
+         VALUES ($1, $2, $3, $4, (now() AT TIME ZONE 'Africa/Cairo')::date, $5, $6, 1, now() - make_interval(mins => $7))`,
+        [c.bizId, c.branchId, name, phone(), time, status, minutesAgo])
+    }
+    await db.query('ALTER TABLE appointments ENABLE TRIGGER assign_queue_number')
+    await db.query(`UPDATE appointments SET called_at = now() - interval '50 minutes' WHERE business_id = $1 AND client_name = 'خلص أول'`, [c.bizId])
+    await db.query(`UPDATE appointments SET called_at = now() - interval '30 minutes' WHERE business_id = $1 AND client_name = 'خلص تاني'`, [c.bizId])
+    await db.query(`UPDATE appointments SET called_at = now() - interval '5 minutes' WHERE business_id = $1 AND client_name = 'جوه'`, [c.bizId])
+
+    const plan = (await realign(c, false)).rows
+    // The page messages only who is still waiting and changed number.
+    expect(plan.filter(p => p.status === 'confirmed' && !p.called_at && p.old_number !== p.new_number).map(p => p.client_name)).toEqual(['مستني'])
+
+    await realign(c, true)
+    const after = (await db.query(`SELECT client_name, to_char(appointment_time, 'HH24:MI') t, queue_number n FROM appointments
+      WHERE business_id = $1 ORDER BY queue_number`, [c.bizId])).rows
+    expect(after).toEqual([
+      { client_name: 'خلص أول', t: '00:00', n: 1 },
+      { client_name: 'خلص تاني', t: '00:00', n: 2 },
+      { client_name: 'جوه', t: '00:00', n: 3 },
+      { client_name: 'مستني', t: '00:00', n: 4 },
+      { client_name: 'غايب', t: '00:00', n: 5 },
+    ])
+    // Nothing left to move.
     expect((await realign(c, false)).rows).toEqual([])
   })
 
