@@ -102,9 +102,10 @@ describe('front desk periods (queue clinics)', () => {
 })
 
 describe('periods on a day off', () => {
-  it('lists each booked time when the hours have no period that day', () => {
-    const day = waitingQueue([a('x', '11:00', { queue_number: 1 })])
-    expect(periodChoices(day, []).map(c => [c.start, c.waiting])).toEqual([['11:00', 1]])
+  it('puts the whole day in one group when the hours have no period that day', () => {
+    const day = waitingQueue([a('x', '11:00', { queue_number: 1 }), a('y', '09:30'), a('z', '10:15')])
+    expect(periodChoices(day, []).map(c => [c.start, c.waiting])).toEqual([['day', 3]])
+    expect(periodLine(day, [], 'day').map(r => r.id)).toEqual(['y', 'z', 'x'])
   })
 })
 

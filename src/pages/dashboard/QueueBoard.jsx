@@ -103,8 +103,8 @@ export default function QueueBoard({ business, onOpen, onNew }) {
           <section key={g.period.start} data-testid="board-period" className="bg-white rounded-2xl border border-slate-100 shadow-sm">
             <div className="flex items-center gap-3 px-4 pt-3 pb-2">
               <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-slate-900">{g.extra ? `حجوزات الساعة ${formatTime12(g.period.start)}` : periodName(g.period)}</h3>
-                <p className="text-xs text-slate-500">{g.extra ? 'أرقامهم لوحدهم، اتسجلوا بساعة غير بداية الفترة' : periodLabel(g.period)}</p>
+                <h3 className="font-bold text-slate-900">{g.extra ? 'حجوزات اليوم ده' : periodName(g.period)}</h3>
+                <p className="text-xs text-slate-500">{g.extra ? 'اليوم ده مش في ساعات العمل' : periodLabel(g.period)}</p>
               </div>
               <div className="text-left flex-shrink-0">
                 <p data-testid="period-count" className={`text-sm font-bold tabular-nums ${full ? 'text-amber-600' : 'text-ink'}`}>
@@ -127,7 +127,8 @@ export default function QueueBoard({ business, onOpen, onNew }) {
                   <button key={a.id} onClick={() => onOpen(a)} data-testid="board-row"
                     className="w-full flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-slate-50 text-right">
                     <span className={`w-9 h-9 rounded-full font-bold flex items-center justify-center tabular-nums flex-shrink-0 ${st.key === 'done' || st.key === 'no_show' ? 'bg-slate-50 text-slate-400' : 'bg-accent-50 text-accent-700'}`}>
-                      {a.queue_number ?? '•'}
+                      {/* No turn number (booked before the clinic booked by turn): its time instead. */}
+                      {a.queue_number ?? <span className="text-[10px] leading-tight">{formatTime12(String(a.appointment_time).slice(0, 5))}</span>}
                     </span>
                     <span className="flex-1 min-w-0">
                       <span className={`block font-semibold break-words ${st.key === 'done' || st.key === 'no_show' ? 'text-slate-400' : 'text-slate-900'}`}>{a.client_name}</span>

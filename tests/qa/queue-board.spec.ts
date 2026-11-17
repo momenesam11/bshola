@@ -73,6 +73,26 @@ test.describe('queue clinic dashboard', () => {
     expect((await one<{ n: number }>('SELECT count(*)::int n FROM appointments WHERE business_id=$1', [s.businessId])).n).toBe(1)
   })
 
+  test('a day with no period on the hours shows one card, not a card per time', async ({ page }, info) => {
+    const s = await seedBusiness({ fields: { booking_mode: 'queue' } })
+    // Booked by time before the clinic switched to turns; the hours have no period that day.
+    for (const [time, status] of [['09:00', 'completed'], ['09:30', 'completed'], ['10:15', 'no_show'], ['11:00', 'completed']]) {
+      await seedAppointment(s, { client_name: `قديم ${time}`, appointment_date: isoDate(0), appointment_time: time, status })
+    }
+    await sql(`UPDATE branches SET schedule_blocks = '{}'::jsonb WHERE id = $1`, [s.branchId])
+    await sql(`UPDATE businesses SET working_hours = '{}'::jsonb WHERE id = $1`, [s.businessId])
+    await login(page, s)
+    await page.goto('/dashboard')
+    const periods = page.getByTestId('board-period')
+    await expect(periods).toHaveCount(1)
+    await expect(periods.first()).toContainText('حجوزات اليوم ده')
+    await expect(periods.first().getByTestId('board-row')).toHaveCount(4)
+    await expect(page.getByText(/حجوزات الساعة/)).toHaveCount(0)
+    // No turn number: the circle shows the booked time.
+    await expect(periods.first().getByTestId('board-row').first()).toContainText('9:00')
+    await page.screenshot({ path: info.outputPath('board-day-off.png'), fullPage: true })
+  })
+
   test('a clinic that books by time keeps the calendar, with no turns view', async ({ page }) => {
     const s = await seedBusiness()
     await login(page, s)

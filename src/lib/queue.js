@@ -91,9 +91,13 @@ ${line}
 // changed after it was booked) shows under the nearest period, and the desk
 // offers to move it there properly (queue_realign, 061).
 const minutes = (t) => { const [h = 0, m = 0] = String(t).split(':').map(Number); return h * 60 + m }
+// The whole-day group on a day with no period.
+export const DAY = 'day'
 export function periodStartOf(appt, periods = []) {
   const t = String(appt.appointment_time || '').slice(0, 5)
-  if (!periods.length) return t
+  // A day with no period on the hours (a day off, or bookings from before the
+  // clinic booked by turn): one group for the whole day, never one per time.
+  if (!periods.length) return DAY
   const inside = periods.find(p => t >= p.start && t < p.end)
   if (inside) return inside.start
   return [...periods].sort((a, b) => Math.abs(minutes(a.start) - minutes(t)) - Math.abs(minutes(b.start) - minutes(t)))[0].start
@@ -112,7 +116,7 @@ export function periodLine(dayLine, periods, start) {
 
 /**
  * The day's periods with how many wait in each. Only the working hours'
- * periods; on a day with none (a day off with bookings), each booked time.
+ * periods; on a day with none (a day off with bookings), one whole-day group.
  */
 export function periodChoices(dayLine, periods = []) {
   const counts = {}
