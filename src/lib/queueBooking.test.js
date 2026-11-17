@@ -23,16 +23,23 @@ describe('dashboard turns view', () => {
       a('late', '23:00', { queue_number: 1 }),
       a('mid', '17:30', { queue_number: 1 }),
     ], [{ start: '16:00', end: '22:00' }, { start: '10:00', end: '14:00' }])
+    // Only the working hours' periods: 17:30 is inside 16:00-22:00, 23:00 is nearest to it.
     expect(groups.map(g => [g.period.start, g.items.map(i => i.id), g.taken])).toEqual([
       ['10:00', ['m1', 'm2'], 2],
-      ['16:00', ['e1'], 1],
-      ['17:30', ['mid'], 1],
-      ['23:00', ['late'], 1],
+      ['16:00', ['e1', 'late', 'mid'], 3],
     ])
-    expect(groups[2].extra).toBe(true)
-    expect(groups[3].extra).toBe(true)
+    expect(groups.some(g => g.extra)).toBe(false)
     expect(waitlist.map(w => w.id)).toEqual(['w'])
     expect(cancelled).toBe(1)
+  })
+
+  it('names a period by when it starts, unless the clinic named it', async () => {
+    const { periodName, defaultPeriodName } = await import('./queueBooking')
+    expect(['09:00', '12:00', '14:30', '15:00', '16:00', '19:00'].map(defaultPeriodName)).toEqual([
+      'الفترة الصباحية', 'فترة الضهر', 'فترة الضهر', 'فترة العصر', 'الفترة المسائية', 'الفترة المسائية',
+    ])
+    expect(periodName({ start: '18:00', name: '  كشف الأطفال ' })).toBe('كشف الأطفال')
+    expect(periodName({ start: '18:00', name: '' })).toBe('الفترة المسائية')
   })
 
   it('names where each patient stands', () => {

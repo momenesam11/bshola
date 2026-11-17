@@ -82,23 +82,29 @@ describe('front desk periods (queue clinics)', () => {
     a('mid', '17:30', { queue_number: 1 }),
   ])
 
-  it('shows one period at a time, so a number appears once', () => {
+  it('shows one period at a time; a booking off the hours sits in the nearest period, never its own', () => {
     expect(periodLine(day, periods, '10:00').map(x => x.id)).toEqual(['m1', 'm2'])
-    expect(periodLine(day, periods, '17:00').map(x => x.id)).toEqual(['e1', 'e2'])
-    expect(periodLine(day, periods, '15:30').map(x => x.id)).toEqual(['odd'])
-    // Booked from the calendar at 17:30 before 060: its own number 1, its own tab.
-    expect(periodLine(day, periods, '17:30').map(x => x.id)).toEqual(['mid'])
+    // 15:30 is outside both periods (nearest: 17:00); 17:30 is inside 17:00-22:00.
+    expect(periodLine(day, periods, '17:00').map(x => x.id)).toEqual(['odd', 'e1', 'e2', 'mid'])
+    expect(periodLine(day, periods, '15:30')).toEqual([])
   })
 
   it('keeps whoever is inside at the top, whatever period is shown', () => {
     const withInside = waitingQueue([...day, a('in', '10:00', { queue_number: 3, called_at: '2026-11-16T10:00:00Z' })])
-    expect(periodLine(withInside, periods, '17:00').map(x => x.id)).toEqual(['in', 'e1', 'e2'])
+    expect(periodLine(withInside, periods, '17:00').map(x => x.id)).toEqual(['in', 'odd', 'e1', 'e2', 'mid'])
   })
 
   it('lists the periods with how many wait in each', () => {
     expect(periodChoices(day, periods).map(c => [c.start, c.waiting, !!c.period])).toEqual([
-      ['10:00', 2, true], ['15:30', 1, false], ['17:00', 2, true], ['17:30', 1, false],
+      ['10:00', 2, true], ['17:00', 4, true],
     ])
+  })
+})
+
+describe('periods on a day off', () => {
+  it('lists each booked time when the hours have no period that day', () => {
+    const day = waitingQueue([a('x', '11:00', { queue_number: 1 })])
+    expect(periodChoices(day, []).map(c => [c.start, c.waiting])).toEqual([['11:00', 1]])
   })
 })
 

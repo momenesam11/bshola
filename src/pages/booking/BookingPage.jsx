@@ -312,7 +312,7 @@ export default function BookingPage() {
     const hours = business.working_hours?.[dayKey]
     return branchHasScheduleBlocks(activeBranch?.schedule_blocks)
       ? activeBranch.schedule_blocks?.[dayKey] || []
-      : hours?.active ? getDayPeriods(hours).map(p => ({ start: p.open, end: p.close })) : []
+      : hours?.active ? getDayPeriods(hours).map(p => ({ start: p.open, end: p.close, ...(p.name && { name: p.name }) })) : []
   }
 
   function getSlots() {
@@ -488,7 +488,7 @@ export default function BookingPage() {
                 { label: 'التاريخ', value: format(new Date(submitted.date + 'T00:00:00'), 'EEEE d MMMM yyyy', { locale: ar }) },
                 submitted.queueNumber != null && { label: 'رقمك في الدور', value: String(submitted.queueNumber), big: true },
                 submitted.period
-                  ? { label: 'الفترة', value: periodLabel(submitted.period) }
+                  ? { label: 'الفترة', value: `${periodName(submitted.period)} (${periodLabel(submitted.period)})` }
                   : { label: 'الوقت', value: formatTime12(submitted.time), ltr: true },
               ].filter(Boolean).map(({ label, value, ltr, big }) => (
                 <div key={label} className="flex items-center justify-between py-2 border-b border-dashed border-gray-100 last:border-0">

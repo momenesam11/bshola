@@ -2,18 +2,25 @@
 // one of its working periods, and the database gives them the next number.
 
 import { branchHasScheduleBlocks, formatTime12, getDayKey, getDayPeriods } from '../utils/dateHelpers'
+import { periodStartOf } from './queue'
 
 /** "من 4:00 م لـ 10:00 م", for a period { start: 'HH:MM', end: 'HH:MM' }. */
 export function periodLabel(period) {
   return `من ${formatTime12(period.start)} لـ ${formatTime12(period.end)}`
 }
 
-/** "الفترة الصباحية" before 12:00, "المسائية" from 16:00, "فترة الضهر" between. */
-export function periodName(period) {
-  const h = Number(String(period.start).slice(0, 2))
+/** The name a period gets when the clinic didn't write one, by when it starts. */
+export function defaultPeriodName(start) {
+  const h = Number(String(start).slice(0, 2))
   if (h < 12) return 'الفترة الصباحية'
-  if (h >= 16) return 'الفترة المسائية'
-  return 'فترة الضهر'
+  if (h < 15) return 'فترة الضهر'
+  if (h < 16) return 'فترة العصر'
+  return 'الفترة المسائية'
+}
+
+/** The clinic's own name for the period (set with its hours), else the default. */
+export function periodName(period) {
+  return String(period?.name || '').trim() || defaultPeriodName(period?.start)
 }
 
 /** Whether a period of `dateStr` has already ended at `now` (local time). */
@@ -47,10 +54,23 @@ export function periodStatus(period, stats, limit, { dateStr, now = new Date() }
 export function periodsOfDay(branch, business, dateStr) {
   const key = getDayKey(dateStr)
   if (branchHasScheduleBlocks(branch?.schedule_blocks)) {
-    return (branch.schedule_blocks?.[key] || []).map(b => ({ start: String(b.start).slice(0, 5), end: String(b.end).slice(0, 5) }))
+    return (branch.schedule_blocks?.[key] || []).map(b => ({ start: String(b.start).slice(0, 5), end: String(b.end).slice(0, 5), ...(b.name && { name: b.name }) }))
   }
   const hours = business?.working_hours?.[key]
-  return hours?.active ? getDayPeriods(hours).map(p => ({ start: String(p.open).slice(0, 5), end: String(p.close).slice(0, 5) })) : []
+  return hours?.active ? getDayPeriods(hours).map(p => ({ start: String(p.open).slice(0, 5), end: String(p.close).slice(0, 5), ...(p.name && { name: p.name }) })) : []
+}
+
+/**
+ * The periods the clinic can book into on a date (057): all of the day's,
+ * with those already over marked when the date is today. keep (an edited
+ * booking's own period) stays pickable even if over, so editing an old
+ * booking never forces it to move. today is the clinic's 'YYYY-MM-DD'.
+ */
+export function bookablePeriods(branch, business, date, { keep = null, today, now = new Date() } = {}) {
+  return periodsOfDay(branch, business, date).map(p => ({
+    ...p,
+    over: date === today && periodOver(date, p, now) && p.start !== keep,
+  }))
 }
 
 // Where a booking stands today, for the dashboard's turns view (058 columns).
@@ -76,13 +96,11 @@ export function groupByPeriod(appointments, periods) {
   for (const a of appointments || []) {
     if (a.status === 'waitlist') { waitlist.push(a); continue }
     if (a.status === 'cancelled') { cancelled++; continue }
-    const t = String(a.appointment_time).slice(0, 5)
-    // Numbers run per start time, so only a booking at the period's start is in it.
-    let g = groups.find(x => !x.extra && x.period.start === t)
-    if (!g) {
-      g = groups.find(x => x.period.start === t && x.extra)
-      if (!g) { g = { period: { start: t, end: t }, items: [], extra: true }; groups.push(g) }
-    }
+    // The working hours' periods only; a booking off them shows under the
+    // nearest one. A day off with bookings lists each booked time.
+    const start = periodStartOf(a, periods)
+    let g = groups.find(x => x.period.start === start)
+    if (!g) { g = { period: { start, end: start }, items: [], extra: true }; groups.push(g) }
     g.items.push(a)
   }
   const byNumber = (x, y) => (x.queue_number ?? 1e9) - (y.queue_number ?? 1e9) || String(x.created_at || '').localeCompare(String(y.created_at || ''))
