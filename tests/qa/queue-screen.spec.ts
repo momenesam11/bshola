@@ -26,6 +26,9 @@ test.describe('waiting-room screen', () => {
     await expect(page.getByTestId('screen-after')).toContainText('4')
     await expect(page.getByTestId('screen-after')).toContainText('5')
     await expect(page.getByTestId('qr-code')).toBeVisible()
+    // A real QR image of this page's link, drawn on the device.
+    await expect(page.getByTestId('qr-code')).toHaveAttribute('src', /^data:image\/png;base64,/)
+    await expect(page.getByTestId('qr-code')).toHaveAttribute('alt', new RegExp(`/q/${s.slug}`))
     await expect(page.getByText('امسح الكود وتابع دورك من موبايلك')).toBeVisible()
     await expect(screen).not.toContainText('اسم سري')
     await expect(page.getByLabel('رقمك كام؟')).toBeHidden()
@@ -69,5 +72,25 @@ test.describe('waiting-room screen', () => {
     await page.goto('/q/no-such-clinic-here')
     await expect(page.getByText('الشاشة دي مش شغالة')).toBeVisible()
     expect((await one<{ n: number }>('SELECT count(*)::int n FROM appointments WHERE business_id=$1', [s.businessId])).n).toBe(5)
+  })
+
+  test('a call shows within seconds, and the number counts up to the new one', async ({ page }) => {
+    const { s, rows } = await queueClinicWithLine()
+    await page.setViewportSize({ width: 1920, height: 1080 })
+    await page.goto(`/q/${s.slug}`)
+    await expect(page.getByTestId('screen-inside')).toHaveText('2')
+    // Record every number the "inside" counter shows.
+    await page.evaluate(() => {
+      const w = window as unknown as { __seen: string[] }
+      w.__seen = []
+      const el = document.querySelector('[data-testid="screen-inside"]')!.parentElement!
+      new MutationObserver(() => w.__seen.push(el.textContent || '')).observe(el, { subtree: true, childList: true, characterData: true })
+    })
+    // 2 is done; 5 goes in (3 and 4 sent back): the counter rolls 2 → 5.
+    await sql(`UPDATE appointments SET status = 'completed' WHERE id = $1`, [rows[1].id])
+    await sql(`UPDATE appointments SET called_at = now() WHERE id = $1`, [rows[4].id])
+    await expect(page.getByTestId('screen-inside')).toHaveText('5', { timeout: 6_000 })
+    const seen = await page.evaluate(() => (window as unknown as { __seen: string[] }).__seen)
+    expect(seen.some(t => t === '3' || t === '4')).toBe(true)
   })
 })
