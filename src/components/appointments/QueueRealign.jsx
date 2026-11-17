@@ -18,6 +18,12 @@ import { invalidateAll } from '../../hooks/useAppointments'
 
 const hm = (t) => String(t || '').slice(0, 5)
 
+// Only a patient still waiting needs to hear their new number (063 moves done
+// visits and no-shows too, so the period is numbered once).
+const waiting = (r) => r.status === 'confirmed' && !r.called_at
+const STATUS_LABEL = { completed: 'خلص', no_show: 'ما جاش' }
+const statusLabel = (r) => (r.status === 'confirmed' && r.called_at ? 'جوه' : STATUS_LABEL[r.status] || null)
+
 function useRealignPlan(business) {
   const enabled = !!business?.id && business.booking_mode === 'queue'
   return useQuery({
@@ -50,7 +56,7 @@ export default function QueueRealign({ business }) {
     try {
       const { data, error } = await supabase.rpc('queue_realign', { p_business_id: business.id, p_apply: true })
       if (error) throw error
-      const changed = (data || []).filter(r => r.old_number !== r.new_number)
+      const changed = (data || []).filter(r => r.old_number !== r.new_number && waiting(r))
       invalidateAll(qc)
       toast.success('الحجوزات اتنقلت لفتراتها')
       setDone(changed)
@@ -96,13 +102,16 @@ export default function QueueRealign({ business }) {
         {!done ? (
           <div className="space-y-3" dir="rtl" data-testid="realign-plan">
             <p className="text-sm text-slate-600">
-              كل فترة هتترقّم بترتيب الحجز: اللي حجز الأول رقمه أصغر. دول اللي هيتغير ميعادهم أو رقمهم:
+              كل فترة هتترقّم مرة واحدة: اللي خلصوا الأول بترتيب دخولهم، وبعدهم اللي جوه، وبعدهم المستنيين بترتيب الحجز، و«ما جاش» في الآخر. دول اللي هيتغير ميعادهم أو رقمهم:
             </p>
             <div className="max-h-[50vh] overflow-y-auto divide-y divide-slate-100 border border-slate-100 rounded-xl">
               {plan.map(r => (
                 <div key={r.id} data-testid="realign-row" className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
                   <div className="min-w-0">
-                    <p className="font-semibold text-slate-900 break-words">{r.client_name}</p>
+                    <p className="font-semibold text-slate-900 break-words">
+                      {r.client_name}
+                      {statusLabel(r) && <span className="mr-1.5 text-[11px] font-medium px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">{statusLabel(r)}</span>}
+                    </p>
                     <p className="text-xs text-slate-500">
                       {formatDateArabic(r.appointment_date)}
                       {hm(r.old_time) !== hm(r.new_time) && <> · الساعة {formatTimeArabic(hm(r.old_time))} ← {formatTimeArabic(hm(r.new_time))}</>}
@@ -114,7 +123,7 @@ export default function QueueRealign({ business }) {
                 </div>
               ))}
             </div>
-            <p className="text-xs text-slate-500">اللي رقمه هيتغير، هتقدري تبعتيله رسالة واتساب بعد النقل على طول.</p>
+            <p className="text-xs text-slate-500">اللي لسه مستني ورقمه هيتغير، هتقدري تبعتيله رسالة واتساب بعد النقل على طول.</p>
             <div className="flex gap-2">
               <Button onClick={apply} loading={busy} className="flex-1">انقلهم</Button>
               <Button variant="secondary" onClick={close} className="flex-1">مش دلوقتي</Button>
@@ -126,7 +135,7 @@ export default function QueueRealign({ business }) {
               <p className="text-sm text-slate-600">اتنقلوا من غير ما رقم حد يتغير.</p>
             ) : (
               <>
-                <p className="text-sm text-slate-600">رقم دول اتغير، ابعتلهم الرقم الجديد:</p>
+                <p className="text-sm text-slate-600">دول لسه مستنيين ورقمهم اتغير، ابعتلهم الرقم الجديد:</p>
                 <div className="divide-y divide-slate-100 border border-slate-100 rounded-xl">
                   {done.map(r => (
                     <div key={r.id} data-testid="realign-changed" className="flex items-center justify-between gap-2 px-3 py-2">

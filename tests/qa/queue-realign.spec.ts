@@ -73,3 +73,37 @@ test('a clinic with nothing out of place sees no banner', async ({ page }) => {
   await expect(page.getByTestId('front-desk')).toBeVisible()
   await expect(page.getByTestId('realign-banner')).toHaveCount(0)
 })
+
+test('a clinic that switched from booking by time: one tap gives the whole period one numbering', async ({ page }) => {
+  const s = await seedBusiness({ fields: { booking_mode: 'queue' } })
+  // Today: two done, one inside, two waiting, one no-show, each numbered 1 on its own time.
+  const today = [
+    ['خلص أ', '09:00', 'completed', 300], ['خلص ب', '09:30', 'completed', 250], ['جوه دلوقتي', '10:00', 'confirmed', 200],
+    ['مستني أ', '10:30', 'confirmed', 150], ['مستني ب', '11:00', 'confirmed', 100], ['غايب', '11:30', 'no_show', 50],
+  ] as const
+  await sql('ALTER TABLE appointments DISABLE TRIGGER assign_queue_number')
+  for (const [name, time, status, ago] of today) {
+    await seedAppointment(s, { client_name: name, appointment_date: isoDate(0), appointment_time: time, status, queue_number: 1,
+      created_at: new Date(Date.now() - ago * 60000).toISOString() })
+  }
+  await sql('ALTER TABLE appointments ENABLE TRIGGER assign_queue_number')
+  await sql(`UPDATE appointments SET called_at = now() - interval '5 minutes' WHERE business_id = $1 AND client_name = 'جوه دلوقتي'`, [s.businessId])
+
+  await login(page, s)
+  await page.goto('/dashboard')
+  await page.getByTestId('realign-banner').getByRole('button', { name: 'انقلهم لفتراتهم' }).click()
+  await expect(page.getByTestId('realign-row').filter({ hasText: 'خلص أ' })).toContainText('خلص')
+  await page.getByTestId('realign-plan').getByRole('button', { name: 'انقلهم', exact: true }).click()
+  // Only the waiting patients whose number changed get a message.
+  const changed = page.getByTestId('realign-done').getByTestId('realign-changed')
+  await expect(changed).toHaveCount(2)
+  await expect(changed.filter({ hasText: 'مستني أ' })).toContainText('1 ← 4')
+  await page.getByTestId('realign-done').getByRole('button', { name: 'تمام' }).click()
+
+  // The period now numbers 1 to 6, each once.
+  const numbers = (await sql<{ n: number }>('SELECT queue_number n FROM appointments WHERE business_id = $1 ORDER BY 1', [s.businessId])).map(r => r.n)
+  expect(numbers).toEqual([1, 2, 3, 4, 5, 6])
+  const rows = page.getByTestId('board-period').first().getByTestId('board-row')
+  await expect(rows).toHaveCount(6)
+  for (const [i, n] of ['1', '2', '3', '4', '5', '6'].entries()) await expect(rows.nth(i)).toContainText(n)
+})
