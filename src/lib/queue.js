@@ -100,7 +100,7 @@ export function periodStartOf(appt, periods = []) {
   if (!periods.length) return DAY
   const inside = periods.find(p => t >= p.start && t < p.end)
   if (inside) return inside.start
-  return [...periods].sort((a, b) => Math.abs(minutes(a.start) - minutes(t)) - Math.abs(minutes(b.start) - minutes(t)))[0].start
+  return [...periods].sort((a, b) => Math.abs(minutes(a.start) - minutes(t)) - Math.abs(minutes(b.start) - minutes(t)) || a.start.localeCompare(b.start))[0].start
 }
 
 /**

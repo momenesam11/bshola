@@ -139,8 +139,55 @@ describe('061 queue realign', () => {
     expect((await realign(c, false)).rows).toEqual([])
 
     await setHours(c, [{ open: '10:00', close: '12:00' }])
-    // 17:00 is outside every period now: left as it is.
-    expect((await realign(c, false)).rows).toEqual([])
+    // 064: 17:00 is outside every period now, so it joins the nearest one (10:00),
+    // as the clinic's screens already show it, keeping its numbers.
+    const moved = (await realign(c, false)).rows
+    expect(moved.map(p => [p.client_name, p.new_time, p.new_number])).toEqual([
+      ['حاضرة', '10:00:00', 1],
+      ['غايب', '10:00:00', 2],
+    ])
+  })
+
+  it('064: bookings outside every period: new ones continue their numbers, and one tap numbers them once', async () => {
+    // Booked by time at 09:00 and 10:00 (each a 1), the hours' only period is 18:00-23:00.
+    const c = await clinic('outside', [{ open: '18:00', close: '23:00' }])
+    await db.query('ALTER TABLE appointments DISABLE TRIGGER assign_queue_number')
+    for (const [name, time, ago] of [['صبح أ', '09:00', 300], ['صبح ب', '10:00', 200]]) {
+      await db.query(
+        `INSERT INTO appointments (business_id, branch_id, client_name, client_phone, appointment_date, appointment_time, status, queue_number, created_at)
+         VALUES ($1, $2, $3, $4, (now() AT TIME ZONE 'Africa/Cairo')::date + 1, $5, 'confirmed', 1, now() - make_interval(mins => $6))`,
+        [c.bizId, c.branchId, name, phone(), time, ago])
+    }
+    await db.query('ALTER TABLE appointments ENABLE TRIGGER assign_queue_number')
+    // A new booking in the evening counts them as part of its period: 2, not 1.
+    await visitorBooks(c, 'مسا', '18:00', 10)
+    expect((await one(`SELECT queue_number n FROM appointments WHERE business_id = $1 AND client_name = 'مسا'`, [c.bizId])).n).toBe(2)
+
+    await realign(c, true)
+    expect(await line(c)).toEqual([
+      { client_name: 'صبح أ', t: '18:00', n: 1, status: 'confirmed' },
+      { client_name: 'صبح ب', t: '18:00', n: 2, status: 'confirmed' },
+      { client_name: 'مسا', t: '18:00', n: 3, status: 'confirmed' },
+    ])
+  })
+
+  it('064: a day with no period at all is numbered once from its earliest booking', async () => {
+    const c = await clinic('nohours', [{ open: '18:00', close: '23:00' }])
+    await db.query(`UPDATE businesses SET working_hours = '{}'::jsonb WHERE id = $1`, [c.bizId])
+    await db.query('ALTER TABLE appointments DISABLE TRIGGER assign_queue_number')
+    for (const [name, time, ago] of [['أول', '09:00', 300], ['تاني', '09:30', 200], ['تالت', '11:00', 100]]) {
+      await db.query(
+        `INSERT INTO appointments (business_id, branch_id, client_name, client_phone, appointment_date, appointment_time, status, queue_number, created_at)
+         VALUES ($1, $2, $3, $4, (now() AT TIME ZONE 'Africa/Cairo')::date + 1, $5, 'confirmed', 1, now() - make_interval(mins => $6))`,
+        [c.bizId, c.branchId, name, phone(), time, ago])
+    }
+    await db.query('ALTER TABLE appointments ENABLE TRIGGER assign_queue_number')
+    await realign(c, true)
+    expect(await line(c)).toEqual([
+      { client_name: 'أول', t: '09:00', n: 1, status: 'confirmed' },
+      { client_name: 'تاني', t: '09:00', n: 2, status: 'confirmed' },
+      { client_name: 'تالت', t: '09:00', n: 3, status: 'confirmed' },
+    ])
   })
 
   it('063: a clinic switched from booking by time: the whole period gets one numbering', async () => {
