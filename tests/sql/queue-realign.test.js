@@ -52,7 +52,11 @@ describe('061 queue realign', () => {
     const c = await clinic('salwa', [{ open: '12:00', close: '16:00' }, { open: '18:55', close: '23:00' }])
     for (const [i, name] of ['نور', 'رانيا', 'أميرة'].entries()) await visitorBooks(c, name, '18:55', 600 - i)
     await setHours(c, [{ open: '12:00', close: '16:00' }, { open: '18:00', close: '23:00' }])
+    // Rahma as she was booked before 062 numbered the whole period: a second 1.
+    await db.query('ALTER TABLE appointments DISABLE TRIGGER assign_queue_number')
     await visitorBooks(c, 'رحمة', '18:00', 60)
+    await db.query(`UPDATE appointments SET queue_number = 1 WHERE business_id = $1 AND client_name = 'رحمة'`, [c.bizId])
+    await db.query('ALTER TABLE appointments ENABLE TRIGGER assign_queue_number')
     // Before: two number 1s in the evening.
     expect(await line(c)).toEqual([
       { client_name: 'رحمة', t: '18:00', n: 1, status: 'confirmed' },
@@ -82,6 +86,40 @@ describe('061 queue realign', () => {
     expect((await realign(c, false)).rows).toEqual([])
     await visitorBooks(c, 'جديدة', '18:00', 1)
     expect((await line(c)).at(-1)).toMatchObject({ client_name: 'جديدة', n: 5 })
+  })
+
+  it('062: after the hours change, a new booking continues the period\'s numbers instead of a second 1', async () => {
+    const c = await clinic('perperiod', [{ open: '18:55', close: '23:00' }])
+    for (const [i, name] of ['نور', 'رانيا', 'أميرة'].entries()) await visitorBooks(c, name, '18:55', 600 - i)
+    await setHours(c, [{ open: '18:00', close: '23:00' }])
+    await visitorBooks(c, 'رحمة', '18:00', 60)
+    await visitorBooks(c, 'سارة', '18:00', 30)
+    const numbers = (await line(c)).map(r => r.n).sort((x, y) => x - y)
+    expect(numbers).toEqual([1, 2, 3, 4, 5])
+    // The booking page sees one period with 5 taken and 6 next.
+    const day = (await one(`SELECT ((now() AT TIME ZONE 'Africa/Cairo')::date + 1)::text d`)).d
+    const periods = (await as('anon', null, tx => tx.query('SELECT * FROM public_queue_periods($1, $2, $3)', [c.bizId, c.branchId, day]))).rows
+    expect(periods.map(p => [p.period_start, p.taken, p.next_number])).toEqual([['18:00:00', 5, 6]])
+    // Rahma (4) has the three earlier bookers ahead of her, though they sit on 18:55.
+    const rahma = await one(`SELECT patients_ahead(a) n FROM appointments a WHERE business_id = $1 AND client_name = 'رحمة'`, [c.bizId])
+    expect(rahma.n).toBe(3)
+  })
+
+  it('062: the online limit counts the whole period, old start times included', async () => {
+    const c = await clinic('limit', [{ open: '18:55', close: '23:00' }])
+    await db.query('UPDATE businesses SET queue_limit = 3 WHERE id = $1', [c.bizId])
+    for (const [i, name] of ['نور', 'رانيا', 'أميرة'].entries()) await visitorBooks(c, name, '18:55', 600 - i)
+    await setHours(c, [{ open: '18:00', close: '23:00' }])
+    await expect(visitorBooks(c, 'رحمة', '18:00', 60)).rejects.toThrow(/QUEUE_FULL/)
+  })
+
+  it('062: editing an old booking without moving it keeps its time and number', async () => {
+    const c = await clinic('keep', [{ open: '18:55', close: '23:00' }])
+    await visitorBooks(c, 'نور', '18:55', 600)
+    await setHours(c, [{ open: '18:00', close: '23:00' }])
+    await db.query(`UPDATE appointments SET status = 'no_show' WHERE business_id = $1`, [c.bizId])
+    await db.query(`UPDATE appointments SET status = 'confirmed' WHERE business_id = $1`, [c.bizId])
+    expect(await line(c)).toEqual([{ client_name: 'نور', t: '18:55', n: 1, status: 'confirmed' }])
   })
 
   it('a no-show in the period goes after everyone waiting, and a time outside every period stays', async () => {

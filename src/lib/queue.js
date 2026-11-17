@@ -91,9 +91,13 @@ ${line}
 // changed after it was booked) shows under the nearest period, and the desk
 // offers to move it there properly (queue_realign, 061).
 const minutes = (t) => { const [h = 0, m = 0] = String(t).split(':').map(Number); return h * 60 + m }
+// The whole-day group on a day with no period.
+export const DAY = 'day'
 export function periodStartOf(appt, periods = []) {
   const t = String(appt.appointment_time || '').slice(0, 5)
-  if (!periods.length) return t
+  // A day with no period on the hours (a day off, or bookings from before the
+  // clinic booked by turn): one group for the whole day, never one per time.
+  if (!periods.length) return DAY
   const inside = periods.find(p => t >= p.start && t < p.end)
   if (inside) return inside.start
   return [...periods].sort((a, b) => Math.abs(minutes(a.start) - minutes(t)) - Math.abs(minutes(b.start) - minutes(t)))[0].start
@@ -107,12 +111,17 @@ export function periodStartOf(appt, periods = []) {
 export function periodLine(dayLine, periods, start) {
   const inside = dayLine.find(a => a.called_at) || null
   const waiting = dayLine.filter(a => !a.called_at && periodStartOf(a, periods) === start)
+    // By number inside the period (queue_period_key in 062): a booking left on an
+    // old start time still lines up by its number. A place set by "رجّعه" wins.
+    .map(a => ({ a, k: a.queue_sort != null ? Number(a.queue_sort) : queueKey(periods.length ? { ...a, appointment_time: periodStartOf(a, periods) } : a) }))
+    .sort((x, y) => x.k - y.k || String(x.a.created_at || '').localeCompare(String(y.a.created_at || '')))
+    .map(x => x.a)
   return inside ? [inside, ...waiting] : waiting
 }
 
 /**
  * The day's periods with how many wait in each. Only the working hours'
- * periods; on a day with none (a day off with bookings), each booked time.
+ * periods; on a day with none (a day off with bookings), one whole-day group.
  */
 export function periodChoices(dayLine, periods = []) {
   const counts = {}

@@ -22,7 +22,10 @@ test('hours moved from 6:55 to 6:00: move the bookings, earlier bookers keep the
     early.push(await seedAppointment(s, { client_name: name, appointment_date: isoDate(1), appointment_time: '18:55', created_at: new Date(Date.now() - (600 - i) * 60000).toISOString() }))
   }
   await sql('UPDATE businesses SET working_hours = $2::jsonb WHERE id = $1', [s.businessId, hours('18:00')])
-  const late = await seedAppointment(s, { client_name: 'رحمة', appointment_date: isoDate(1), appointment_time: '18:00' })
+  // Since 062 a new booking here takes 4; Rahma is as she was booked before it, a second 1.
+  await sql('ALTER TABLE appointments DISABLE TRIGGER assign_queue_number')
+  const late = await seedAppointment(s, { client_name: 'رحمة', appointment_date: isoDate(1), appointment_time: '18:00', queue_number: 1 })
+  await sql('ALTER TABLE appointments ENABLE TRIGGER assign_queue_number')
   expect((await one<{ n: number }>('SELECT queue_number n FROM appointments WHERE id=$1', [late.id])).n).toBe(1)
 
   await page.addInitScript(captureWhatsApp)

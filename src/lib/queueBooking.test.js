@@ -33,6 +33,14 @@ describe('dashboard turns view', () => {
     expect(cancelled).toBe(1)
   })
 
+  it('a day with no period on the hours is one card, never one per time', () => {
+    const a = (id, time, extra = {}) => ({ id, appointment_time: `${time}:00`, status: 'completed', ...extra })
+    const { groups } = groupByPeriod([a('p', '09:00'), a('q', '09:30'), a('r', '10:15', { status: 'no_show' })], [])
+    expect(groups).toHaveLength(1)
+    expect(groups[0].extra).toBe(true)
+    expect(groups[0].items.map(i => i.id)).toEqual(['p', 'q', 'r'])
+  })
+
   it('names a period by when it starts, unless the clinic named it', async () => {
     const { periodName, defaultPeriodName } = await import('./queueBooking')
     expect(['09:00', '12:00', '14:30', '15:00', '16:00', '19:00'].map(defaultPeriodName)).toEqual([

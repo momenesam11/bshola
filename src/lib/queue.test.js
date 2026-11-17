@@ -85,13 +85,13 @@ describe('front desk periods (queue clinics)', () => {
   it('shows one period at a time; a booking off the hours sits in the nearest period, never its own', () => {
     expect(periodLine(day, periods, '10:00').map(x => x.id)).toEqual(['m1', 'm2'])
     // 15:30 is outside both periods (nearest: 17:00); 17:30 is inside 17:00-22:00.
-    expect(periodLine(day, periods, '17:00').map(x => x.id)).toEqual(['odd', 'e1', 'e2', 'mid'])
+    expect(periodLine(day, periods, '17:00').map(x => x.id)).toEqual(['odd', 'e1', 'mid', 'e2'])
     expect(periodLine(day, periods, '15:30')).toEqual([])
   })
 
   it('keeps whoever is inside at the top, whatever period is shown', () => {
     const withInside = waitingQueue([...day, a('in', '10:00', { queue_number: 3, called_at: '2026-11-16T10:00:00Z' })])
-    expect(periodLine(withInside, periods, '17:00').map(x => x.id)).toEqual(['in', 'odd', 'e1', 'e2', 'mid'])
+    expect(periodLine(withInside, periods, '17:00').map(x => x.id)).toEqual(['in', 'odd', 'e1', 'mid', 'e2'])
   })
 
   it('lists the periods with how many wait in each', () => {
@@ -102,9 +102,10 @@ describe('front desk periods (queue clinics)', () => {
 })
 
 describe('periods on a day off', () => {
-  it('lists each booked time when the hours have no period that day', () => {
-    const day = waitingQueue([a('x', '11:00', { queue_number: 1 })])
-    expect(periodChoices(day, []).map(c => [c.start, c.waiting])).toEqual([['11:00', 1]])
+  it('puts the whole day in one group when the hours have no period that day', () => {
+    const day = waitingQueue([a('x', '11:00', { queue_number: 1 }), a('y', '09:30'), a('z', '10:15')])
+    expect(periodChoices(day, []).map(c => [c.start, c.waiting])).toEqual([['day', 3]])
+    expect(periodLine(day, [], 'day').map(r => r.id)).toEqual(['y', 'z', 'x'])
   })
 })
 
@@ -116,5 +117,16 @@ describe('renumber message (061)', () => {
     expect(msg).toContain('رقمك في الدور بقى 4.')
     expect(msg).toContain('يوم الأحد 16 نوفمبر، والفترة بتبدأ 6:00 م.')
     expect(msg).not.toMatch(/تلغي|إلغاء/)
+  })
+})
+
+describe('a period after the hours changed (062)', () => {
+  it('lines up by number though old bookings sit on the old start time', () => {
+    const periods = [{ start: '18:00', end: '23:00' }]
+    const day = waitingQueue([
+      a('rahma', '18:00', { queue_number: 4 }), a('sara', '18:00', { queue_number: 5 }),
+      a('nour', '18:55', { queue_number: 1 }), a('rania', '18:55', { queue_number: 2 }), a('amira', '18:55', { queue_number: 3 }),
+    ])
+    expect(periodLine(day, periods, '18:00').map(x => x.id)).toEqual(['nour', 'rania', 'amira', 'rahma', 'sara'])
   })
 })

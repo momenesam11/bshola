@@ -17,7 +17,7 @@ import { supabase } from '../../lib/supabase'
 import { openWhatsApp, formatTimeArabic, generateManageLinkMessage } from '../../lib/whatsapp'
 import { phoneDigits, phoneMatches } from '../../lib/countries'
 import { formatWait, notifyAheadOf, periodChoices, periodLine, queueMessage, visitMinutes, waitingQueue } from '../../lib/queue'
-import { formatTime12, todayISO } from '../../utils/dateHelpers'
+import { todayISO } from '../../utils/dateHelpers'
 import { periodName, periodsOfDay, walkInPeriodStart } from '../../lib/queueBooking'
 
 // /clinic: the front desk (migration 058). The secretary keeps this open all
@@ -279,7 +279,7 @@ export default function FrontDesk() {
                 {choices.map(c => (
                   <button key={c.start} role="tab" aria-selected={c.start === periodStart} onClick={() => setPickedPeriod(c.start)}
                     className={`flex-shrink-0 px-3 h-10 rounded-xl border text-sm font-semibold ${c.start === periodStart ? 'bg-accent-500 border-accent-500 text-white' : 'bg-white border-slate-200 text-slate-600'}`}>
-                    {c.period ? periodName(c.period) : `الساعة ${formatTime12(c.start)}`} <span className="tabular-nums opacity-80">({c.waiting})</span>
+                    {c.period ? periodName(c.period) : 'اليوم كله'} <span className="tabular-nums opacity-80">({c.waiting})</span>
                   </button>
                 ))}
               </div>
