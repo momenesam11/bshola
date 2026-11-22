@@ -20,7 +20,11 @@ export function invalidateAll(qc) {
   qc.invalidateQueries({ predicate: q => APPOINTMENT_QUERIES.includes(q.queryKey[0]) })
 }
 
-export function useAppointments(businessId, date) {
+// live: false skips the realtime channel. A page that reads two days (the
+// front desk with a night period still open, 066) keeps one channel: it is
+// named per clinic, a second one by the same name throws and blanks the page,
+// and the first one already refreshes every appointments query.
+export function useAppointments(businessId, date, { live = true } = {}) {
   const qc = useQueryClient()
 
   const query = useQuery({
@@ -40,7 +44,7 @@ export function useAppointments(businessId, date) {
 
   // Realtime subscription with toast notifications
   useEffect(() => {
-    if (!businessId) return
+    if (!businessId || !live) return
     const channel = supabase
       .channel(`appointments-${businessId}`)
       .on(
@@ -60,7 +64,7 @@ export function useAppointments(businessId, date) {
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
-  }, [businessId, qc])
+  }, [businessId, qc, live])
 
   return query
 }

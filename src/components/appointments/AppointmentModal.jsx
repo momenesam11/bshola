@@ -77,7 +77,8 @@ export default function AppointmentModal({ open, onClose, businessId, initialDat
   const deleteAppt = useDeleteAppointment()
 
   const { register, handleSubmit, reset, control, setValue, getValues, formState: { errors, isSubmitting } } = useForm({
-    resolver: zodResolver(getAppointmentSchema(isEdit)),
+    // A walk-in from the desk may go on the desk's working day (066).
+    resolver: zodResolver(getAppointmentSchema(isEdit, walkIn ? initialDate : null)),
     defaultValues: {
       client_name: '', client_phone: '', service_id: '',
       appointment_date: initialDate || todayISO(),

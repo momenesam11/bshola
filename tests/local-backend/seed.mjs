@@ -9,6 +9,7 @@ export const SEED_ACCOUNTS = [
   { email: 'salon@local.test', label: 'صالون بـ3 كراسي' },
   { email: 'queue@local.test', label: 'عيادة بتحجز بالدور' },
   { email: 'periods@local.test', label: 'عيادة بالدور بفترتين لازقين' },
+  { email: 'night@local.test', label: 'عيادة بالدور فترة الليل لسه شغالة من امبارح' },
   { email: 'expired@local.test', label: 'حساب تجربته خلصت' },
 ]
 
@@ -164,6 +165,28 @@ async function seedPeriodsDemo(db, createUser) {
   await db.query(`UPDATE appointments SET called_at = $2 WHERE id = $1`, [noon[4].id, minutesAgo(15)])
   const { rows: [follow] } = await db.query('SELECT manage_code FROM appointments WHERE id = $1', [eve[0].id])
   console.log(`demo periods: screen /q/demo-periods, evening number 1's page /m/${follow.manage_code}`)
+}
+
+// A night period still open past midnight (066): last night 1 is inside, 2
+// and 3 are here, 4 never came; tonight has 2 booked. The period starts at
+// 23:00, so last night stays open whenever the demo runs before 23:00;
+// «ابدأ الفترة» on tonight's tab closes it.
+async function seedNightDemo(db, createUser) {
+  const clinic = await business(db, createUser, {
+    email: 'night@local.test',
+    fields: { name: 'عيادة د. سامح جلدية (فترة ليل، تجريبية)', type: 'clinic', booking_slug: 'demo-night', booking_mode: 'queue', specialty: 'جلدية' },
+    branches: [{ name: 'الفرع الرئيسي', is_main: true, capacity: 1, schedule_blocks: week([{ start: '23:00', end: '23:59', name: 'فترة الليل' }]) }],
+    services: [{ name: 'كشف', duration_minutes: 10, price: 300 }],
+  })
+  const add = async (i, date) => insert(db, 'appointments', {
+    business_id: clinic.biz.id, branch_id: clinic.branches[0].id, service_id: clinic.services[0].id,
+    client_name: NAMES[(i + 4) % NAMES.length], client_phone: phoneOf(90 + i), appointment_date: date, appointment_time: '23:00', status: 'confirmed',
+  })
+  const night = []
+  for (let i = 0; i < 4; i++) night.push(await add(i, day(-1)))
+  for (let i = 4; i < 6; i++) await add(i, day(0))
+  await db.query(`UPDATE appointments SET arrived_at = now() - interval '1 hour' WHERE id = ANY($1)`, [[night[0].id, night[1].id, night[2].id]])
+  await db.query(`UPDATE appointments SET called_at = now() - interval '10 minutes' WHERE id = $1`, [night[0].id])
 }
 
 export async function seedDemoData(db, createUser) {
@@ -322,6 +345,7 @@ export async function seedDemoData(db, createUser) {
   })
 
   await seedPeriodsDemo(db, createUser)
+  await seedNightDemo(db, createUser)
 
   await db.query(`INSERT INTO growth_leads (name, category, city, phone, source, stage, is_test)
     VALUES ('عيادة النور (عميل محتمل وهمي)', 'dental', 'القاهرة', '201000000555', 'manual', 'new', true)`).catch(() => {})

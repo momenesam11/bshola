@@ -64,7 +64,9 @@ export const serviceSchema = z.object({
 // marking yesterday's visit as completed/no_show after the fact) is a
 // normal, frequent action and must stay allowed. Only creating a brand new
 // appointment in the past is blocked.
-export function getAppointmentSchema(isEdit = false) {
+// minDate: the earliest date a new one may take. The front desk passes its
+// working day (066), which past midnight is still the evening before.
+export function getAppointmentSchema(isEdit = false, minDate = null) {
   const base = z.object({
     client_name: z.string().min(2, 'اسم العميل مطلوب'),
     client_phone: z.preprocess(
@@ -87,7 +89,8 @@ export function getAppointmentSchema(isEdit = false) {
     amount_paid: z.coerce.number().optional(),
   })
   if (isEdit) return base
-  return base.refine(d => d.appointment_date >= todayISO(), {
+  const earliest = minDate && minDate < todayISO() ? minDate : todayISO()
+  return base.refine(d => d.appointment_date >= earliest, {
     message: 'لا يمكن حجز موعد في تاريخ سابق',
     path: ['appointment_date'],
   })
