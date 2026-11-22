@@ -4,19 +4,20 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import {
   HiOutlineMagnifyingGlass, HiOutlineCheck, HiOutlineArrowUturnDown, HiOutlineLink,
-  HiOutlinePlus, HiOutlineClipboard, HiOutlineMegaphone, HiOutlineTv,
+  HiOutlinePlus, HiOutlineClipboard, HiOutlineMegaphone, HiOutlineTv, HiOutlinePlay, HiOutlineStop,
 } from 'react-icons/hi2'
 import { FaWhatsapp } from 'react-icons/fa'
 import PageWrapper from '../../components/layout/PageWrapper'
 import AppointmentModal from '../../components/appointments/AppointmentModal'
 import QueueRealign from '../../components/appointments/QueueRealign'
+import ConfirmDialog from '../../components/ui/ConfirmDialog'
 import { useBusiness } from '../../hooks/useBusiness'
 import { useAppointments, useUpdateAppointment, invalidateAll } from '../../hooks/useAppointments'
 import { useBranch } from '../../context/branchState'
 import { supabase } from '../../lib/supabase'
 import { openWhatsApp, formatTimeArabic, generateManageLinkMessage } from '../../lib/whatsapp'
 import { phoneDigits, phoneMatches } from '../../lib/countries'
-import { formatWait, notifyAheadOf, periodChoices, periodLine, queueMessage, visitMinutes, waitingQueue } from '../../lib/queue'
+import { DAY, formatWait, nextToCall, notifyAheadOf, periodChoices, periodLine, periodStartOf, queueMessage, runningPeriod, visitMinutes, waitingQueue } from '../../lib/queue'
 import { todayISO } from '../../utils/dateHelpers'
 import { periodName, periodsOfDay, walkInPeriodStart } from '../../lib/queueBooking'
 
@@ -61,6 +62,20 @@ function useConsultMinutes(businessId) {
   })
 }
 
+// The desk's state for today (065): the period it started, the ones it
+// ended, and the note on the waiting-room screen. Refreshed with the appointments.
+function useDeskDay(businessId, branchId, enabled) {
+  return useQuery({
+    queryKey: ['appointments', businessId, 'desk-day', branchId],
+    enabled: !!businessId && enabled,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('front_desk_day', { p_business_id: businessId, p_branch_id: branchId })
+      if (error) return null
+      return data
+    },
+  })
+}
+
 function useServices(businessId) {
   return useQuery({
     queryKey: ['services', businessId],
@@ -90,6 +105,8 @@ export default function FrontDesk() {
   const [now, setNow] = useState(() => Date.now())
   const [pickedBranch, setPickedBranch] = useState(null)
   const [pickedPeriod, setPickedPeriod] = useState(null)
+  const [noteDraft, setNoteDraft] = useState(null)
+  const [ending, setEnding] = useState(null)
 
   // Realtime covers most changes; this catches a dropped connection, and keeps
   // the "inside for N minutes" clock moving.
@@ -117,11 +134,19 @@ export default function FrontDesk() {
   // the first tab that has patients, so the desk never opens on an empty list
   // while patients wait under another time.
   const scheduled = walkInPeriodStart(periods, nowTime())
+  const { data: deskDay } = useDeskDay(business?.id, branchId, byTurn)
+  const ended = deskDay?.ended_periods || []
+  // The period started at the desk, else one still being seen (065), else the
+  // period running now if someone waits in it, else the first with patients.
   const periodStart = byTurn
     ? (choices.some(c => c.start === pickedPeriod) ? pickedPeriod
-      : choices.find(c => c.start === scheduled && c.waiting)?.start
-        || choices.find(c => c.waiting)?.start
-        || scheduled || null)
+      : runningPeriod(dayLine, periods, choices, {
+        started: deskDay?.current_period,
+        fallback: choices.find(c => c.start === scheduled && c.waiting && !ended.includes(c.start))?.start
+          || choices.find(c => c.waiting && !ended.includes(c.start))?.start
+          || choices.find(c => c.waiting)?.start
+          || scheduled || null,
+      }))
     : null
   const otherTabsWaiting = byTurn ? choices.filter(c => c.start !== periodStart && c.waiting) : []
   const line = byTurn ? periodLine(dayLine, periods, periodStart) : dayLine
@@ -131,7 +156,8 @@ export default function FrontDesk() {
   for (const a of dayLine) { const p = phoneDigits(a.client_phone); phoneCount[p] = (phoneCount[p] || 0) + 1 }
   const bookedTwice = (a) => phoneCount[phoneDigits(a.client_phone)] > 1
   const waiting = inside ? line.slice(1) : line
-  const next = waiting[0] || null
+  // Whoever is here goes first: numbers that haven't come don't hold the line (065).
+  const next = nextToCall(waiting)
   const done = all
     .filter(a => ['completed', 'no_show'].includes(a.status))
     .filter(a => !branchId || !a.branch_id || a.branch_id === branchId)
@@ -192,6 +218,32 @@ export default function FrontDesk() {
       if (told) await update.mutateAsync({ id: tell.appt.id, queue_notified_at: new Date().toISOString() })
     }, callToast(appt))
   }
+  // «ابدأ الفترة» / «خلّص الفترة» and the screen's note (065).
+  const shownPeriod = byTurn && periodStart && periodStart !== DAY ? periods.find(p => p.start === periodStart) || null : null
+  const periodStarted = !!shownPeriod && deskDay?.current_period === shownPeriod.start
+  const periodEnded = !!shownPeriod && ended.includes(shownPeriod.start)
+  const inPeriod = ending ? dayLine.filter(a => !a.called_at && periodStartOf(a, periods) === ending.start) : []
+  const neverCame = inPeriod.filter(a => !a.arrived_at).length
+  const stillHere = inPeriod.length - neverCame
+  const startPeriod = () => run(null, () => rpc('front_desk_period', {
+    p_business_id: business.id, p_branch_id: branchId, p_start: shownPeriod.start, p_action: 'start',
+  }), `${periodName(shownPeriod)} بدأت، وشاشة الدور عليها`)
+  async function endPeriod() {
+    const period = ending
+    await run(null, () => rpc('front_desk_period', {
+      p_business_id: business.id, p_branch_id: branchId, p_start: period.start, p_action: 'end',
+    }), `${periodName(period)} خلصت`)
+    setEnding(null)
+    setPickedPeriod(null)
+  }
+  const note = deskDay?.note || ''
+  const draft = noteDraft ?? note
+  async function saveNote(text) {
+    await run(null, () => rpc('front_desk_note', { p_business_id: business.id, p_branch_id: branchId, p_note: text }),
+      text.trim() ? 'الرسالة ظاهرة على شاشة الدور' : 'الرسالة اتشالت من الشاشة')
+    setNoteDraft(null)
+  }
+
   const callToast = (appt) => `${appt.queue_number != null ? `رقم ${appt.queue_number}: ` : ''}${appt.client_name} جوه`
   const pushBack = (appt) => run(appt, () => rpc('front_desk_push_back', { p_appointment_id: appt.id, p_steps: PUSH_BACK }), `${appt.client_name} رجع ${PUSH_BACK} أدوار`)
   const setStatus = (appt, status, msg) => run(appt, () => update.mutateAsync({ id: appt.id, status }), msg)
@@ -283,6 +335,49 @@ export default function FrontDesk() {
                   </button>
                 ))}
               </div>
+            )}
+
+            {/* The shown period: start it, end it (065). */}
+            {shownPeriod && (
+              <div data-testid="period-control" className="flex flex-wrap items-center gap-2 bg-white border border-slate-100 rounded-2xl px-3 py-2">
+                <span className="text-sm font-semibold text-slate-700 flex-1 min-w-0">
+                  {periodName(shownPeriod)}
+                  <span className={`mr-2 text-xs px-2 py-0.5 rounded-full ${periodEnded ? 'bg-slate-100 text-slate-500' : periodStarted ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}`}>
+                    {periodEnded ? 'خلصت' : periodStarted ? 'شغالة' : 'لسه ما بدأتش'}
+                  </span>
+                </span>
+                {!periodStarted && (
+                  <button data-testid="start-period" onClick={startPeriod} disabled={!!busyId}
+                    className="h-9 px-3 rounded-xl bg-accent-500 text-white text-sm font-semibold flex items-center gap-1 disabled:opacity-60">
+                    <HiOutlinePlay className="w-4 h-4" /> ابدأ الفترة
+                  </button>
+                )}
+                {!periodEnded && (
+                  <button data-testid="end-period" onClick={() => setEnding(shownPeriod)} disabled={!!busyId}
+                    className="h-9 px-3 rounded-xl border border-slate-200 text-slate-700 text-sm font-semibold flex items-center gap-1 hover:bg-slate-50 disabled:opacity-60">
+                    <HiOutlineStop className="w-4 h-4" /> خلّص الفترة
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* A note on the waiting-room screen (065); a new day starts without one. */}
+            {byTurn && (
+              <form data-testid="screen-note" onSubmit={e => { e.preventDefault(); saveNote(draft) }} className="flex gap-2 items-center">
+                <input value={draft} onChange={e => setNoteDraft(e.target.value.slice(0, 200))} aria-label="رسالة على شاشة الدور"
+                  placeholder="رسالة على شاشة الدور، مثلًا: الفترة المسائية هتبدأ بعد ما يخلص 4"
+                  className="flex-1 min-w-0 h-10 bg-white border border-slate-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent-400" />
+                {draft.trim() !== note ? (
+                  <button type="submit" disabled={!!busyId} className="h-10 px-3 rounded-xl bg-ink text-white text-sm font-semibold flex-shrink-0 disabled:opacity-60">
+                    {draft.trim() ? 'اعرضها' : 'شيلها'}
+                  </button>
+                ) : note ? (
+                  <button type="button" onClick={() => saveNote('')} disabled={!!busyId}
+                    className="h-10 px-3 rounded-xl border border-slate-200 text-sm text-slate-600 flex-shrink-0 disabled:opacity-60">
+                    شيلها
+                  </button>
+                ) : null}
+              </form>
             )}
 
             {/* First thing on the page: someone walks in without a booking, or asks for their turn. */}
@@ -472,6 +567,19 @@ export default function FrontDesk() {
         )}
 
       </div>
+
+      <ConfirmDialog
+        open={!!ending}
+        onClose={() => setEnding(null)}
+        onConfirm={endPeriod}
+        loading={!!busyId}
+        title={ending ? `تخلّص ${periodName(ending)}؟` : ''}
+        message={[
+          neverCame ? `${neverCame} ما وصلوش هيتسجلوا «ما جاش»، وتقدر ترجّع أي حد منهم من «خلصوا النهارده».` : 'كل اللي في الفترة دي وصلوا أو خلصوا.',
+          stillHere ? `${stillHere} وصلوا ولسه ما دخلوش، وهيفضلوا في الدور.` : null,
+        ].filter(Boolean).join(' ')}
+        confirmLabel="خلّص الفترة"
+      />
 
       <AppointmentModal
         open={!!modal}

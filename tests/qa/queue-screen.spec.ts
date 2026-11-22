@@ -61,7 +61,7 @@ test.describe('waiting-room screen', () => {
     await mine.fill('4')
     await page.reload()
     await expect(page.getByLabel('رقمك كام؟')).toHaveValue('4')
-    await expect(page.getByTestId('my-place')).toContainText('قدامك 2')
+    await expect(page.getByTestId('my-place')).toContainText('قدامك اتنين')
   })
 
   test('the clinic opens it from the front desk; an unknown clinic shows nothing', async ({ page }) => {

@@ -29,15 +29,19 @@ test.describe('front desk', () => {
     await expect(desk.getByTestId('waiting-row')).toHaveCount(5)
     await expect(desk.getByTestId('call-next')).toContainText('نادي رقم 1')
 
-    // Number 2 arrives.
-    await desk.getByTestId('waiting-row').nth(1).getByRole('button', { name: 'وصل' }).click()
-    await expect(desk.getByTestId('waiting-row').nth(1)).toContainText('وصل ')
-    await expect.poll(async () => (await one<{ t: string | null }>('SELECT arrived_at t FROM appointments WHERE id=$1', [rows[1].id])).t).not.toBeNull()
-
-    // Call 1, then 2: 1 is done with its times stamped, 2 is inside.
+    // Call 1; then number 3 arrives and goes ahead of 2, who isn't here (065).
     await desk.getByTestId('call-next').click()
     await expect(desk.getByTestId('inside')).toContainText('أمل')
     await expect(desk.getByTestId('call-next')).toContainText('نادي رقم 2')
+    await desk.getByTestId('waiting-row').nth(1).getByRole('button', { name: 'وصل' }).click()
+    await expect(desk.getByTestId('waiting-row').nth(1)).toContainText('وصل ')
+    await expect(desk.getByTestId('call-next')).toContainText('نادي رقم 3')
+    await desk.getByTestId('waiting-row').nth(1).getByRole('button', { name: /وصل/ }).click()
+    await expect(desk.getByTestId('call-next')).toContainText('نادي رقم 2')
+
+    // Number 2 arrives and is called: 1 is done with its times stamped, 2 is inside.
+    await desk.getByTestId('waiting-row').first().getByRole('button', { name: 'وصل' }).click()
+    await expect.poll(async () => (await one<{ t: string | null }>('SELECT arrived_at t FROM appointments WHERE id=$1', [rows[1].id])).t).not.toBeNull()
     await desk.getByTestId('call-next').click()
     await expect(desk.getByTestId('inside')).toContainText('بسمة')
     const first = await one<{ status: string; called_at: string | null; finished_at: string | null }>(
@@ -101,14 +105,17 @@ test.describe('front desk', () => {
     await page.goto('/clinic')
     const desk = page.getByTestId('front-desk')
 
+    // 4 is here, so «نادي» offers 4 (065); the desk calls 1 from their row.
     // Calling 1 would tell number 4 (3 ahead), but 4 is here: number 3 is told instead.
-    await expect(desk.getByTestId('call-tells')).toContainText('تلاتة')
-    await desk.getByTestId('call-next').click()
+    await expect(desk.getByTestId('call-next')).toContainText('نادي رقم 4')
+    const callRow = (name: string) => desk.getByTestId('waiting-row').filter({ hasText: name }).getByRole('button', { name: 'نادي', exact: true }).click()
+    await callRow('واحد')
     await expect(desk.getByTestId('inside')).toContainText('واحد')
     expect(await lastMessage(page)).toContain('أهلاً يا تلاتة')
     // Next call: 4 still skipped; 5 (3 ahead after the call) is told.
     await expect(desk.getByTestId('call-tells')).toContainText('خمسة')
-    await desk.getByTestId('call-next').click()
+    await callRow('اتنين')
+    await expect(desk.getByTestId('inside')).toContainText('اتنين')
     expect(await lastMessage(page)).toContain('أهلاً يا خمسة')
     const told = await sql<{ n: string }>('SELECT client_name n FROM appointments WHERE business_id = $1 AND queue_notified_at IS NOT NULL ORDER BY 1', [s.businessId])
     expect(told.map(r => r.n).sort()).toEqual(['تلاتة', 'خمسة'].sort())

@@ -6,7 +6,7 @@ import { HiOutlineCalendarDays, HiOutlineClock, HiOutlineMapPin, HiOutlinePhone,
 import { supabase } from '../../lib/supabase'
 import { formatDateArabic, formatTimeArabic } from '../../lib/whatsapp'
 import { telHref } from '../../lib/countries'
-import { formatWait } from '../../lib/queue'
+import { formatWait, screenPlaceText } from '../../lib/queue'
 import Modal from '../../components/ui/Modal'
 import Button from '../../components/ui/Button'
 
@@ -73,6 +73,16 @@ function Ahead({ a }) {
           <p className="text-xs text-gray-500">بيتحدث لوحده أول بأول</p>
         </div>
       </div>
+      {/* Numbers ahead who haven't come yet (065): why the one inside may be past yours. */}
+      {!a.inside && count > 0 && (() => {
+        const t = screenPlaceText({ number: a.number, ahead: count, coming: a.coming || 0, arrived: a.arrived },a.now_serving != null ? { number: a.now_serving } : null)
+        return t.note && (
+          <div data-testid="coming" className="text-sm text-gray-700 space-y-0.5">
+            {t.note && <p>{t.note}</p>}
+            {t.tell && <p className="font-semibold text-accent-700">{t.tell}</p>}
+          </div>
+        )
+      })()}
       {!a.inside && (a.now_serving != null || a.eta_minutes > 0) && (
         <div className="grid grid-cols-2 gap-2 text-center">
           {a.now_serving != null && (

@@ -8,6 +8,7 @@ export const SEED_ACCOUNTS = [
   { email: 'clinic@local.test', label: 'عيادة أسنان بفرعين' },
   { email: 'salon@local.test', label: 'صالون بـ3 كراسي' },
   { email: 'queue@local.test', label: 'عيادة بتحجز بالدور' },
+  { email: 'periods@local.test', label: 'عيادة بالدور بفترتين لازقين' },
   { email: 'expired@local.test', label: 'حساب تجربته خلصت' },
 ]
 
@@ -127,6 +128,42 @@ async function seedRetentionDemo(db, clinic) {
     `SELECT manage_code FROM appointments WHERE business_id = $1 AND client_phone = $2 AND appointment_date = $3`,
     [biz.id, patient.client_phone, day(3)])
   console.log(`demo patient page: /m/${rows[0].manage_code}`)
+}
+
+// Two periods back to back (065): the afternoon ended a few minutes ago and the
+// evening started, but the afternoon is still being seen. Afternoon: 1-3 never
+// came, 4 done, 5 inside, 6 and 7 here. Evening: 1 and 2 on their way, 3 here.
+// So the screen stays on the afternoon, «خلّص الفترة» marks 1-3 ما جاش, and in
+// the evening «نادي» calls 3 first; marking 1 «وصل» after that puts them after
+// three who are here.
+async function seedPeriodsDemo(db, createUser) {
+  const now = new Intl.DateTimeFormat('en-GB', { timeZone: 'Africa/Cairo', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date())
+  const [h, m] = now.split(':').map(Number)
+  // The afternoon ends at the last :00/:05 mark before now (at least 00:30), the evening starts there.
+  const cut = Math.max(30, Math.min(h * 60 + m - (m % 5), 23 * 60 + 30))
+  const hhmm = (mins) => `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`
+  const evening = hhmm(cut)
+  const clinic = await business(db, createUser, {
+    email: 'periods@local.test',
+    fields: { name: 'عيادة د. ليلى أطفال (فترتين لازقين، تجريبية)', type: 'clinic', booking_slug: 'demo-periods', booking_mode: 'queue', specialty: 'أطفال' },
+    branches: [{ name: 'الفرع الرئيسي', is_main: true, capacity: 1, schedule_blocks: week([{ start: '00:00', end: evening, name: 'فترة الضهر' }, { start: evening, end: '23:59' }]) }],
+    services: [{ name: 'كشف', duration_minutes: 10, price: 300 }],
+  })
+  const minutesAgo = (mins) => new Date(Date.now() - mins * 60000).toISOString()
+  const add = async (i, time) => insert(db, 'appointments', {
+    business_id: clinic.biz.id, branch_id: clinic.branches[0].id, service_id: clinic.services[0].id,
+    client_name: NAMES[i % NAMES.length], client_phone: phoneOf(80 + i), appointment_date: day(0), appointment_time: time, status: 'confirmed',
+  })
+  const noon = []
+  for (let i = 0; i < 7; i++) noon.push(await add(i, '00:00'))
+  const eve = []
+  for (let i = 0; i < 3; i++) eve.push(await add(7 + i, evening))
+  await db.query(`UPDATE appointments SET status = 'completed', arrived_at = $2, called_at = $3, finished_at = $4 WHERE id = $1`,
+    [noon[3].id, minutesAgo(50), minutesAgo(30), minutesAgo(15)])
+  await db.query(`UPDATE appointments SET arrived_at = $2 WHERE id = ANY($1)`, [[noon[4].id, noon[5].id, noon[6].id, eve[2].id], minutesAgo(40)])
+  await db.query(`UPDATE appointments SET called_at = $2 WHERE id = $1`, [noon[4].id, minutesAgo(15)])
+  const { rows: [follow] } = await db.query('SELECT manage_code FROM appointments WHERE id = $1', [eve[0].id])
+  console.log(`demo periods: screen /q/demo-periods, evening number 1's page /m/${follow.manage_code}`)
 }
 
 export async function seedDemoData(db, createUser) {
@@ -283,6 +320,8 @@ export async function seedDemoData(db, createUser) {
     branches: [{ name: 'الفرع الرئيسي', is_main: true, capacity: 1, schedule_blocks: week([{ start: '10:00', end: '18:00' }]) }],
     services: [{ name: 'كشف', duration_minutes: 30, price: 250 }],
   })
+
+  await seedPeriodsDemo(db, createUser)
 
   await db.query(`INSERT INTO growth_leads (name, category, city, phone, source, stage, is_test)
     VALUES ('عيادة النور (عميل محتمل وهمي)', 'dental', 'القاهرة', '201000000555', 'manual', 'new', true)`).catch(() => {})
