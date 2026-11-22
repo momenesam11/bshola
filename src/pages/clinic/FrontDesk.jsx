@@ -44,9 +44,16 @@ function clock(iso) {
 }
 
 // Now, rounded down to five minutes, for a walk-in added from here.
-function nowTime() {
+function clockTime() {
   const d = new Date()
   return `${String(d.getHours()).padStart(2, '0')}:${String(Math.floor(d.getMinutes() / 5) * 5).padStart(2, '0')}`
+}
+
+// 'YYYY-MM-DD' moved by whole days.
+function shiftISO(iso, days) {
+  const [y, m, d] = iso.split('-').map(Number)
+  const t = new Date(Date.UTC(y, m - 1, d + days))
+  return t.toISOString().slice(0, 10)
 }
 
 // The measured visit time (consult_minutes in 058), refreshed with the appointments.
@@ -64,10 +71,10 @@ function useConsultMinutes(businessId) {
 
 // The desk's state for today (065): the period it started, the ones it
 // ended, and the note on the waiting-room screen. Refreshed with the appointments.
-function useDeskDay(businessId, branchId, enabled) {
+function useDeskDay(businessId, branchId) {
   return useQuery({
     queryKey: ['appointments', businessId, 'desk-day', branchId],
-    enabled: !!businessId && enabled,
+    enabled: !!businessId,
     queryFn: async () => {
       const { data, error } = await supabase.rpc('front_desk_day', { p_business_id: businessId, p_branch_id: branchId })
       if (error) return null
@@ -92,12 +99,6 @@ export default function FrontDesk() {
   const { data: business } = useBusiness()
   const branchCtx = useBranch()
   const qc = useQueryClient()
-  const date = todayISO()
-  const { data: all = [], refetch } = useAppointments(business?.id, date)
-  const { data: measured } = useConsultMinutes(business?.id)
-  const { data: services = [] } = useServices(business?.id)
-  const update = useUpdateAppointment()
-
   const [tab, setTab] = useState(readTab)
   const [search, setSearch] = useState('')
   const [busyId, setBusyId] = useState(null)
@@ -108,13 +109,6 @@ export default function FrontDesk() {
   const [noteDraft, setNoteDraft] = useState(null)
   const [ending, setEnding] = useState(null)
 
-  // Realtime covers most changes; this catches a dropped connection, and keeps
-  // the "inside for N minutes" clock moving.
-  useEffect(() => {
-    const t = setInterval(() => { setNow(Date.now()); refetch() }, 15_000)
-    return () => clearInterval(t)
-  }, [refetch])
-
   // One line per branch. "All branches" on a multi-branch account picks one here.
   const branches = branchCtx?.branches || []
   const current = branchCtx?.currentBranch
@@ -123,32 +117,72 @@ export default function FrontDesk() {
     : branches.find(b => b.id === pickedBranch) || branches[0] || null
   const branchId = branch?.id || null
 
-  const minutes = visitMinutes(measured, services, business)
-  const dayLine = useMemo(() => waitingQueue(all, branchId), [all, branchId])
-  // A clinic that books by turn numbers each period from 1, so the desk shows
-  // one period at a time: the one running now, or the next, unless picked.
   const byTurn = business?.booking_mode === 'queue'
-  const periods = byTurn ? periodsOfDay(branch, business, date) : []
-  const choices = byTurn ? periodChoices(dayLine, periods) : []
-  // Opens on the period running now only if someone waits in it; otherwise on
-  // the first tab that has patients, so the desk never opens on an empty list
-  // while patients wait under another time.
-  const scheduled = walkInPeriodStart(periods, nowTime())
-  const { data: deskDay } = useDeskDay(business?.id, branchId, byTurn)
-  const ended = deskDay?.ended_periods || []
-  // The period started at the desk, else one still being seen (065), else the
-  // period running now if someone waits in it, else the first with patients.
-  const periodStart = byTurn
-    ? (choices.some(c => c.start === pickedPeriod) ? pickedPeriod
-      : runningPeriod(dayLine, periods, choices, {
-        started: deskDay?.current_period,
-        fallback: choices.find(c => c.start === scheduled && c.waiting && !ended.includes(c.start))?.start
-          || choices.find(c => c.waiting && !ended.includes(c.start))?.start
-          || choices.find(c => c.waiting)?.start
-          || scheduled || null,
-      }))
-    : null
-  const otherTabsWaiting = byTurn ? choices.filter(c => c.start !== periodStart && c.waiting) : []
+  // The desk's day (066): today, and for a clinic that books by turn the
+  // evening before too while one of its periods is still open past midnight.
+  const { data: deskDay, refetch: refetchDay } = useDeskDay(business?.id, branchId)
+  const calendar = deskDay?.calendar_day || todayISO()
+  const yesterday = shiftISO(calendar, -1)
+  const openEvening = byTurn && !!deskDay?.day && deskDay.day < calendar
+  const { data: todayRows = [], refetch } = useAppointments(business?.id, calendar)
+  const { data: eveningRows = [], refetch: refetchEvening } = useAppointments(openEvening ? business?.id : null, yesterday, { live: false })
+  const { data: measured } = useConsultMinutes(business?.id)
+  const { data: services = [] } = useServices(business?.id)
+  const update = useUpdateAppointment()
+
+  // Realtime covers most changes; this catches a dropped connection, keeps the
+  // "inside for N minutes" clock moving, and notices the night period closing.
+  useEffect(() => {
+    const t = setInterval(() => { setNow(Date.now()); refetch(); refetchDay(); if (openEvening) refetchEvening() }, 15_000)
+    return () => clearInterval(t)
+  }, [refetch, refetchDay, refetchEvening, openEvening])
+
+  const minutes = visitMinutes(measured, services, business)
+  // A clinic that books by turn numbers each period from 1, so the desk shows
+  // one period at a time. Each tab is a day and a period: the evening before's
+  // periods still open come first, marked «امبارح».
+  const dayState = (d) => deskDay?.days?.[d] || {}
+  const todayLine = useMemo(() => waitingQueue(todayRows, branchId), [todayRows, branchId])
+  const eveningLine = useMemo(() => waitingQueue(eveningRows, branchId), [eveningRows, branchId])
+  const todayPeriods = byTurn ? periodsOfDay(branch, business, calendar) : []
+  const eveningPeriods = openEvening ? periodsOfDay(branch, business, yesterday) : []
+  const eveningEnded = dayState(yesterday).ended_periods || []
+  const tabs = byTurn ? [
+    ...periodChoices(eveningLine, eveningPeriods)
+      .filter(c => !eveningEnded.includes(c.start)
+        && (c.waiting || eveningLine.some(a => a.called_at && periodStartOf(a, eveningPeriods) === c.start)))
+      .map(c => ({ ...c, day: yesterday, evening: true })),
+    ...periodChoices(todayLine, todayPeriods).map(c => ({ ...c, day: calendar })),
+  ] : []
+  const tabKey = (t) => `${t.day}|${t.start}`
+  // With last night's tab showing, today's say so too, since the names repeat.
+  const openEveningTab = tabs.some(t => t.evening)
+  const todayEnded = dayState(calendar).ended_periods || []
+  const scheduledToday = walkInPeriodStart(todayPeriods, clockTime())
+  // Picked; else the evening before while it's open; else the period started at
+  // the desk, one still being seen (065), the one running now if someone waits
+  // in it, or the first with patients.
+  const todayTabs = tabs.filter(t => !t.evening)
+  const selected = tabs.find(t => tabKey(t) === pickedPeriod)
+    || tabs.find(t => t.evening)
+    || todayTabs.find(t => t.start === runningPeriod(todayLine, todayPeriods, todayTabs, {
+      started: dayState(calendar).current_period,
+      fallback: todayTabs.find(c => c.start === scheduledToday && c.waiting && !todayEnded.includes(c.start))?.start
+        || todayTabs.find(c => c.waiting && !todayEnded.includes(c.start))?.start
+        || todayTabs.find(c => c.waiting)?.start
+        || scheduledToday || null,
+    }))
+    || null
+  const date = selected?.day || calendar
+  const onEvening = date < calendar
+  const all = onEvening ? eveningRows : todayRows
+  const dayLine = onEvening ? eveningLine : todayLine
+  const periods = onEvening ? eveningPeriods : todayPeriods
+  const ended = dayState(date).ended_periods || []
+  const periodStart = byTurn ? (selected?.start || scheduledToday || null) : null
+  // Walk-ins on the evening still open go at its end, not at this morning's hour.
+  const nowTime = () => (onEvening ? '23:55' : clockTime())
+  const otherTabsWaiting = tabs.filter(t => tabKey(t) !== (selected && tabKey(selected)) && t.waiting)
   const line = byTurn ? periodLine(dayLine, periods, periodStart) : dayLine
   const inside = line[0]?.called_at ? line[0] : null
   // The same number booked twice today (e.g. morning and evening).
@@ -220,19 +254,32 @@ export default function FrontDesk() {
   }
   // «ابدأ الفترة» / «خلّص الفترة» and the screen's note (065).
   const shownPeriod = byTurn && periodStart && periodStart !== DAY ? periods.find(p => p.start === periodStart) || null : null
-  const periodStarted = !!shownPeriod && deskDay?.current_period === shownPeriod.start
+  const periodStarted = !!shownPeriod && dayState(date).current_period === shownPeriod.start
   const periodEnded = !!shownPeriod && ended.includes(shownPeriod.start)
-  const inPeriod = ending ? dayLine.filter(a => !a.called_at && periodStartOf(a, periods) === ending.start) : []
-  const neverCame = inPeriod.filter(a => !a.arrived_at).length
-  const stillHere = inPeriod.length - neverCame
-  const startPeriod = () => run(null, () => rpc('front_desk_period', {
-    p_business_id: business.id, p_branch_id: branchId, p_start: shownPeriod.start, p_action: 'start',
-  }), `${periodName(shownPeriod)} بدأت، وشاشة الدور عليها`)
+  // Ending a period, or starting today's while the evening before is open
+  // (which ends that too, 066): who never came, who is here.
+  const endingLines = !ending ? [] : ending.closesEvening
+    ? eveningLine.filter(a => !a.called_at && !eveningEnded.includes(periodStartOf(a, eveningPeriods)))
+    : (ending.day < calendar ? eveningLine : todayLine)
+      .filter(a => !a.called_at && periodStartOf(a, ending.day < calendar ? eveningPeriods : todayPeriods) === ending.start)
+  const neverCame = endingLines.filter(a => !a.arrived_at).length
+  const stillHere = endingLines.length - neverCame
+  const startPeriod = () => (openEvening && !onEvening
+    ? setEnding({ ...shownPeriod, day: date, closesEvening: true })
+    : doStart({ ...shownPeriod, day: date }))
+  async function doStart(period) {
+    await run(null, () => rpc('front_desk_period', {
+      p_business_id: business.id, p_branch_id: branchId, p_start: period.start, p_action: 'start', p_day: period.day,
+    }), `${periodName(period)} بدأت، وشاشة الدور عليها`)
+    setEnding(null)
+    setPickedPeriod(null)
+  }
   async function endPeriod() {
     const period = ending
+    if (period.closesEvening) return doStart(period)
     await run(null, () => rpc('front_desk_period', {
-      p_business_id: business.id, p_branch_id: branchId, p_start: period.start, p_action: 'end',
-    }), `${periodName(period)} خلصت`)
+      p_business_id: business.id, p_branch_id: branchId, p_start: period.start, p_action: 'end', p_day: period.day,
+    }), `${periodName(period)}${period.day < calendar ? ' بتاعة امبارح' : ''} خلصت`)
     setEnding(null)
     setPickedPeriod(null)
   }
@@ -325,15 +372,22 @@ export default function FrontDesk() {
             {/* Hours changed after people booked: offer to move them into their period (061). */}
             <QueueRealign business={business} />
 
-            {/* Queue clinics: one period at a time, each with its own numbers. */}
-            {byTurn && choices.length > 1 && (
+            {/* Queue clinics: one period at a time, each with its own numbers. A
+                night period still open past midnight is a tab of its own, «امبارح» (066). */}
+            {byTurn && tabs.length > 1 && (
               <div className="flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="الفترة" data-testid="period-tabs">
-                {choices.map(c => (
-                  <button key={c.start} role="tab" aria-selected={c.start === periodStart} onClick={() => setPickedPeriod(c.start)}
-                    className={`flex-shrink-0 px-3 h-10 rounded-xl border text-sm font-semibold ${c.start === periodStart ? 'bg-accent-500 border-accent-500 text-white' : 'bg-white border-slate-200 text-slate-600'}`}>
-                    {c.period ? periodName(c.period) : 'اليوم كله'} <span className="tabular-nums opacity-80">({c.waiting})</span>
-                  </button>
-                ))}
+                {tabs.map(t => {
+                  const on = selected && tabKey(t) === tabKey(selected)
+                  return (
+                    <button key={tabKey(t)} role="tab" aria-selected={!!on} onClick={() => setPickedPeriod(tabKey(t))}
+                      data-testid={t.evening ? 'evening-tab' : undefined}
+                      className={`flex-shrink-0 px-3 h-10 rounded-xl border text-sm font-semibold ${on
+                        ? (t.evening ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-accent-500 border-accent-500 text-white')
+                        : (t.evening ? 'bg-indigo-50 border-indigo-200 text-indigo-800' : 'bg-white border-slate-200 text-slate-600')}`}>
+                      {`${t.period ? periodName(t.period) : 'اليوم كله'}${t.evening ? ' · امبارح' : openEveningTab ? ' · النهارده' : ''}`} <span className="tabular-nums opacity-80">({t.waiting})</span>
+                    </button>
+                  )
+                })}
               </div>
             )}
 
@@ -341,19 +395,30 @@ export default function FrontDesk() {
             {shownPeriod && (
               <div data-testid="period-control" className="flex flex-wrap items-center gap-2 bg-white border border-slate-100 rounded-2xl px-3 py-2">
                 <span className="text-sm font-semibold text-slate-700 flex-1 min-w-0">
-                  {periodName(shownPeriod)}
-                  <span className={`mr-2 text-xs px-2 py-0.5 rounded-full ${periodEnded ? 'bg-slate-100 text-slate-500' : periodStarted ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}`}>
-                    {periodEnded ? 'خلصت' : periodStarted ? 'شغالة' : 'لسه ما بدأتش'}
+                  {/* A gap, not a margin: the badge's background clipped the
+                      tail of the name's last letter («فترة الليل» read «الليا»). */}
+                  <span className="flex flex-wrap items-center gap-2">
+                    <span className="leading-7">{periodName(shownPeriod)}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${periodEnded ? 'bg-slate-100 text-slate-500'
+                      : onEvening ? 'bg-indigo-50 text-indigo-700' : periodStarted ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}`}>
+                      {periodEnded ? 'خلصت' : onEvening ? 'شغالة من امبارح' : periodStarted ? 'شغالة' : 'لسه ما بدأتش'}
+                    </span>
                   </span>
+                  {/* The night period past midnight (066): how it closes. */}
+                  {onEvening && !periodEnded && (
+                    <span data-testid="evening-banner" className="block text-xs font-normal text-slate-500 mt-1">
+                      لما تخلص دوس «خلّص الفترة»، أو ابدأ فترة النهارده وهي تتقفل لوحدها.
+                    </span>
+                  )}
                 </span>
-                {!periodStarted && (
+                {!periodStarted && !onEvening && (
                   <button data-testid="start-period" onClick={startPeriod} disabled={!!busyId}
                     className="h-9 px-3 rounded-xl bg-accent-500 text-white text-sm font-semibold flex items-center gap-1 disabled:opacity-60">
                     <HiOutlinePlay className="w-4 h-4" /> ابدأ الفترة
                   </button>
                 )}
                 {!periodEnded && (
-                  <button data-testid="end-period" onClick={() => setEnding(shownPeriod)} disabled={!!busyId}
+                  <button data-testid="end-period" onClick={() => setEnding({ ...shownPeriod, day: date })} disabled={!!busyId}
                     className="h-9 px-3 rounded-xl border border-slate-200 text-slate-700 text-sm font-semibold flex items-center gap-1 hover:bg-slate-50 disabled:opacity-60">
                     <HiOutlineStop className="w-4 h-4" /> خلّص الفترة
                   </button>
@@ -443,7 +508,7 @@ export default function FrontDesk() {
             ) : (
               otherTabsWaiting.length ? (
                 // Never a silent empty list while patients wait under another tab.
-                <button data-testid="other-tabs" onClick={() => setPickedPeriod(otherTabsWaiting[0].start)}
+                <button data-testid="other-tabs" onClick={() => setPickedPeriod(tabKey(otherTabsWaiting[0]))}
                   className="w-full rounded-2xl border-2 border-amber-300 bg-amber-50 text-amber-800 px-4 py-3 text-sm font-semibold">
                   الفترة دي فاضية. فيه {otherTabsWaiting.reduce((n, c) => n + c.waiting, 0)} مستنيين في تاب تاني، دوس هنا تشوفهم
                 </button>
@@ -573,12 +638,16 @@ export default function FrontDesk() {
         onClose={() => setEnding(null)}
         onConfirm={endPeriod}
         loading={!!busyId}
-        title={ending ? `تخلّص ${periodName(ending)}؟` : ''}
+        title={!ending ? '' : ending.closesEvening ? `تبدأ ${periodName(ending)}؟`
+          : `تخلّص ${periodName(ending)}${ending.day < calendar ? ' بتاعة امبارح' : ''}؟`}
         message={[
-          neverCame ? `${neverCame} ما وصلوش هيتسجلوا «ما جاش»، وتقدر ترجّع أي حد منهم من «خلصوا النهارده».` : 'كل اللي في الفترة دي وصلوا أو خلصوا.',
-          stillHere ? `${stillHere} وصلوا ولسه ما دخلوش، وهيفضلوا في الدور.` : null,
+          ending?.closesEvening && 'فترة امبارح هتتقفل معاها.',
+          neverCame ? `${neverCame} ما وصلوش هيتسجلوا «ما جاش».` : (ending?.closesEvening ? null : 'كل اللي في الفترة دي وصلوا أو خلصوا.'),
+          stillHere ? (ending?.closesEvening || ending?.day < calendar
+            ? `${stillHere} وصلوا ولسه ما دخلوش من امبارح، ودول هيتشالوا من الدور، فناديهم الأول لو لسه مستنيين.`
+            : `${stillHere} وصلوا ولسه ما دخلوش، وهيفضلوا في الدور.`) : null,
         ].filter(Boolean).join(' ')}
-        confirmLabel="خلّص الفترة"
+        confirmLabel={ending?.closesEvening ? 'ابدأ الفترة' : 'خلّص الفترة'}
       />
 
       <AppointmentModal

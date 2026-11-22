@@ -102,7 +102,8 @@ describe('065 periods back to back', () => {
     expect((await one('SELECT status FROM appointments WHERE id = $1', [m2.id])).status).toBe('no_show')
     expect((await one('SELECT status FROM appointments WHERE id = $1', [m1.id])).status).toBe('confirmed')
     const day = (await ownerDo(c, 'SELECT front_desk_day($1, $2) d', [c.bizId, c.branchId])).rows[0].d
-    expect(day).toEqual({ current_period: '00:05', ended_periods: ['00:00'], note: 'الفترة المسائية هتبدأ بعد ما يخلص 4' })
+    expect(day.note).toBe('الفترة المسائية هتبدأ بعد ما يخلص 4')
+    expect(day.days[day.day]).toEqual({ current_period: '00:05', ended_periods: ['00:00'] })
 
     // An empty note clears it.
     await ownerDo(c, `SELECT front_desk_note($1, $2, '')`, [c.bizId, c.branchId])
