@@ -256,12 +256,13 @@ describe('058 front desk', () => {
     const late1 = await ownerAdds(c, 'آخر1', '23:58')
     expect([now1.queue_number, now2.queue_number, late1.queue_number]).toEqual([1, 2, 1])
 
-    // The late period's number 1 has nobody ahead from the other period.
-    expect((await page(late1.manage_code)).upcoming[0].ahead).toBe(0)
+    // The late period's number 1 waits for the period before it while that
+    // one's time lasts (065): both its patients are ahead.
+    expect((await page(late1.manage_code)).upcoming[0].ahead).toBe(2)
     expect((await page(now2.manage_code)).upcoming[0].ahead).toBe(1)
     // Whoever is inside still counts, whatever period they're from.
     await call(c, now1.id)
-    expect((await page(late1.manage_code)).upcoming[0].ahead).toBe(1)
+    expect((await page(late1.manage_code)).upcoming[0].ahead).toBe(2)
 
     // The screen shows the running period only: no second number 1.
     const screen = (await as('anon', null, tx => tx.query('SELECT public_queue_screen($1) s', [slug]))).rows[0].s

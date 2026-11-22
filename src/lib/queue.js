@@ -139,6 +139,53 @@ export function periodChoices(dayLine, periods = []) {
 }
 
 /**
+ * Who "نادي" calls next (065): the first in line who is at the clinic. When
+ * nobody was marked «وصل», the first in line, as before.
+ */
+export function nextToCall(waiting) {
+  return (waiting || []).find(a => a.arrived_at) || (waiting || [])[0] || null
+}
+
+/**
+ * The period the desk opens on (065), like the waiting-room screen: the one it
+ * started; else the earliest with someone inside or arrived and still waiting
+ * (a period still being seen keeps going past the next one's start); else
+ * `fallback`. Only periods in `choices` count.
+ */
+export function runningPeriod(dayLine, periods, choices, { started = null, fallback = null } = {}) {
+  const has = (start) => choices.some(c => c.start === start)
+  if (started && has(started)) return started
+  const busy = (dayLine || [])
+    .filter(a => a.called_at || a.arrived_at)
+    .map(a => periodStartOf(a, periods))
+    .filter(has)
+    .sort()
+  return busy[0] || fallback
+}
+
+/**
+ * What the waiting-room screen says to someone who typed their number (065).
+ * `entry` is from public_queue_screen's `waiting`, `inside` its inside.
+ */
+export function screenPlaceText(entry, inside) {
+  if (!entry) return null
+  const { ahead, coming = 0, arrived } = entry
+  const title = ahead === 0 ? 'إنت اللي عليك الدور'
+    : ahead === 1 ? 'قدامك مريض واحد'
+    : ahead === 2 ? 'قدامك اتنين'
+    : `قدامك ${ahead} ${ahead <= 10 ? 'مرضى' : 'مريض'}`
+  let note = null
+  if (coming > 0) {
+    const who = coming === 1 ? 'مريض واحد قبلك جاي' : coming === 2 ? 'اتنين قبلك جايين' : `${coming} ${coming <= 10 ? 'مرضى' : 'مريض'} قبلك جايين`
+    // "But" only reads right when the number inside is past theirs.
+    const passed = inside?.number != null && (entry.number == null || inside.number > entry.number)
+    note = `${passed ? `رقم ${inside.number} جوه دلوقتي، بس ` : ''}لسه فيه ${who}.`
+  }
+  const tell = !arrived && ahead > 0 ? 'هنبعتلك رسالة تتحرك لما دورك يقرب.' : null
+  return { title, note, tell }
+}
+
+/**
  * After the clinic moved bookings into their period (061): the patient's new
  * number, the day and when the period starts. Sent by hand like every message.
  */

@@ -130,3 +130,39 @@ describe('a period after the hours changed (062)', () => {
     expect(periodLine(day, periods, '18:00').map(x => x.id)).toEqual(['nour', 'rania', 'amira', 'rahma', 'sara'])
   })
 })
+
+describe('who came and which period runs (065)', () => {
+  it('calls the first who is here, else the first in line', async () => {
+    const { nextToCall } = await import('./queue')
+    expect(nextToCall([a('n1', '10:00'), a('n9', '10:00', { arrived_at: 'x' })]).id).toBe('n9')
+    expect(nextToCall([a('n1', '10:00'), a('n2', '10:00')]).id).toBe('n1')
+    expect(nextToCall([])).toBeNull()
+  })
+
+  it('keeps a period being seen past the next one\'s start, unless the desk started another', async () => {
+    const { runningPeriod } = await import('./queue')
+    const periods = [{ start: '12:00', end: '17:55' }, { start: '18:00', end: '23:00' }]
+    const day = waitingQueue([
+      a('m6', '12:00', { queue_number: 6, arrived_at: 'x' }),
+      a('e1', '18:00', { queue_number: 1 }),
+    ])
+    const choices = periodChoices(day, periods)
+    expect(runningPeriod(day, periods, choices, { fallback: '18:00' })).toBe('12:00')
+    expect(runningPeriod(day, periods, choices, { started: '18:00', fallback: '18:00' })).toBe('18:00')
+    expect(runningPeriod(waitingQueue([a('e1', '18:00', { queue_number: 1 })]), periods, choices, { fallback: '18:00' })).toBe('18:00')
+  })
+
+  it('tells a patient at home why a bigger number is inside', async () => {
+    const { screenPlaceText } = await import('./queue')
+    // Number 4 with 2 inside: nothing passed them, so no "but".
+    expect(screenPlaceText({ number: 4, ahead: 2, coming: 1, arrived: false }, { number: 2 }).note).toBe('لسه فيه مريض واحد قبلك جاي.')
+    expect(screenPlaceText({ number: 8, ahead: 8, coming: 6, arrived: false }, { number: 9 })).toEqual({
+      title: 'قدامك 8 مرضى',
+      note: 'رقم 9 جوه دلوقتي، بس لسه فيه 6 مرضى قبلك جايين.',
+      tell: 'هنبعتلك رسالة تتحرك لما دورك يقرب.',
+    })
+    // Already here: no message to come.
+    expect(screenPlaceText({ ahead: 2, coming: 0, arrived: true }, null)).toEqual({ title: 'قدامك اتنين', note: null, tell: null })
+    expect(screenPlaceText({ ahead: 0, coming: 0, arrived: false }, null).title).toBe('إنت اللي عليك الدور')
+  })
+})

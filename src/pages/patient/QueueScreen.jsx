@@ -5,7 +5,8 @@ import { useQuery } from '@tanstack/react-query'
 import { HiOutlineArrowsPointingOut } from 'react-icons/hi2'
 import { supabase } from '../../lib/supabase'
 import { formatTimeArabic } from '../../lib/whatsapp'
-import { formatWait } from '../../lib/queue'
+import { formatWait, screenPlaceText } from '../../lib/queue'
+import { periodName } from '../../lib/queueBooking'
 import QrCode from '../../components/ui/QrCode'
 import AnimatedNumber from '../../components/ui/AnimatedNumber'
 
@@ -77,25 +78,36 @@ export default function QueueScreen() {
   const branchId = params.get('b')
   const { data, isLoading, isError } = useScreen(ref, branchId)
   const [mine, setMine] = useState(() => readMine(ref))
+  const [myPeriod, setMyPeriod] = useState(null)
 
   if (isLoading) return <Message title="جاري التحميل..." />
   if (isError || !data || data.error) {
     return <Message title="الشاشة دي مش شغالة" text="اتأكد من اللينك، أو اسأل العيادة." />
   }
 
-  const { mode, inside, line = [], minutes } = data
-  const next = line[0]
-  const after = line.slice(1, 4)
+  const { mode, inside, line = [], minutes, note, periods = [], waiting = [] } = data
+  // Whoever is here goes first (065): numbers that haven't come don't show as
+  // next. When nobody was marked «وصل», the line in order, as before.
+  const here = line.filter(t => t.arrived)
+  const upNext = here.length ? here : line
+  const next = upNext[0]
+  const after = upNext.slice(1, 4)
   const pageUrl = typeof window !== 'undefined' ? window.location.href.split('#')[0] : ''
+  const current = periods.find(p => p.start === data.period_start) || null
+  const nameOf = (start) => { const p = periods.find(x => x.start === start); return p ? periodName(p) : '' }
+  // Each period numbers from 1, so with more than one the patient says which.
+  const pickPeriod = periods.length > 1
+  const lookPeriod = pickPeriod ? (periods.some(p => p.start === myPeriod) ? myPeriod : data.period_start) : null
 
   // "What's my number?" (queue clinics): place in line, or inside, or not today.
   const n = Number(mine)
   let myPlace = null
   if (mode === 'queue' && mine && Number.isInteger(n) && n > 0) {
-    if (inside?.number === n) myPlace = { inside: true }
+    const samePeriod = (t) => !lookPeriod || !t.period || t.period === lookPeriod
+    if (inside?.number === n && samePeriod(inside)) myPlace = { inside: true }
     else {
-      const i = line.findIndex(t => t.number === n)
-      myPlace = i < 0 ? { missing: true } : { ahead: i + (inside ? 1 : 0) }
+      const entry = waiting.find(t => t.number === n && samePeriod(t))
+      myPlace = entry ? { ...screenPlaceText(entry, inside), ahead: entry.ahead } : { missing: true }
     }
   }
 
@@ -114,7 +126,11 @@ export default function QueueScreen() {
         {data.logo_url && <img src={data.logo_url} alt="" className="w-10 h-10 lg:w-16 lg:h-16 rounded-xl object-cover bg-white" />}
         <div className="flex-1 min-w-0">
           <h1 className="font-bold text-lg lg:text-4xl break-words">{data.name}</h1>
-          {data.branches?.length > 1 && data.branch && <p className="text-sm lg:text-xl text-white/60">{data.branch.name}</p>}
+          {(data.branches?.length > 1 && data.branch || current) && (
+            <p data-testid="screen-period" className="text-sm lg:text-xl text-white/60">
+              {[data.branches?.length > 1 && data.branch?.name, current && periodName(current)].filter(Boolean).join(' · ')}
+            </p>
+          )}
         </div>
         <span className="text-lg lg:text-4xl font-bold text-white/80"><Clock /></span>
         <button onClick={fullscreen} aria-label="ملء الشاشة" title="ملء الشاشة"
@@ -122,6 +138,13 @@ export default function QueueScreen() {
           <HiOutlineArrowsPointingOut className="w-6 h-6" />
         </button>
       </header>
+
+      {/* The desk's note (065), e.g. when the next period starts. */}
+      {note && (
+        <div data-testid="screen-note" className="mx-4 lg:mx-10 mt-4 lg:mt-8 rounded-2xl bg-amber-400 text-ink px-4 lg:px-8 py-3 lg:py-5 text-center font-bold text-lg lg:text-4xl break-words">
+          {note}
+        </div>
+      )}
 
       <main className="flex-1 grid lg:grid-cols-2 gap-3 lg:gap-8 p-4 lg:p-10">
         {/* Inside now */}
@@ -142,6 +165,10 @@ export default function QueueScreen() {
           <p className="font-bold leading-none tabular-nums my-2" style={{ fontSize: 'min(24vw, 22vh)' }}>
             <AnimatedNumber testId="screen-next" value={turnText(next, mode) || '—'} />
           </p>
+          {/* Still here from the period before the one on screen. */}
+          {next?.period && current && next.period !== current.start && (
+            <p className="text-sm lg:text-2xl text-white/80 -mt-1 mb-1">من {nameOf(next.period)}</p>
+          )}
           {after.length > 0 && (
             <div className="flex items-center gap-2 lg:gap-4 mt-1" data-testid="screen-after">
               <span className="text-sm lg:text-2xl text-white/80">بعده</span>
@@ -157,6 +184,16 @@ export default function QueueScreen() {
       {/* Phone: what's my number. */}
       {mode === 'queue' && (
         <section className="lg:hidden px-4 pb-4 space-y-2">
+          {pickPeriod && (
+            <div className="flex gap-2 overflow-x-auto" role="radiogroup" aria-label="فترتك">
+              {periods.map(p => (
+                <button key={p.start} role="radio" aria-checked={p.start === lookPeriod} onClick={() => setMyPeriod(p.start)}
+                  className={`flex-shrink-0 px-3 h-9 rounded-xl text-sm font-semibold border ${p.start === lookPeriod ? 'bg-white text-ink border-white' : 'border-white/30 text-white/80'}`}>
+                  {periodName(p)}
+                </button>
+              ))}
+            </div>
+          )}
           <label htmlFor="my-number" className="block text-sm text-white/80">رقمك كام؟</label>
           <input id="my-number" value={mine} inputMode="numeric" dir="ltr" placeholder="مثلاً 7"
             onChange={e => { const v = e.target.value.replace(/\D/g, '').slice(0, 4); setMine(v); storeMine(ref, v) }}
@@ -167,8 +204,10 @@ export default function QueueScreen() {
               {myPlace.missing && <p className="text-sm">الرقم ده مش في دور النهارده، أو خلص. اسأل العيادة.</p>}
               {myPlace.ahead != null && (
                 <>
-                  <p className="font-bold text-lg">{myPlace.ahead === 0 ? 'إنت اللي عليك الدور' : `قدامك ${myPlace.ahead}`}</p>
+                  <p className="font-bold text-lg">{myPlace.title}</p>
                   {myPlace.ahead > 0 && minutes > 0 && <p className="text-sm text-slate-600">هتدخل بعد حوالي {formatWait(myPlace.ahead * minutes).replace('≈ ', '')}</p>}
+                  {myPlace.note && <p data-testid="my-coming" className="text-sm text-slate-700 mt-1">{myPlace.note}</p>}
+                  {myPlace.tell && <p className="text-sm text-accent-700 font-semibold mt-1">{myPlace.tell}</p>}
                 </>
               )}
             </div>
