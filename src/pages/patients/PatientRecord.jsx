@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useLocation, useParams, useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { format, differenceInYears, parseISO } from 'date-fns'
 import { ar } from 'date-fns/locale'
@@ -814,6 +814,10 @@ const SIMPLE_TABS = [
 export default function PatientRecord() {
   const { clientPhone } = useParams()
   const navigate = useNavigate()
+  // Opened straight from a link or a new tab: there is no page to go back to
+  // inside the app, so "back" goes to the clients list instead of leaving it.
+  const cameFromApp = useLocation().key !== 'default'
+  const goBack = () => (cameFromApp ? navigate(-1) : navigate('/crm'))
   const { data: business } = useBusiness()
   const [tab, setTab] = useState('info')
   const isMedical = MEDICAL_TYPES.includes(business?.type)
@@ -831,7 +835,7 @@ export default function PatientRecord() {
       </Helmet>
       <div className="max-w-3xl" dir="rtl">
         {/* Back button */}
-        <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600 mb-3 transition-colors no-print">
+        <button onClick={goBack} className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600 mb-3 transition-colors no-print">
           <HiOutlineArrowLeft className="w-4 h-4" />رجوع
         </button>
 

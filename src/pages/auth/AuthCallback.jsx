@@ -15,11 +15,19 @@ import { useVisitorCountry } from '../../hooks/useVisitorPricing'
 const PENDING_PHONE_KEY = 'beshola_pending_owner_phone'
 const ownerPhoneSchema = phoneSchema('رقم الواتساب غير صحيح')
 
+/** Google sends `error=…` back here when the sign-in was cancelled or refused. */
+function oauthErrorIn({ hash, search }) {
+  const params = new URLSearchParams(`${search.slice(1)}&${hash.slice(1)}`)
+  return params.get('error')
+}
+
 export default function AuthCallback() {
   const navigate = useNavigate()
   // A Google sign-up can arrive without the WhatsApp number or the accepted terms
   // that the email form requires. Both are asked for before anything else.
   const [missing, setMissing] = useState(null)
+  // Read on the first render, before the auth client tidies the address bar.
+  const [oauthError] = useState(() => oauthErrorIn(window.location))
 
   useEffect(() => {
     let cancelled = false
@@ -27,7 +35,8 @@ export default function AuthCallback() {
     async function decide() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
-        navigate('/login', { replace: true })
+        // Say why they're back on the login page instead of leaving them guessing.
+        navigate('/login', { replace: true, state: oauthError ? { oauthError: true } : undefined })
         return
       }
       const { data: business } = await supabase
@@ -63,14 +72,15 @@ export default function AuthCallback() {
 
     decide()
     return () => { cancelled = true }
-  }, [navigate])
+  }, [navigate, oauthError])
 
   if (missing) return <AccountStep missing={missing} onDone={() => navigate('/onboarding', { replace: true })} />
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="min-h-screen flex flex-col items-center justify-center gap-3" dir="rtl">
       <Helmet><meta name="robots" content="noindex" /></Helmet>
-      <div className="w-8 h-8 border-4 border-accent-500 border-t-transparent rounded-full animate-spin" />
+      <div className="w-8 h-8 border-4 border-accent-500 border-t-transparent rounded-full animate-spin" aria-hidden="true" />
+      <p className="text-sm text-slate-500" role="status">لحظة، بنجهّز حسابك…</p>
     </div>
   )
 }
