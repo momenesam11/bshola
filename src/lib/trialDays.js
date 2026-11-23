@@ -31,3 +31,29 @@ export function trialShareText(days, link) {
   if (days === 0) return `${intro} سجّل حسابك من هنا، وهنفعّله أول ما الاشتراك يتم: ${link}`
   return `${intro} جرّبه ${trialLabel(days)} ببلاش من هنا: ${link}`
 }
+
+/**
+ * What the public pages say about the trial to a visitor who came from a
+ * partner's link with a different trial. null = the usual 14-day wording,
+ * which is also what Google sees (pages are prerendered with it).
+ */
+export function visitorTrialCopy(days) {
+  if (days == null || days === DEFAULT_TRIAL_DAYS) return null
+  if (days === 0) {
+    return {
+      cta: 'ابدأ حسابك دلوقتي',
+      fact: { label: 'حسابك جاهز في دقايق', detail: 'وبنفعّله أول ما تشترك' },
+      title: 'جهّز عيادتك على بسهولة النهارده',
+      button: 'ابدأ حسابك',
+      line: 'جهّز حسابك بكل المميزات، وبنفعّله أول ما الاشتراك يتم. كل اللي تجهّزه قبلها بيفضل زي ما هو.',
+    }
+  }
+  const label = trialLabel(days)
+  return {
+    cta: `ابدأ تجربة ${label} مجاناً`,
+    fact: { label: `${label} تجربة`, detail: 'من غير بطاقة بنكية' },
+    title: `جرّبه ${label} على مواعيدك الحقيقية`,
+    button: 'ابدأ تجربتك المجانية',
+    line: `التجربة ${label} بكل المميزات ومن غير بطاقة بنكية — تقدر تستقبل حجوزات حقيقية خلالها.`,
+  }
+}

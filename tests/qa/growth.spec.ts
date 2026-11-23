@@ -153,6 +153,32 @@ const trialDaysOf = async (email: string) => (await one<{ d: number }>(
   `SELECT round(extract(epoch FROM b.trial_ends_at - b.trial_started_at) / 86400)::int d
    FROM businesses b JOIN auth.users u ON u.id = b.owner_id WHERE u.email = $1`, [email]))?.d
 
+test.describe('partner trial on the public pages', () => {
+  test('the home page says the trial of the link the visitor came with', async ({ page }) => {
+    const partner = await one<{ id: string; ref_code: string; access_token: string }>(
+      `INSERT INTO growth_partners (name, phone, trial_days) VALUES ('شريكة الرئيسية', $1, 2) RETURNING id, ref_code, access_token`, [phone()])
+    const link = await one<{ code: string }>(
+      `INSERT INTO growth_partner_links (partner_id, trial_days) VALUES ($1, 0) RETURNING code`, [partner.id])
+    const start = (p: Page) => p.getByRole('link', { name: /^ابدأ/ }).first()
+
+    await page.goto('/')
+    await expect(start(page)).toHaveText('ابدأ 14 يوم مجاناً')
+
+    await page.goto(`/?ref=${partner.ref_code}`)
+    await expect(start(page)).toHaveText('ابدأ تجربة يومين مجاناً')
+    await expect(page.getByText('يومين تجربة')).toBeVisible()
+    await expect(page.getByText('14 يوم تجربة')).toHaveCount(0)
+
+    // Remembered on the next page, without the code in the address.
+    await page.goto('/faq')
+    await expect(start(page)).toHaveText('ابدأ تجربة يومين مجاناً')
+
+    await page.goto(`/?ref=${link.code}`)
+    await expect(start(page)).toHaveText('ابدأ حسابك دلوقتي')
+    await expect(page.getByText('حسابك جاهز في دقايق')).toBeVisible()
+  })
+})
+
 test.describe('referral credit', () => {
   test('a clinic that signs up from a partner link is credited to that partner', async ({ page }) => {
     const partner = await one<{ id: string; ref_code: string }>(

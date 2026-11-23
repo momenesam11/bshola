@@ -4,6 +4,7 @@ import { FaWhatsapp } from 'react-icons/fa'
 import { Section, SectionHead } from './Section'
 import Reveal from './Reveal'
 import { useVisitorPricing } from '../../hooks/useVisitorPricing'
+import { useVisitorTrial } from '../../hooks/useVisitorTrial'
 import { formatPrice, pricePerMonth } from '../../lib/pricing'
 import { SUPPORT_WHATSAPP } from '../../lib/support'
 
@@ -41,6 +42,7 @@ const INCLUDED = [
 
 export default function PricingCards({ id }) {
   const { plans, label, isEgypt } = useVisitorPricing()
+  const trial = useVisitorTrial()
   return (
     <Section id={id} tone="surface">
       <SectionHead
@@ -147,7 +149,7 @@ export default function PricingCards({ id }) {
           ))}
         </ul>
         <p className="mt-6 pt-5 border-t border-rule text-[13.5px] text-ink-soft leading-[1.8]">
-          التجربة 14 يوم بكل المميزات ومن غير بطاقة بنكية — تقدر تستقبل حجوزات حقيقية خلالها.
+          {trial?.line ?? 'التجربة 14 يوم بكل المميزات ومن غير بطاقة بنكية — تقدر تستقبل حجوزات حقيقية خلالها.'}{' '}
           الاشتراك والتجديد بيتم بالتنسيق معانا على واتساب؛ مفيش دفع إلكتروني جوه النظام لحد الآن.
         </p>
 

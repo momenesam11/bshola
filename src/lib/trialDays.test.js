@@ -1,6 +1,31 @@
 import { describe, it, expect, vi } from 'vitest'
-import { trialLabel, parseTrialDays, trialShareText, TRIAL_CHOICES } from './trialDays'
-import { captureRefFromUrl, getStoredRef, clearStoredRef } from './refCapture'
+import { trialLabel, parseTrialDays, trialShareText, visitorTrialCopy, TRIAL_CHOICES } from './trialDays'
+import { captureRefFromUrl, getStoredRef, clearStoredRef, currentRef } from './refCapture'
+
+describe('public pages for a partner visitor', () => {
+  it('keeps the usual wording when the trial is the usual one', () => {
+    expect(visitorTrialCopy(null)).toBeNull()
+    expect(visitorTrialCopy(14)).toBeNull()
+  })
+
+  it('says the partner trial instead of 14 days', () => {
+    const c = visitorTrialCopy(2)
+    expect(c.cta).toBe('ابدأ تجربة يومين مجاناً')
+    expect(c.fact.label).toBe('يومين تجربة')
+    expect(JSON.stringify(c)).not.toContain('14')
+  })
+
+  it('promises no free trial when the link has none', () => {
+    const c = visitorTrialCopy(0)
+    expect(c.cta).toBe('ابدأ حسابك دلوقتي')
+    expect(JSON.stringify(c)).not.toMatch(/مجان|ببلاش|تجربة/)
+  })
+
+  it('reads the code from the address bar before the remembered one', () => {
+    expect(currentRef('?ref=P-ABC123')).toBe('P-ABC123')
+    expect(currentRef('?ref=<script>')).toBeNull()
+  })
+})
 
 describe('partner trial days', () => {
   it('says the trial in plain Arabic', () => {

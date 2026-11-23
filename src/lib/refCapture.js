@@ -30,6 +30,12 @@ export function getStoredRef() {
   }
 }
 
+/** The code this visitor came with: in the address bar now, or remembered. */
+export function currentRef(search = typeof window !== 'undefined' ? window.location.search : '') {
+  const code = new URLSearchParams(search).get('ref')?.trim()
+  return code && VALID.test(code) ? code : getStoredRef()
+}
+
 export function clearStoredRef() {
   try {
     localStorage.removeItem(KEY)
