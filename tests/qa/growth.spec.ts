@@ -127,35 +127,93 @@ test.describe('partners', () => {
   })
 })
 
+/** Signs up on the page already open at /register and finishes onboarding. */
+async function signUpAndOnboard(page: Page, email: string, whatsapp: string, name: string) {
+  await page.getByLabel('البريد الإلكتروني').fill(email)
+  await page.getByLabel('كلمة المرور', { exact: true }).fill('TestPass123')
+  await page.getByLabel('تأكيد كلمة المرور').fill('TestPass123')
+  await page.getByRole('textbox', { name: /واتساب/ }).fill(whatsapp)
+  await page.getByRole('checkbox').check()
+  await page.getByRole('button', { name: 'إنشاء حساب', exact: true }).click()
+  await expect(page).toHaveURL(/\/onboarding/)
+
+  await page.getByRole('button', { name: /عيادة طبية/ }).last().click()
+  await page.getByRole('button', { name: 'التالي' }).click()
+  await page.getByLabel(/اسم/).first().fill(name)
+  await page.getByRole('button', { name: 'التالي' }).click()
+  await page.getByRole('button', { name: 'التالي' }).click()
+  await page.getByText('السبت').first().click()
+  await page.getByRole('button', { name: 'التالي' }).click()
+  await page.getByRole('button', { name: 'التالي' }).click()
+  await page.getByRole('button', { name: 'إنهاء الإعداد' }).click()
+  await expect(page.getByText('جاهز للاستقبال!')).toBeVisible()
+}
+
+const trialDaysOf = async (email: string) => (await one<{ d: number }>(
+  `SELECT round(extract(epoch FROM b.trial_ends_at - b.trial_started_at) / 86400)::int d
+   FROM businesses b JOIN auth.users u ON u.id = b.owner_id WHERE u.email = $1`, [email]))?.d
+
 test.describe('referral credit', () => {
   test('a clinic that signs up from a partner link is credited to that partner', async ({ page }) => {
     const partner = await one<{ id: string; ref_code: string }>(
       `INSERT INTO growth_partners (name, phone) VALUES ('شريك الترشيح', $1) RETURNING id, ref_code`, [phone()])
     await page.goto(`/register?ref=${partner.ref_code}`)
     await expect(page.getByText(/جاي بترشيح/)).toBeVisible()
+    await expect(page.getByText(/فترة التجربة المجانية مع الترشيح/)).toHaveCount(0)
     const email = `ref-${Date.now()}@test.local`
-    await page.getByLabel('البريد الإلكتروني').fill(email)
-    await page.getByLabel('كلمة المرور', { exact: true }).fill('TestPass123')
-    await page.getByLabel('تأكيد كلمة المرور').fill('TestPass123')
-    await page.getByRole('textbox', { name: /واتساب/ }).fill('+201004445556')
-    await page.getByRole('checkbox').check()
-    await page.getByRole('button', { name: 'إنشاء حساب', exact: true }).click()
-    await expect(page).toHaveURL(/\/onboarding/)
-
-    await page.getByRole('button', { name: /عيادة طبية/ }).last().click()
-    await page.getByRole('button', { name: 'التالي' }).click()
-    await page.getByLabel(/اسم/).first().fill('عيادة جت بترشيح')
-    await page.getByRole('button', { name: 'التالي' }).click()
-    await page.getByRole('button', { name: 'التالي' }).click()
-    await page.getByText('السبت').first().click()
-    await page.getByRole('button', { name: 'التالي' }).click()
-    await page.getByRole('button', { name: 'التالي' }).click()
-    await page.getByRole('button', { name: 'إنهاء الإعداد' }).click()
-    await expect(page.getByText('جاهز للاستقبال!')).toBeVisible()
+    await signUpAndOnboard(page, email, '+201004445556', 'عيادة جت بترشيح')
 
     await expect.poll(async () => (await one<{ partner_id: string | null }>(
       `SELECT l.partner_id FROM growth_leads l JOIN businesses b ON b.id = l.business_id
        JOIN auth.users u ON u.id = b.owner_id WHERE u.email = $1`, [email]))?.partner_id, { timeout: 10000 }).toBe(partner.id)
+    expect(await trialDaysOf(email)).toBe(14)
+  })
+
+  test('the admin sets a partner trial, and the partner makes a no-trial link for one client', async ({ page }) => {
+    const tel = phone()
+    const partner = await one<{ id: string; access_token: string }>(
+      `INSERT INTO growth_partners (name, phone, commission_pct) VALUES ('شريكة المدة', $1, 20) RETURNING id, access_token`, [tel])
+
+    // The admin gives her own link 2 days.
+    await adminIn(page)
+    await page.goto('/admin/growth')
+    await page.getByRole('button', { name: /الشركاء والترشيحات/ }).click()
+    const card = page.locator('li', { hasText: 'شريكة المدة' }).first()
+    await card.getByRole('button', { name: /التفاصيل/ }).click()
+    await card.getByRole('button', { name: /تعديل/ }).click()
+    await page.getByLabel('أيام التجربة من لينكه').fill('2')
+    await page.locator('button[type="submit"]', { hasText: 'حفظ' }).click()
+    await expect(page.getByText('التجربة: يومين')).toBeVisible()
+
+    // Her dashboard says so, and makes a link with no trial for one client.
+    const dash = await page.context().newPage()
+    await dash.goto(`/partner/${partner.access_token}`)
+    await expect(dash.getByText(/تجربة يومين ببلاش/)).toBeVisible()
+    await dash.getByPlaceholder(/اسم الدكتور/).fill('د. سامي')
+    await dash.getByLabel('مدة التجربة').selectOption('0')
+    await dash.getByRole('button', { name: 'اعمل لينك' }).click()
+    await expect(dash.getByText('د. سامي')).toBeVisible()
+    const url = (await dash.getByTestId('client-link').first().textContent())!.trim()
+    const code = new URL(url).searchParams.get('ref')!
+    expect(code).toMatch(/^T-/)
+
+    // A clinic signing up with it is told, credited to her, and locked until activated.
+    const clinic = await page.context().browser()!.newContext()
+    const reg = await clinic.newPage()
+    await reg.goto(`/register?ref=${code}`)
+    await expect(reg.getByText(/من غير فترة تجربة/)).toBeVisible()
+    const email = `notrial-${Date.now()}@test.local`
+    await signUpAndOnboard(reg, email, `+2010${String(Date.now()).slice(-8)}`, 'عيادة مشتركة على طول')
+    await expect.poll(() => trialDaysOf(email), { timeout: 10000 }).toBe(0)
+    expect((await one<{ partner_id: string }>(
+      `SELECT l.partner_id FROM growth_leads l JOIN businesses b ON b.id = l.business_id
+       JOIN auth.users u ON u.id = b.owner_id WHERE u.email = $1`, [email]))?.partner_id).toBe(partner.id)
+    await reg.getByRole('button', { name: 'ابدأ الاستخدام' }).click()
+    await expect(reg.getByText('حسابك جاهز، فاضل التفعيل')).toBeVisible()
+
+    await dash.reload()
+    await expect(dash.getByText(/سجّل منه 1/)).toBeVisible()
+    await clinic.close()
   })
 })
 

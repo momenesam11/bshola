@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { Helmet } from 'react-helmet-async'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -758,6 +759,7 @@ function StepIdentity({ onNext, onBack, businessName, vertical, loading }) {
 // ── Share Kit (Completion Screen) ──────────────────────────────────
 function ShareKitScreen({ businessName, slug }) {
   const navigate = useNavigate()
+  const qc = useQueryClient()
   const bookingUrl = `${window.location.origin}/book/${slug || 'your-link'}`
   const shareMsg = `احجز موعدك مع ${businessName} بسهولة من الرابط ده\n${bookingUrl}\nاختار الوقت المناسب ليك وهنبعتلك تأكيد على واتساب`
 
@@ -766,8 +768,9 @@ function ShareKitScreen({ businessName, slug }) {
     // The real conversion: a business with a working booking link.
     trackEvent('start_trial')
     // Credit whichever lead/partner/referral link brought them (migration 032).
-    attributeSignup()
-  }, [])
+    // A partner's link can shorten the trial (067), so read the account again.
+    attributeSignup().then((ok) => ok && qc.invalidateQueries({ queryKey: ['business'] }))
+  }, [qc])
 
   return (
     <div className="text-center space-y-6" dir="rtl">

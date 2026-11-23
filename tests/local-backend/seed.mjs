@@ -349,4 +349,14 @@ export async function seedDemoData(db, createUser) {
 
   await db.query(`INSERT INTO growth_leads (name, category, city, phone, source, stage, is_test)
     VALUES ('عيادة النور (عميل محتمل وهمي)', 'dental', 'القاهرة', '201000000555', 'manual', 'new', true)`).catch(() => {})
+
+  // A partner whose own link gives 2 days, with a no-trial link for one client
+  // (067). Her dashboard: /partner/00000000-0000-4000-8000-000000000777
+  // Sign up as her client: /register?ref=T-DEMO0000 (no trial) or ?ref=P-DEMO02 (2 days)
+  const partner = await db.query(`INSERT INTO growth_partners (name, phone, kind, ref_code, signup_bonus_egp, commission_pct, trial_days, access_token)
+    VALUES ('شريكة تجريبية (وهمية)', '201000000777', 'medical_rep', 'P-DEMO02', 150, 20, 2, '00000000-0000-4000-8000-000000000777')
+    RETURNING id`).catch(() => null)
+  if (partner?.rows[0]) {
+    await db.query(`INSERT INTO growth_partner_links (partner_id, code, label, trial_days) VALUES ($1, 'T-DEMO0000', 'د. تجربة (مشترك على طول)', 0)`, [partner.rows[0].id])
+  }
 }

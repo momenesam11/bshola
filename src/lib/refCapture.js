@@ -6,7 +6,7 @@
 
 const KEY = 'beshola_ref'
 const MAX_AGE_DAYS = 60
-const VALID = /^[LPRB]-[A-Za-z0-9-]{2,80}$/
+const VALID = /^[LPRBT]-[A-Za-z0-9-]{2,80}$/
 
 export function captureRefFromUrl(search = typeof window !== 'undefined' ? window.location.search : '') {
   const code = new URLSearchParams(search).get('ref')?.trim()

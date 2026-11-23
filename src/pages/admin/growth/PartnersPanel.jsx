@@ -9,9 +9,10 @@ import { partnerCommissions, partnerEarnings } from '../../../lib/growth/analyti
 import { useDecideReward, usePartnerPin, usePayPartner, useRotatePartnerToken, useSavePartner, useSetCommissionStatus } from '../../../hooks/useGrowth'
 import { Btn, Card, EmptyState, Field, StageBadge } from './ui'
 import { copyText, formatDate, inputClass } from './format'
+import { DEFAULT_TRIAL_DAYS, parseTrialDays, trialLabel } from '../../../lib/trialDays'
 import { HiOutlineArrowPath, HiOutlineBanknotes, HiOutlineBookOpen, HiOutlineChartBar, HiOutlineCheck, HiOutlineChevronDown, HiOutlineEye, HiOutlineGift, HiOutlineKey, HiOutlineLink, HiOutlinePencilSquare, HiOutlinePlus, HiOutlineUserGroup } from 'react-icons/hi2'
 
-const EMPTY = { name: '', phone: '', kind: 'medical_rep', signup_bonus_egp: String(PARTNER_DEFAULTS.signup_bonus_egp), commission_pct: String(PARTNER_DEFAULTS.commission_pct), payout_method: '', payout_account: '', notes: '' }
+const EMPTY = { name: '', phone: '', kind: 'medical_rep', signup_bonus_egp: String(PARTNER_DEFAULTS.signup_bonus_egp), commission_pct: String(PARTNER_DEFAULTS.commission_pct), payout_method: '', payout_account: '', notes: '', trial_days: '' }
 
 const COMMISSION_STATUS = {
   pending: { label: 'مستنية مراجعتك', tone: 'bg-amber-50 text-amber-700' },
@@ -117,8 +118,10 @@ function PartnerForm({ partner, onDone }) {
     const phone = form.phone ? normalizePhone(form.phone) : null
     if (form.phone && !phone) return toast.error('رقم الموبايل مش صحيح')
     if (!bonus && !pct) return toast.error('حط مكافأة أو نسبة، وإلا الشريك مش هياخد حاجة')
+    const trial = parseTrialDays(form.trial_days)
+    if (!trial.ok) return toast.error(`مدة التجربة رقم صحيح من 0 لـ${DEFAULT_TRIAL_DAYS}، أو سيبها فاضية`)
     try {
-      await save.mutateAsync({ id: partner?.id, partner: { ...form, phone, signup_bonus_egp: bonus, commission_pct: pct, payout_method: form.payout_method || null } })
+      await save.mutateAsync({ id: partner?.id, partner: { ...form, phone, signup_bonus_egp: bonus, commission_pct: pct, payout_method: form.payout_method || null, trial_days: trial.days } })
       toast.success(partner ? 'اتحفظ' : 'اتضاف. ابعتله لينكه وكود الدخول')
       onDone?.()
     } catch (err) {
@@ -151,7 +154,13 @@ function PartnerForm({ partner, onDone }) {
           </Field>
           <Field label="رقم المحفظة / الحساب"><input className={inputClass} dir="ltr" value={form.payout_account} onChange={set('payout_account')} /></Field>
           <Field label="ملاحظات"><input className={inputClass} value={form.notes} onChange={set('notes')} /></Field>
+          <Field label="أيام التجربة من لينكه" hint={`فاضي = ${DEFAULT_TRIAL_DAYS} يوم زي الكل، و0 = من غير تجربة`}>
+            <input className={inputClass} type="number" min="0" max={DEFAULT_TRIAL_DAYS} step="1" value={form.trial_days} onChange={set('trial_days')} placeholder={String(DEFAULT_TRIAL_DAYS)} />
+          </Field>
         </div>
+        <p className="text-xs text-ink-soft">
+          الشريك كمان يقدر يعمل من لوحته لينك لعميل معيّن بمدة تجربة تانية حسب اتفاقه معاه، ولو حبيت تعمله إنت افتح «شوف لوحته».
+        </p>
         <EarningsTable terms={{ signup_bonus_egp: bonus, commission_pct: pct }} />
         <div className="flex gap-2 justify-end">
           {onDone && <Btn onClick={onDone}>إلغاء</Btn>}
@@ -226,7 +235,7 @@ function PartnerCard({ row, leads, onOpen }) {
         <b className="text-ink">{p.name}</b>
         <span className="text-xs text-ink-soft">{PARTNER_KINDS.find((k) => k.key === p.kind)?.label}</span>
         {!p.active && <span className="text-xs font-bold text-amber-700">موقوف</span>}
-        <span className="text-xs text-ink-soft sm:mr-auto tabular-nums">{egp(p.signup_bonus_egp)} لكل عيادة حقيقية + {Number(p.commission_pct || 0)}% من أول اشتراك</span>
+        <span className="text-xs text-ink-soft sm:mr-auto tabular-nums">{egp(p.signup_bonus_egp)} لكل عيادة حقيقية + {Number(p.commission_pct || 0)}% من أول اشتراك{p.trial_days != null && <> · التجربة: {trialLabel(p.trial_days)}</>}</span>
       </div>
 
       {/* The partner's own funnel, in the same words their dashboard uses. */}

@@ -183,9 +183,26 @@ export async function attributeSignup() {
   try {
     const { data, error } = await supabase.rpc('growth_attribute_signup', { p_ref: getStoredRef() })
     if (!error && data?.ok) clearStoredRef()
+    return !error && !!data?.ok
   } catch {
     // The nightly sync still creates the lead (as an organic signup).
+    return false
   }
+}
+
+/** Public: the trial a ref code gives (null = the usual 14 days). Migration 067. */
+export function useRefTrialDays(code) {
+  return useQuery({
+    queryKey: ['ref-trial-days', code],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('growth_ref_trial_days', { p_ref: code })
+      if (error) throw error
+      return data ?? null
+    },
+    enabled: !!code && /^[PT]-/i.test(code),
+    retry: false,
+    staleTime: Infinity,
+  })
 }
 
 // ── Partner commissions & the "real clinic" check (migration 033) ─────────
@@ -232,6 +249,40 @@ export function usePartnerDashboard(token) {
     },
     enabled: !!token,
     retry: false,
+  })
+}
+
+/** Public: the partner's trial and the links they made for single clients (067). */
+export function usePartnerTrial(token) {
+  return useQuery({
+    queryKey: ['partner-trial', token],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('growth_partner_trial', { p_token: token })
+      if (error) throw error
+      return data
+    },
+    enabled: !!token,
+    retry: false,
+  })
+}
+
+const LINK_ERRORS = {
+  inactive: 'لينكك موقوف حالياً. كلّمنا.',
+  bad_days: 'اختار مدة من 0 لـ14 يوم',
+  too_many: 'عملت لينكات كتير النهارده. جرّب بكرا أو كلّمنا.',
+  not_found: 'اللينك ده مش شغال. ادخل تاني برقمك والكود.',
+}
+
+export function useCreatePartnerLink(token) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ label, trialDays }) => {
+      const { data, error } = await supabase.rpc('growth_partner_create_link', { p_token: token, p_label: label, p_trial_days: trialDays })
+      if (error) throw error
+      if (!data?.ok) throw new Error(LINK_ERRORS[data?.error] ?? 'حصلت مشكلة، جرّب تاني')
+      return data
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['partner-trial', token] }),
   })
 }
 

@@ -50,7 +50,7 @@ const LEAD_FIELDS = [
   'source', 'source_detail', 'partner_id', 'stage', 'lost_reason', 'sales_angle',
   'next_follow_up_at', 'signals', 'notes', 'preview', 'is_test',
 ]
-const PARTNER_FIELDS = ['name', 'phone', 'kind', 'signup_bonus_egp', 'commission_pct', 'notes', 'active', 'payout_method', 'payout_account']
+const PARTNER_FIELDS = ['name', 'phone', 'kind', 'signup_bonus_egp', 'commission_pct', 'notes', 'active', 'payout_method', 'payout_account', 'trial_days']
 const COMMISSION_STATUSES = ['pending', 'approved', 'paid', 'rejected']
 
 // Supabase returns at most 1000 rows per request, however high the limit, so a

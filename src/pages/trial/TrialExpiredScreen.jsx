@@ -3,7 +3,8 @@ import { FaWhatsapp } from 'react-icons/fa'
 import { supabase } from '../../lib/supabase'
 import { SUPPORT_WHATSAPP } from '../../lib/support'
 
-export default function TrialExpiredScreen() {
+/** noTrial: the account came from a partner link with no trial (067), so it was never "expired". */
+export default function TrialExpiredScreen({ noTrial = false }) {
   async function handleLogout() {
     await supabase.auth.signOut()
     window.location.href = '/login'
@@ -16,10 +17,14 @@ export default function TrialExpiredScreen() {
           <span className="text-white font-bold text-2xl">ب</span>
         </div>
         <HiOutlineClock className="w-16 h-16 text-amber-400 mx-auto mb-3" />
-        <h1 className="text-xl font-bold text-gray-900">انتهت فترة التجربة المجانية</h1>
-        <p className="text-gray-500 text-sm mt-2">لمتابعة استخدام بسهولة وعدم فقدان بياناتك، تواصل معنا للاشتراك</p>
+        <h1 className="text-xl font-bold text-gray-900">{noTrial ? 'حسابك جاهز، فاضل التفعيل' : 'انتهت فترة التجربة المجانية'}</h1>
+        <p className="text-gray-500 text-sm mt-2">
+          {noTrial
+            ? 'الحساب ده من غير فترة تجربة. كلّمنا عشان نفعّله، وكل اللي جهزته هيفضل زي ما هو.'
+            : 'لمتابعة استخدام بسهولة وعدم فقدان بياناتك، تواصل معنا للاشتراك'}
+        </p>
         <a
-          href={`https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent('أهلاً، حسابي انتهت تجربته وعايز أشترك في بسهولة')}`}
+          href={`https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent(noTrial ? 'أهلاً، سجّلت في بسهولة وعايز أفعّل حسابي' : 'أهلاً، حسابي انتهت تجربته وعايز أشترك في بسهولة')}`}
           target="_blank"
           rel="noopener noreferrer"
           className="mt-5 w-full inline-flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white font-medium rounded-xl py-3 transition-colors"

@@ -16,6 +16,8 @@ import PhoneInput from '../../components/ui/PhoneInput'
 import TermsCheckbox from '../../components/auth/TermsCheckbox'
 import { PENDING_TERMS_KEY, termsAcceptance } from '../../lib/terms'
 import { useVisitorCountry } from '../../hooks/useVisitorPricing'
+import { useRefTrialDays } from '../../hooks/useGrowth'
+import { trialLabel } from '../../lib/trialDays'
 
 export default function Register() {
   const navigate = useNavigate()
@@ -33,8 +35,9 @@ export default function Register() {
   // direct /register?ref=… visit this renders before RouteTracker stores it.
   const [refCode] = useState(() => {
     const fromUrl = new URLSearchParams(window.location.search).get('ref')
-    return /^[LPRB]-[A-Za-z0-9-]{2,80}$/.test(fromUrl ?? '') ? fromUrl : getStoredRef()
+    return /^[LPRBT]-[A-Za-z0-9-]{2,80}$/.test(fromUrl ?? '') ? fromUrl : getStoredRef()
   })
+  const { data: trialDays } = useRefTrialDays(refCode)
 
   async function onSubmit({ email, password, ownerPhone }) {
     setServerError('')
@@ -97,6 +100,14 @@ export default function Register() {
         {refCode && (
           <p className="mb-4 inline-flex items-center gap-1.5 text-xs font-semibold text-accent-700 bg-accent-50 border border-accent-100 rounded-lg px-3 py-1.5">
             <HiOutlineGift className="w-4 h-4" aria-hidden="true" /> جاي بترشيح — هيتسجّل مع حسابك
+          </p>
+        )}
+        {/* A partner's link can come with its own trial (migration 067). */}
+        {trialDays != null && (
+          <p className="mb-4 text-sm text-ink bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+            {trialDays === 0
+              ? 'الحساب ده من غير فترة تجربة: سجّل وجهّز عيادتك، وهنفعّله أول ما الاشتراك يتم.'
+              : `فترة التجربة المجانية مع الترشيح ده ${trialLabel(trialDays)}.`}
           </p>
         )}
         <h2 className="text-2xl font-bold text-gray-900">إنشاء حساب جديد</h2>
