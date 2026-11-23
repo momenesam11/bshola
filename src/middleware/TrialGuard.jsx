@@ -16,9 +16,10 @@ export default function TrialGuard({ children }) {
   const trialEndsAt = business.trial_ends_at ? new Date(business.trial_ends_at) : null
   const isExpired = business.is_active === false || (trialEndsAt && trialEndsAt < new Date())
   const left = trialEndsAt ? Math.ceil((trialEndsAt - new Date()) / (1000 * 60 * 60 * 24)) : null
-  // A partner link with no trial (067): locked from day one until activation.
+  // A partner link with no trial (067) sets the end exactly at the start:
+  // locked from day one until activation, which isn't an "ended" trial.
   const noTrial = business.is_active !== false && business.subscription_type === 'trial' && !!trialEndsAt && !!business.trial_started_at
-    && trialEndsAt - new Date(business.trial_started_at) < 864e5
+    && Math.abs(trialEndsAt - new Date(business.trial_started_at)) < 1000
   const showWarning = !isExpired && left !== null && left >= 0 && left < 3 && !dismissed
 
   return (
