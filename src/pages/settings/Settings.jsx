@@ -59,7 +59,7 @@ function ServiceRow({ service, onUpdateField, onDelete }) {
       <input type="number" min={0} defaultValue={service.price || ''} placeholder="السعر"
         onBlur={e => onUpdateField(service, 'price', e.target.value ? Number(e.target.value) : null)}
         className="w-20 border border-slate-200 rounded-lg px-2 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-accent-400" dir="ltr" />
-      <button onClick={() => onDelete(service.id)} className="text-red-400 hover:text-red-600 p-1.5">
+      <button type="button" onClick={() => onDelete(service.id)} aria-label={`حذف الخدمة ${service.name || ''}`.trim()} className="text-red-400 hover:text-red-600 p-1.5">
         <HiOutlineTrash className="w-4 h-4" />
       </button>
     </div>

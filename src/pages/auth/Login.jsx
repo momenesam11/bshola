@@ -1,6 +1,6 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { supabase } from '../../lib/supabase'
@@ -12,7 +12,10 @@ import GoogleButton from '../../components/auth/GoogleButton'
 
 export default function Login() {
   const navigate = useNavigate()
-  const [serverError, setServerError] = useState('')
+  const location = useLocation()
+  // Back from Google without signing in (cancelled or refused) — AuthCallback.
+  const [serverError, setServerError] = useState(() =>
+    location.state?.oauthError ? 'الدخول بحساب Google ماكملش. جرّب تاني، أو ادخل بالإيميل وكلمة المرور.' : '')
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(loginSchema),

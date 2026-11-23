@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { Link } from 'react-router-dom'
@@ -234,7 +235,8 @@ function DeletionRequests({ businesses, onDelete }) {
   )
 }
 
-function Dashboard() {
+function Dashboard({ onLogout }) {
+  const qc = useQueryClient()
   const { data: businesses = [], isLoading } = useAdminBusinesses()
   const deactivate = useDeactivateBusiness()
   const [deleteTarget, setDeleteTarget] = useState(null)
@@ -284,9 +286,12 @@ function Dashboard() {
     }
   }
 
+  // Back to the password screen in place: a full reload showed a blank page
+  // for a moment and threw away nothing that this doesn't.
   function handleLogout() {
     adminLogout()
-    window.location.reload()
+    qc.clear()
+    onLogout()
   }
 
   return (
@@ -536,5 +541,5 @@ export default function AdminDashboard() {
   const [authenticated, setAuthenticated] = useState(() => hasAdminToken())
 
   if (!authenticated) return <PasswordGate onAuthenticated={() => setAuthenticated(true)} />
-  return <Dashboard />
+  return <Dashboard onLogout={() => setAuthenticated(false)} />
 }

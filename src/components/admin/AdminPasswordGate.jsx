@@ -8,9 +8,16 @@ export default function PasswordGate({ onAuthenticated }) {
   const [error, setError] = useState(false)
   const [locked, setLocked] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [empty, setEmpty] = useState(false)
 
   async function handleSubmit(e) {
     e.preventDefault()
+    // An empty try would still count towards the lock-out on the server.
+    if (!password.trim()) {
+      setEmpty(true)
+      return
+    }
+    setEmpty(false)
     setLoading(true)
     const { token, locked: isLocked } = await adminLogin(password)
     setLoading(false)
@@ -43,6 +50,7 @@ export default function PasswordGate({ onAuthenticated }) {
           autoFocus
           className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-accent-400 focus:border-accent-400"
         />
+        {empty && <p role="alert" className="text-xs text-red-500 mt-2">اكتب كلمة السر الأول</p>}
         {error && <p className="text-xs text-red-500 mt-2">كلمة السر غلط</p>}
         {locked && <p className="text-xs text-red-500 mt-2">محاولات كتير من الشبكة دي. جرّب تاني بعد 15 دقيقة، أو ادخل من شبكة تانية.</p>}
         <button
