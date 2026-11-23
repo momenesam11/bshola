@@ -6,6 +6,7 @@
 //   P-XXXXXX    a partner's link            (growth_partners.ref_code)
 //   R-<slug>    a customer referring a peer (businesses.booking_slug)
 //   B-<slug>    the footer of a customer's public booking page
+//   T-XXXXXXXX  a link a partner made for one client, with its own trial (growth_partner_links)
 
 import { SITE_URL } from '../seo'
 

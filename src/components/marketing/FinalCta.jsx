@@ -2,13 +2,17 @@ import { Link } from 'react-router-dom'
 import { FaFacebook, FaInstagram, FaPhone, FaTiktok, FaWhatsapp } from 'react-icons/fa'
 import Reveal from './Reveal'
 import LeadCaptureForm from './LeadCaptureForm'
+import { useVisitorTrial } from '../../hooks/useVisitorTrial'
 import { DEMO_BOOKING_PATH, SOCIAL_LINKS, SUPPORT_PHONE_DISPLAY, SUPPORT_PHONE_E164, SUPPORT_WHATSAPP, SUPPORT_WHATSAPP_DISPLAY } from '../../lib/support'
 
 /** Closing call-to-action, shared by the homepage and every standalone marketing page. */
 export default function FinalCta({
-  title = 'جرّبه 14 يوم على مواعيدك الحقيقية',
+  title: titleProp,
   lead = 'الإعداد 6 خطوات، وفي آخرها يبقى معاك رابط حجز شغال تبعته لعملاءك. من غير بطاقة بنكية، ومن غير أي التزام.',
 }) {
+  // A partner's link can come with a different trial (migration 067).
+  const trial = useVisitorTrial()
+  const title = titleProp ?? trial?.title ?? 'جرّبه 14 يوم على مواعيدك الحقيقية'
   return (
     <section className="bg-ink-deep text-white border-t border-white/10">
       <Reveal className="max-w-6xl mx-auto px-5 sm:px-8 py-16 sm:py-20 text-center">
@@ -21,7 +25,7 @@ export default function FinalCta({
             to="/register"
             className="inline-flex items-center justify-center bg-accent-500 hover:bg-accent-600 text-white text-[15px] font-bold px-8 py-4 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] motion-reduce:hover:scale-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
           >
-            ابدأ تجربتك المجانية
+            {trial?.button ?? 'ابدأ تجربتك المجانية'}
           </Link>
           <a
             href={`https://wa.me/${SUPPORT_WHATSAPP}`}

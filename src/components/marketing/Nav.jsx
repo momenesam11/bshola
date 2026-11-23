@@ -4,6 +4,7 @@ import { HiBars3, HiChevronDown, HiXMark } from 'react-icons/hi2'
 import Logo from './Logo'
 import FloatingWhatsApp from './FloatingWhatsApp'
 import { VERTICALS } from '../../content/verticals'
+import { useVisitorTrial } from '../../hooks/useVisitorTrial'
 
 /**
  * Site-wide header, shared by the homepage and every standalone marketing
@@ -171,6 +172,8 @@ export default function Nav() {
   const [scrolled, setScrolled] = useState(false)
   const { pathname } = useLocation()
   const activeAnchorId = useSectionScrollSpy(pathname === '/')
+  const trial = useVisitorTrial()
+  const startLabel = trial?.cta ?? 'ابدأ 14 يوم مجاناً'
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24)
@@ -226,7 +229,7 @@ export default function Nav() {
               to="/register"
               className="bg-accent-500 hover:bg-accent-600 text-white text-[13.5px] font-bold px-5 py-2.5 rounded-xl transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
             >
-              ابدأ 14 يوم مجاناً
+              {startLabel}
             </Link>
           </div>
 
@@ -302,7 +305,7 @@ export default function Nav() {
               to="/register"
               className="flex-1 text-center py-3 text-[14px] font-bold text-white bg-accent-500 rounded-xl"
             >
-              ابدأ 14 يوم مجاناً
+              {startLabel}
             </Link>
           </div>
         </nav>

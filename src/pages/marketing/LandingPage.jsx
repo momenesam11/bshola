@@ -29,6 +29,7 @@ import {
 } from '../../lib/seo'
 import { DEMO_BOOKING_PATH, SUPPORT_WHATSAPP } from '../../lib/support'
 import { useVisitorPricing } from '../../hooks/useVisitorPricing'
+import { useVisitorTrial } from '../../hooks/useVisitorTrial'
 
 /**
  * Landing page.
@@ -150,6 +151,9 @@ function Hero() {
 
 function TrustStrip() {
   const { t } = useVisitorPricing()
+  // A partner's link can come with a different trial (migration 067).
+  const trial = useVisitorTrial()
+  const facts = trial ? FACTS.map((f) => (f.label === '14 يوم تجربة' ? trial.fact : f)) : FACTS
   return (
     <section className="bg-white border-t border-rule" aria-label="لمين النظام وإيه اللي يميزه">
       {/* Two full-width rows rather than two half-width columns: at 1024–1280px
@@ -178,7 +182,7 @@ function TrustStrip() {
 
           <div className="pt-6 border-t border-rule">
             <ul className="grid sm:grid-cols-2 lg:grid-cols-4 gap-x-10 gap-y-4">
-              {FACTS.map((fact, i) => (
+              {facts.map((fact, i) => (
                 <Reveal as="li" key={fact.label} delay={i * 90} className="flex items-start gap-2">
                   <HiOutlineCheck
                     className="w-4 h-4 text-accent-600 flex-shrink-0 mt-[3px]"

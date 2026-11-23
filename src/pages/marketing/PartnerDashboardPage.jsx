@@ -4,8 +4,10 @@ import toast from 'react-hot-toast'
 import { FaWhatsapp } from 'react-icons/fa'
 import { HiOutlineArrowRightOnRectangle, HiOutlineCheckCircle } from 'react-icons/hi2'
 import Logo from '../../components/marketing/Logo'
-import { usePartnerDashboard } from '../../hooks/useGrowth'
-import { partnerLink } from '../../lib/growth/links'
+import { useState } from 'react'
+import { useCreatePartnerLink, usePartnerDashboard, usePartnerTrial } from '../../hooks/useGrowth'
+import { partnerLink, registerLink } from '../../lib/growth/links'
+import { TRIAL_CHOICES, trialLabel, trialShareText } from '../../lib/trialDays'
 import { partnerEarnings } from '../../lib/growth/analytics'
 import { PAYOUT_METHODS } from '../../lib/growth/constants'
 import { SUPPORT_WHATSAPP } from '../../lib/support'
@@ -35,6 +37,7 @@ export default function PartnerDashboardPage() {
   const { token } = useParams()
   const navigate = useNavigate()
   const { data, isLoading } = usePartnerDashboard(token)
+  const { data: trial } = usePartnerTrial(token)
 
   function logout() {
     try {
@@ -83,7 +86,8 @@ export default function PartnerDashboardPage() {
     }
   }
 
-  const shareText = `أهلاً دكتور ده «بسهولة»، نظام حجز مواعيد مصري: المرضى بيحجزوا من لينك، والتذكير بالمواعيد بيتبعت على الواتساب بضغطة زر. جرّبه 14 يوم ببلاش من هنا: ${link}`
+  const trialDays = trial?.trial_days ?? null
+  const shareText = trialShareText(trialDays, link)
 
   return (
     <div className="min-h-screen bg-paper text-ink font-sans" dir="rtl">
@@ -127,7 +131,12 @@ export default function PartnerDashboardPage() {
             className="mt-3 inline-flex items-center gap-2 bg-accent-500 hover:bg-accent-600 text-white text-sm font-bold px-4 py-2.5 rounded-xl">
             <FaWhatsapp className="w-4 h-4" /> ابعته لدكتور على واتساب
           </a>
+          <p className="mt-3 text-xs text-ink-soft">
+            اللي بيسجّل من اللينك ده: {trialDays === 0 ? 'من غير تجربة، وبنفعّله لما يشترك' : `تجربة ${trialLabel(trialDays)} ببلاش`}.
+          </p>
         </section>
+
+        {partner.active && <ClientLinks token={token} links={trial?.links ?? []} />}
 
         <section className="rounded-2xl bg-white border border-rule p-5">
           <p className="text-sm font-bold mb-3">هتكسب كام من كل عيادة؟</p>
@@ -221,6 +230,90 @@ export default function PartnerDashboardPage() {
         </p>
       </main>
     </div>
+  )
+}
+
+/**
+ * Links for one client with the trial the partner agreed with them (migration
+ * 067). Each one credits the partner like their own link.
+ */
+function ClientLinks({ token, links }) {
+  const [label, setLabel] = useState('')
+  const [days, setDays] = useState(2)
+  const create = useCreatePartnerLink(token)
+
+  async function submit(e) {
+    e.preventDefault()
+    try {
+      await create.mutateAsync({ label: label.trim() || null, trialDays: days })
+      setLabel('')
+      toast.success('اللينك اتعمل، ابعته للعميل')
+    } catch (err) {
+      toast.error(err.message)
+    }
+  }
+
+  async function copy(url) {
+    try {
+      await navigator.clipboard.writeText(url)
+      toast.success('اللينك اتنسخ')
+    } catch {
+      toast.error('انسخ اللينك بإيدك')
+    }
+  }
+
+  return (
+    <section className="rounded-2xl bg-white border border-rule p-5">
+      <p className="text-sm font-bold">لينك لعميل معيّن</p>
+      <p className="text-xs text-ink-soft mt-1 leading-relaxed">
+        اتفقت مع دكتور على مدة تجربة تانية، أو إنه هيشترك على طول؟ اعمله لينك لوحده بالمدة دي. العيادة بتتحسب ليك زي لينكك بالظبط.
+      </p>
+      <form onSubmit={submit} className="mt-3 grid sm:grid-cols-[1fr_auto_auto] gap-2">
+        <label className="block">
+          <span className="sr-only">اسم العميل</span>
+          <input value={label} onChange={(e) => setLabel(e.target.value)} maxLength={80} placeholder="اسم الدكتور أو العيادة (ليك إنت بس)"
+            className="w-full rounded-xl border border-rule px-3 py-2.5 text-sm" />
+        </label>
+        <label className="block">
+          <span className="sr-only">مدة التجربة</span>
+          <select value={days} onChange={(e) => setDays(Number(e.target.value))} aria-label="مدة التجربة"
+            className="w-full rounded-xl border border-rule px-3 py-2.5 text-sm bg-white">
+            {TRIAL_CHOICES.map((d) => <option key={d} value={d}>{d === 0 ? 'من غير تجربة' : `تجربة ${trialLabel(d)}`}</option>)}
+          </select>
+        </label>
+        <button type="submit" disabled={create.isPending} className="bg-ink text-white text-sm font-bold rounded-xl px-4 py-2.5 disabled:opacity-60">اعمل لينك</button>
+      </form>
+      {days === 0 && (
+        <p className="mt-2 text-xs text-amber-700">من غير تجربة يعني الحساب بيتقفل أول ما العيادة تخلّص الإعداد، لحد ما تشترك ونفعّله.</p>
+      )}
+
+      {links.length > 0 && (
+        <ul className="mt-4 divide-y divide-slate-100">
+          {links.map((l) => {
+            const url = registerLink(l.code)
+            return (
+              <li key={l.code} className="py-3 text-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-semibold truncate">{l.label || 'من غير اسم'}</p>
+                    <p className="text-xs text-ink-soft">
+                      {l.trial_days === 0 ? 'من غير تجربة' : `تجربة ${trialLabel(l.trial_days)}`} · {date(l.created_at)}
+                      {l.signed_up > 0 && ` · سجّل منه ${l.signed_up}`}
+                    </p>
+                    <p className="text-xs font-mono text-ink-soft truncate" dir="ltr" data-testid="client-link">{url}</p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button type="button" onClick={() => copy(url)} className="text-xs font-bold text-accent-700">نسخ</button>
+                    <a href={`https://wa.me/?text=${encodeURIComponent(trialShareText(l.trial_days, url))}`} target="_blank" rel="noopener noreferrer"
+                      aria-label="ابعته على واتساب" className="text-accent-600"><FaWhatsapp className="w-5 h-5" /></a>
+                  </div>
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </section>
   )
 }
 

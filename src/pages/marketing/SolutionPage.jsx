@@ -7,6 +7,7 @@ import Nav from '../../components/marketing/Nav'
 import Footer from '../../components/marketing/Footer'
 import { pageBySlug } from '../../content/marketingPages'
 import { useVisitorPricing } from '../../hooks/useVisitorPricing'
+import { useVisitorTrial } from '../../hooks/useVisitorTrial'
 import {
   articleSchema,
   breadcrumbSchema,
@@ -29,6 +30,7 @@ export default function SolutionPage({ slug }) {
   const page = pageBySlug(slug)
   const [openFaq, setOpenFaq] = useState(0)
   const pricing = useVisitorPricing()
+  const trial = useVisitorTrial()
 
   // Routes are generated from the same content file, so a miss means a typo in
   // a hand-written route — fail loudly in dev rather than render an empty page.
@@ -98,7 +100,7 @@ export default function SolutionPage({ slug }) {
               to="/register"
               className="inline-flex items-center justify-center gap-2 bg-accent-500 hover:bg-accent-600 text-white font-bold px-7 py-3.5 rounded-2xl shadow-lg shadow-accent/20 transition-all hover:scale-102"
             >
-              <span>ابدأ تجربة 14 يوم مجاناً</span>
+              <span>{trial?.cta ?? 'ابدأ تجربة 14 يوم مجاناً'}</span>
               <HiOutlineArrowLeft className="w-5 h-5" />
             </Link>
             <a
@@ -202,7 +204,7 @@ export default function SolutionPage({ slug }) {
         <section className="mb-16 bg-[#0F2C4E] text-white rounded-3xl p-8 sm:p-12 text-center">
           <h2 className="text-2xl sm:text-3xl font-black mb-4">جاهز تنظّم حجوزاتك؟</h2>
           <p className="text-slate-300 mb-7 max-w-xl mx-auto leading-relaxed">
-            14 يوم تجربة مجانية بكل المميزات، بدون بطاقة بنكية وبدون التزام.
+            {trial?.line ?? '14 يوم تجربة مجانية بكل المميزات، بدون بطاقة بنكية وبدون التزام.'}
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link

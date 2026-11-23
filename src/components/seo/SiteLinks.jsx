@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { MARKETING_PAGES } from '../../content/marketingPages'
 import { GUIDES } from '../../content/guides'
 import { COUNTRY_PAGES } from '../../content/countryPages'
+import { useVisitorTrial } from '../../hooks/useVisitorTrial'
 
 /**
  * The site's internal link hub, rendered in the footer of every public page.
@@ -12,6 +13,7 @@ import { COUNTRY_PAGES } from '../../content/countryPages'
  * the home page (the only page with external links today) to every cluster.
  */
 export default function SiteLinks({ className = '' }) {
+  const trial = useVisitorTrial()
   const solutions = MARKETING_PAGES.filter((p) => p.group === 'solutions')
   const features = MARKETING_PAGES.filter((p) => p.group === 'features')
 
@@ -123,7 +125,7 @@ export default function SiteLinks({ className = '' }) {
           </li>
           <li>
             <Link to="/register" className="text-xs text-slate-300 hover:text-accent transition-colors">
-              ابدأ تجربة 14 يوم مجاناً
+              {trial?.cta ?? 'ابدأ تجربة 14 يوم مجاناً'}
             </Link>
           </li>
           <li>
